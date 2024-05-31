@@ -1,12 +1,214 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Kubernetes Data Collector</title>
-    <link rel="stylesheet" type="text/css" href="style.css">
+    <title>Kollect - Welcome to the Kubernetes Data Collector!</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to the Kubernetes Data Collector!</h1>
-    <div id="data"></div>
-    <script src="script.js"></script>
+    <h1>Nodes</h1>
+    <table id="nodes-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added here by JavaScript -->
+        </tbody>
+    </table>
+
+    <h1>Namespaces</h1>
+    <table id="namespaces-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added here by JavaScript -->
+        </tbody>
+    </table>
+
+    <h1>Pods</h1>
+    <table id="pods-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added here by JavaScript -->
+        </tbody>
+    </table>
+
+    <h1>Deployments</h1>
+    <table id="deployments-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added here by JavaScript -->
+        </tbody>
+    </table>
+
+    <h1>StatefulSets</h1>
+    <table id="statefulsets-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added here by JavaScript -->
+        </tbody>
+    </table>
+
+    <h1>Services</h1>
+    <table id="services-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added here by JavaScript -->
+        </tbody>
+    </table>
+
+    <h1>PersistentVolumes</h1>
+    <table id="persistentvolumes-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added here by JavaScript -->
+        </tbody>
+    </table>
+
+    <h1>PersistentVolumeClaims</h1>
+    <table id="persistentvolumeclaims-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added here by JavaScript -->
+        </tbody>
+    </table>
+
+    <h1>StorageClasses</h1>
+    <table id="storageclasses-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added here by JavaScript -->
+        </tbody>
+    </table>
+
+    <h1>VolumeSnapshotClasses</h1>
+    <table id="volumesnapshotclasses-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Rows will be added here by JavaScript -->
+        </tbody>
+    </table>
+
+    <script>
+        fetch('/api/data')
+            .then(response => response.json())
+            .then(data => {
+                const nodesTable = document.getElementById('nodes-table');
+                data.Nodes.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item}</td>`;
+                    nodesTable.appendChild(row);
+                });
+
+                const namespacesTable = document.getElementById('namespaces-table');
+                data.Namespaces.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item}</td>`;
+                    namespacesTable.appendChild(row);
+                });
+
+                const podsTable = document.getElementById('pods-table');
+                data.Pods.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item}</td>`;
+                    podsTable.appendChild(row);
+                });
+
+                const deploymentsTable = document.getElementById('deployments-table');
+                data.Deployments.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item}</td>`;
+                    deploymentsTable.appendChild(row);
+                });
+
+                const statefulsetsTable = document.getElementById('statefulsets-table');
+                data.StatefulSets.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item}</td>`;
+                    statefulsetsTable.appendChild(row);
+                });
+
+                const servicesTable = document.getElementById('services-table');
+                data.Services.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item}</td>`;
+                    servicesTable.appendChild(row);
+                });
+
+                const persistentvolumesTable = document.getElementById('persistentvolumes-table');
+                data.PersistentVolumes.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item}</td>`;
+                    persistentvolumesTable.appendChild(row);
+                });
+
+                const persistentvolumeclaimsTable = document.getElementById('persistentvolumeclaims-table');
+                data.PersistentVolumeClaims.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item}</td>`;
+                    persistentvolumeclaimsTable.appendChild(row);
+                });
+
+                const storageclassesTable = document.getElementById('storageclasses-table');
+                data.StorageClasses.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item}</td>`;
+                    storageclassesTable.appendChild(row);
+                });
+
+                const volumesnapshotclassesTable = document.getElementById('volumesnapshotclasses-table');
+                data.VolumeSnapshotClasses.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item}</td>`;
+                    volumesnapshotclassesTable.appendChild(row);
+                });
+            });
+    </script>
 </body>
 </html>
