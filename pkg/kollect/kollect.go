@@ -14,52 +14,52 @@ func CollectData(clientset *kubernetes.Clientset) (K8sData, error) {
 
 	data.Nodes, err = fetchNodes(clientset)
 	if err != nil {
-		return v1.K8sData{}, err
+		return K8sData{}, err
 	}
 
 	data.Namespaces, err = fetchNamespaces(clientset)
 	if err != nil {
-		return v1.K8sData{}, err
+		return K8sData{}, err
 	}
 
 	data.Pods, err = fetchPods(clientset)
 	if err != nil {
-		return v1.K8sData{}, err
+		return K8sData{}, err
 	}
 
 	data.Deployments, err = fetchDeployments(clientset)
 	if err != nil {
-		return v1.K8sData{}, err
+		return K8sData{}, err
 	}
 
 	data.StatefulSets, err = fetchStatefulSets(clientset)
 	if err != nil {
-		return v1.K8sData{}, err
+		return K8sData{}, err
 	}
 
 	data.Services, err = fetchServices(clientset)
 	if err != nil {
-		return v1.K8sData{}, err
+		return K8sData{}, err
 	}
 
 	data.PersistentVolumes, err = fetchPersistentVolumes(clientset)
 	if err != nil {
-		return v1.K8sData{}, err
+		return K8sData{}, err
 	}
 
 	data.PersistentVolumeClaims, err = fetchPersistentVolumeClaims(clientset)
 	if err != nil {
-		return v1.K8sData{}, err
+		return K8sData{}, err
 	}
 
 	data.StorageClasses, err = fetchStorageClasses(clientset)
 	if err != nil {
-		return v1.K8sData{}, err
+		return K8sData{}, err
 	}
 
 	data.VolumeSnapshotClasses, err = fetchVolumeSnapshotClasses(clientset)
 	if err != nil {
-		return v1.K8sData{}, err
+		return K8sData{}, err
 	}
 
 	// Fetch other Kubernetes objects here
