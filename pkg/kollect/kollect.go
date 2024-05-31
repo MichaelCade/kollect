@@ -4,11 +4,12 @@ package kollect
 import (
 	"context"
 
+	k8sdata "github.com/michaelcade/kollect/api/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-func CollectData(clientset *kubernetes.Clientset) (K8sData, error) {
+func CollectData(clientset *kubernetes.Clientset) (k8sdata.K8sData, error) {
 	var data K8sData
 	var err error
 
