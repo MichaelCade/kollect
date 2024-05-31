@@ -21,11 +21,6 @@ func main() {
 		log.Fatalf("Failed to build kubeconfig: %v", err)
 	}
 
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatalf("Failed to create clientset: %v", err)
-	}
-
 	http.Handle("/", http.FileServer(http.Dir("web")))
 	http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
 		data, err := kollect.CollectData(kubeconfig)
