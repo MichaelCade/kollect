@@ -3,18 +3,44 @@
 <head>
     <title>Kollect - Welcome to the Kubernetes Data Collector!</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #333;
+            color: #ffffff;
+            padding: 10px 0;
+            text-align: center;
+        }
+        img {
+            height: 80px;
+        }
+        h1 {
+            font-size: 2em;
+        }
         table {
-            width: 100%;
+            width: 90%;
+            margin: 20px auto;
             border-collapse: collapse;
+            box-shadow: 0px 0px 20px rgba(0,0,0,0.15);
         }
         th, td {
-            border: 1px solid black;
+            border: 1px solid #dddddd;
             padding: 8px;
             text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
         }
     </style>
 </head>
 <body>
+    <img src="placeholder.png" alt="Logo">
+    <h1>Kollect - Welcome to the Kubernetes Data Collector!</h1>
     <h1>Nodes</h1>
     <table id="nodes-table">
         <thead>
