@@ -4,12 +4,12 @@ package kollect
 import (
 	"context"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
-func CollectData(clientset *kubernetes.Clientset) (v1.K8sData, error) {
-	var data v1.K8sData
+func CollectData(clientset *kubernetes.Clientset) (K8sData, error) {
+	var data K8sData
 	var err error
 
 	data.Nodes, err = fetchNodes(clientset)
@@ -68,7 +68,7 @@ func CollectData(clientset *kubernetes.Clientset) (v1.K8sData, error) {
 }
 
 func fetchNodes(clientset *kubernetes.Clientset) ([]string, error) {
-	nodes, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{})
+	nodes, err := clientset.CoreV1().Nodes().List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func fetchNodes(clientset *kubernetes.Clientset) ([]string, error) {
 }
 
 func fetchNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
-	namespaces, err := clientset.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
+	namespaces, err := clientset.CoreV1().Namespaces().List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func fetchNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
 }
 
 func fetchPods(clientset *kubernetes.Clientset) ([]string, error) {
-	pods, err := clientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
+	pods, err := clientset.CoreV1().Pods("").List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func fetchPods(clientset *kubernetes.Clientset) ([]string, error) {
 }
 
 func fetchDeployments(clientset *kubernetes.Clientset) ([]string, error) {
-	deployments, err := clientset.AppsV1().Deployments("").List(context.Background(), metav1.ListOptions{})
+	deployments, err := clientset.AppsV1().Deployments("").List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func fetchDeployments(clientset *kubernetes.Clientset) ([]string, error) {
 }
 
 func fetchStatefulSets(clientset *kubernetes.Clientset) ([]string, error) {
-	statefulSets, err := clientset.AppsV1().StatefulSets("").List(context.Background(), metav1.ListOptions{})
+	statefulSets, err := clientset.AppsV1().StatefulSets("").List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func fetchStatefulSets(clientset *kubernetes.Clientset) ([]string, error) {
 }
 
 func fetchServices(clientset *kubernetes.Clientset) ([]string, error) {
-	services, err := clientset.CoreV1().Services("").List(context.Background(), metav1.ListOptions{})
+	services, err := clientset.CoreV1().Services("").List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ func fetchServices(clientset *kubernetes.Clientset) ([]string, error) {
 }
 
 func fetchPersistentVolumes(clientset *kubernetes.Clientset) ([]string, error) {
-	persistentVolumes, err := clientset.CoreV1().PersistentVolumes().List(context.Background(), metav1.ListOptions{})
+	persistentVolumes, err := clientset.CoreV1().PersistentVolumes().List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +166,7 @@ func fetchPersistentVolumes(clientset *kubernetes.Clientset) ([]string, error) {
 }
 
 func fetchPersistentVolumeClaims(clientset *kubernetes.Clientset) ([]string, error) {
-	persistentVolumeClaims, err := clientset.CoreV1().PersistentVolumeClaims("").List(context.Background(), metav1.ListOptions{})
+	persistentVolumeClaims, err := clientset.CoreV1().PersistentVolumeClaims("").List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func fetchPersistentVolumeClaims(clientset *kubernetes.Clientset) ([]string, err
 }
 
 func fetchStorageClasses(clientset *kubernetes.Clientset) ([]string, error) {
-	storageClasses, err := clientset.StorageV1().StorageClasses().List(context.Background(), metav1.ListOptions{})
+	storageClasses, err := clientset.StorageV1().StorageClasses().List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +194,7 @@ func fetchStorageClasses(clientset *kubernetes.Clientset) ([]string, error) {
 }
 
 func fetchVolumeSnapshotClasses(clientset *kubernetes.Clientset) ([]string, error) {
-	volumeSnapshotClasses, err := clientset.SnapshotV1().VolumeSnapshotClasses().List(context.Background(), metav1.ListOptions{})
+	volumeSnapshotClasses, err := clientset.SnapshotV1().VolumeSnapshotClasses().List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
