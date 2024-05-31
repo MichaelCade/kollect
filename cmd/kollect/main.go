@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/michaelcade/kollect/pkg/kollect"
 	"k8s.io/client-go/kubernetes"
@@ -12,7 +14,9 @@ import (
 )
 
 func main() {
-	config, err := clientcmd.BuildConfigFromFlags("", "/path/to/your/kubeconfig")
+	kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		log.Fatalf("Failed to build kubeconfig: %v", err)
 	}
@@ -24,7 +28,7 @@ func main() {
 
 	http.Handle("/", http.FileServer(http.Dir("web")))
 	http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
-		data, err := kollect.CollectData(clientset)
+		data, err := kollect.CollectData(kubeconfig)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
