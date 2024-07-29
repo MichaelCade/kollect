@@ -11,6 +11,64 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+func CollectStorageData(kubeconfig string) (k8sdata.K8sData, error) {
+
+	var data k8sdata.K8sData
+	var err error
+
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+
+	data.VolumeSnapshotClasses, err = fetchVolumeSnapshotClasses(dynamicClient)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+
+	data.Nodes, err = fetchNodes(clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+
+	data.Namespaces, err = fetchNamespaces(clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+
+	data.StatefulSets, err = fetchStatefulSets(clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+
+	data.PersistentVolumes, err = fetchPersistentVolumes(clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+
+	data.PersistentVolumeClaims, err = fetchPersistentVolumeClaims(clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+
+	data.StorageClasses, err = fetchStorageClasses(clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+
+	return data, nil
+}
+
 func CollectData(kubeconfig string) (k8sdata.K8sData, error) {
 	var data k8sdata.K8sData
 	var err error

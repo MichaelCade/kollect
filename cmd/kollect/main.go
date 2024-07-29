@@ -3,20 +3,31 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
+	"github.com/michaelcade/kollect/pkg/kollect"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
-
-	"github.com/michaelcade/kollect/pkg/kollect"
 )
 
 func main() {
+	storageOnly := flag.Bool("storage", false, "Collect only storage-related objects")
+	flag.Parse()
+
 	kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
 	http.Handle("/", http.FileServer(http.Dir("web")))
 	http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
-		data, err := kollect.CollectData(kubeconfig)
+		var data interface{}
+		var err error
+
+		if *storageOnly {
+			data, err = kollect.CollectStorageData(kubeconfig)
+		} else {
+			data, err = kollect.CollectData(kubeconfig)
+		}
+
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
