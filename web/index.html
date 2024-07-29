@@ -32,240 +32,76 @@
           <div class="col-md-12">
             <img src="logo-placeholder.jpeg" alt="Logo">
             <h1>Kollect - Welcome to the Kubernetes Data Collector!</h1>
-            <h1>Nodes</h1>
-            <table id="nodes-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                </tr>
-            </thead>
-        <tbody>
-            <!-- Rows will be added here by JavaScript -->
-        </tbody>
-    </table>
-
-    <h1>Namespaces</h1>
-    <table id="namespaces-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Rows will be added here by JavaScript -->
-        </tbody>
-    </table>
-
-    <h1>Pods</h1>
-    <table id="pods-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Rows will be added here by JavaScript -->
-        </tbody>
-    </table>
-
-    <h1>Deployments</h1>
-    <table id="deployments-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Rows will be added here by JavaScript -->
-        </tbody>
-    </table>
-
-    <h1>StatefulSets</h1>
-    <table id="statefulsets-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Rows will be added here by JavaScript -->
-        </tbody>
-    </table>
-
-    <h1>Services</h1>
-    <table id="services-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Rows will be added here by JavaScript -->
-        </tbody>
-    </table>
-
-    <h1>PersistentVolumes</h1>
-    <table id="persistentvolumes-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Rows will be added here by JavaScript -->
-        </tbody>
-    </table>
-
-    <h1>PersistentVolumeClaims</h1>
-    <table id="persistentvolumeclaims-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Rows will be added here by JavaScript -->
-        </tbody>
-    </table>
-
-    <h1>StorageClasses</h1>
-    <table id="storageclasses-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Rows will be added here by JavaScript -->
-        </tbody>
-    </table>
-
-    <h1>VolumeSnapshotClasses</h1>
-    <table id="volumesnapshotclasses-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Rows will be added here by JavaScript -->
-        </tbody>
-    </table>
+            <div id="content">
+                <!-- Tables will be added here by JavaScript -->
+            </div>
+          </div>
+        </div>
+    </div>
 
     <script>
+        function createTable(tableId, headerText) {
+            const table = document.createElement('table');
+            table.id = tableId;
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>${headerText}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be added here by JavaScript -->
+                </tbody>
+            `;
+            return table;
+        }
+
+        function populateTable(containerId, tableId, headerText, data) {
+            const container = document.getElementById(containerId);
+            if (data && data.length > 0) {
+                const table = createTable(tableId, headerText);
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${item}</td>`;
+                    table.querySelector('tbody').appendChild(row);
+                });
+                container.appendChild(table);
+            } else {
+                console.log(`No data for ${tableId}`);
+            }
+        }
+
         fetch('/api/data')
-    .then(response => response.json())
-    .then(data => {
-        const nodesTable = document.getElementById('nodes-table');
-        if (data.Nodes) {
-            data.Nodes.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${item}</td>`;
-                nodesTable.appendChild(row);
-            });
-        } else {
-            console.log('No Nodes data');
-        }
+            .then(response => response.json())
+            .then(data => {
+                console.log('API Data:', data); // Log the API response
 
-        const namespacesTable = document.getElementById('namespaces-table');
-        if (data.Namespaces) {
-            data.Namespaces.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${item}</td>`;
-                namespacesTable.appendChild(row);
-            });
-        } else {
-            console.log('No Namespaces data');
-        }
+                // Log each data category to verify its content
+                console.log('Nodes:', data.Nodes);
+                console.log('Namespaces:', data.Namespaces);
+                console.log('Pods:', data.Pods);
+                console.log('Deployments:', data.Deployments);
+                console.log('StatefulSets:', data.StatefulSets);
+                console.log('Services:', data.Services);
+                console.log('PersistentVolumes:', data.PersistentVolumes);
+                console.log('PersistentVolumeClaims:', data.PersistentVolumeClaims);
+                console.log('StorageClasses:', data.StorageClasses);
+                console.log('VolumeSnapshotClasses:', data.VolumeSnapshotClasses);
 
-        const podsTable = document.getElementById('pods-table');
-        if (data.Pods) {
-            data.Pods.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${item}</td>`;
-                podsTable.appendChild(row);
+                populateTable('content', 'nodes-table', 'Nodes', data.Nodes);
+                populateTable('content', 'namespaces-table', 'Namespaces', data.Namespaces);
+                populateTable('content', 'pods-table', 'Pods', data.Pods);
+                populateTable('content', 'deployments-table', 'Deployments', data.Deployments);
+                populateTable('content', 'statefulsets-table', 'StatefulSets', data.StatefulSets);
+                populateTable('content', 'services-table', 'Services', data.Services);
+                populateTable('content', 'persistentvolumes-table', 'PersistentVolumes', data.PersistentVolumes);
+                populateTable('content', 'persistentvolumeclaims-table', 'PersistentVolumeClaims', data.PersistentVolumeClaims);
+                populateTable('content', 'storageclasses-table', 'StorageClasses', data.StorageClasses);
+                populateTable('content', 'volumesnapshotclasses-table', 'VolumeSnapshotClasses', data.VolumeSnapshotClasses);
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
             });
-        } else {
-            console.log('No Pods data');
-        }
-
-        const deploymentsTable = document.getElementById('deployments-table');
-        if (data.Deployments) {
-            data.Deployments.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${item}</td>`;
-                deploymentsTable.appendChild(row);
-            });
-        } else {
-            console.log('No Deployments data');
-        }
-
-        const statefulsetsTable = document.getElementById('statefulsets-table');
-        if (data.StatefulSets) {
-            data.StatefulSets.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${item}</td>`;
-                statefulsetsTable.appendChild(row);
-            });
-        } else {
-            console.log('No StatefulSets data');
-        }
-
-        const servicesTable = document.getElementById('services-table');
-        if (data.Services) {
-            data.Services.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${item}</td>`;
-                servicesTable.appendChild(row);
-            });
-        } else {
-            console.log('No Services data');
-        }
-
-        const persistentvolumesTable = document.getElementById('persistentvolumes-table');
-        if (data.PersistentVolumes) {
-            data.PersistentVolumes.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${item}</td>`;
-                persistentvolumesTable.appendChild(row);
-            });
-        } else {
-            console.log('No PersistentVolumes data');
-        }
-
-        const persistentvolumeclaimsTable = document.getElementById('persistentvolumeclaims-table');
-        if (data.PersistentVolumeClaims) {
-            data.PersistentVolumeClaims.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${item}</td>`;
-                persistentvolumeclaimsTable.appendChild(row);
-            });
-        } else {
-            console.log('No PersistentVolumeClaims data');
-        }
-
-        const storageclassesTable = document.getElementById('storageclasses-table');
-        if (data.StorageClasses) {
-            data.StorageClasses.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${item}</td>`;
-                storageclassesTable.appendChild(row);
-            });
-        } else {
-            console.log('No StorageClasses data');
-        }
-
-        const volumesnapshotclassesTable = document.getElementById('volumesnapshotclasses-table');
-        if (data.VolumeSnapshotClasses) {
-            data.VolumeSnapshotClasses.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `<td>${item}</td>`;
-                volumesnapshotclassesTable.appendChild(row);
-            });
-        } else {
-            console.log('No VolumeSnapshotClasses data');
-        }
-    });
     </script>
 </body>
 </html>
