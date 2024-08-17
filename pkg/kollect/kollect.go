@@ -3,6 +3,7 @@ package kollect
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -257,18 +258,28 @@ func fetchStatefulSets(clientset *kubernetes.Clientset) ([]k8sdata.StatefulSetIn
 	return statefulSetInfos, nil
 }
 
-func fetchServices(clientset *kubernetes.Clientset) ([]string, error) {
+func fetchServices(clientset *kubernetes.Clientset) ([]k8sdata.ServiceInfo, error) {
 	services, err := clientset.CoreV1().Services("").List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var serviceNames []string
+	var serviceInfos []k8sdata.ServiceInfo
 	for _, service := range services.Items {
-		serviceNames = append(serviceNames, service.Name)
+		ports := []string{}
+		for _, port := range service.Spec.Ports {
+			ports = append(ports, fmt.Sprintf("%d/%s", port.Port, port.Protocol))
+		}
+		serviceInfos = append(serviceInfos, k8sdata.ServiceInfo{
+			Name:      service.Name,
+			Namespace: service.Namespace,
+			Type:      string(service.Spec.Type),
+			ClusterIP: service.Spec.ClusterIP,
+			Ports:     strings.Join(ports, ","),
+		})
 	}
 
-	return serviceNames, nil
+	return serviceInfos, nil
 }
 
 func fetchPersistentVolumes(clientset *kubernetes.Clientset) ([]string, error) {
