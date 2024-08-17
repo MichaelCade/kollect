@@ -114,6 +114,10 @@ document.addEventListener('htmx:afterSwap', (event) => {
                     return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Status}</td>`;
                 }
 
+                function DeploymentRowTemplate(item) {
+                    return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Containers}</td><td>${item.Images}</td>`;
+                }
+
                 function stsRowTemplate(item) {
                     return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.ReadyReplicas}</td><td>${item.Image}</td>`;
                 }
@@ -125,7 +129,7 @@ document.addEventListener('htmx:afterSwap', (event) => {
                 createTable('Nodes', data.Nodes, nodeRowTemplate, ['Name', 'Roles', 'Age', 'Version', 'OS-Image']);
                 createTable('Namespaces', data.Namespaces, defaultRowTemplate, ['Namespace']);
                 createTable('Pods', data.Pods, PodRowTemplate, ['Pod', 'Namespace', 'Status']);
-                createTable('Deployments', data.Deployments, defaultRowTemplate, ['Deployments']);
+                createTable('Deployments', data.Deployments, DeploymentRowTemplate, ['Deployments', 'Namespace', 'Containers', 'Images']);
                 createTable('StatefulSets', data.StatefulSets, stsRowTemplate, ['StatefulSet', 'Namespace', 'Ready Replicas','Image']);
                 createTable('Services', data.Services, defaultRowTemplate, ['Service']);
                 createTable('PersistentVolumes', data.PersistentVolumes, defaultRowTemplate, ['PersistentVolume']);

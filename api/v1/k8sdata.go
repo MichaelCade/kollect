@@ -17,8 +17,8 @@ type PodsInfo struct {
 type DeploymentInfo struct {
 	Name       string
 	Namespace  string
-	Containers string
-	Image      string
+	Containers []string
+	Images     []string
 }
 
 type StatefulSetInfo struct {
@@ -32,7 +32,7 @@ type K8sData struct {
 	Nodes                  []NodeInfo
 	Namespaces             []string
 	Pods                   []PodsInfo
-	Deployments            []string
+	Deployments            []DeploymentInfo
 	StatefulSets           []StatefulSetInfo
 	Services               []string
 	PersistentVolumes      []string

@@ -209,18 +209,29 @@ func fetchPods(clientset *kubernetes.Clientset) ([]k8sdata.PodsInfo, error) {
 	return podInfos, nil
 }
 
-func fetchDeployments(clientset *kubernetes.Clientset) ([]string, error) {
+func fetchDeployments(clientset *kubernetes.Clientset) ([]k8sdata.DeploymentInfo, error) {
 	deployments, err := clientset.AppsV1().Deployments("").List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var deploymentNames []string
+	var deploymentInfos []k8sdata.DeploymentInfo
 	for _, deployment := range deployments.Items {
-		deploymentNames = append(deploymentNames, deployment.Name)
+		var containers []string
+		var images []string
+		for _, container := range deployment.Spec.Template.Spec.Containers {
+			containers = append(containers, container.Name)
+			images = append(images, container.Image)
+		}
+		deploymentInfos = append(deploymentInfos, k8sdata.DeploymentInfo{
+			Name:       deployment.Name,
+			Namespace:  deployment.Namespace,
+			Containers: containers,
+			Images:     images,
+		})
 	}
 
-	return deploymentNames, nil
+	return deploymentInfos, nil
 }
 
 func fetchStatefulSets(clientset *kubernetes.Clientset) ([]k8sdata.StatefulSetInfo, error) {
