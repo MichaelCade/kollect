@@ -5,6 +5,8 @@
     <title>Kollect - Welcome to the Kubernetes Data Collector!</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://unpkg.com/htmx.org@1.7.0"></script>
+    <script src="https://unpkg.com/hyperscript.org@0.9.7"></script>
     <style>
         h1 {
           font-size: 2em;
@@ -24,7 +26,7 @@
           background-color: #3c413c;
           color: white;
         }
-      </style>
+    </style>
 </head>
 <body>
     <div class="container mt-4">
@@ -32,6 +34,7 @@
           <div class="col-md-12">
             <img src="logo-placeholder.jpeg" alt="Logo">
             <h1>Kollect - Welcome to the Kubernetes Data Collector!</h1>
+            <div id="hidden-content" hx-get="/api/data" hx-trigger="load" hx-target="#hidden-content" hx-swap="innerHTML" style="display: none;"></div>
             <div id="content">
                 <!-- Tables will be added here by JavaScript -->
             </div>
@@ -39,69 +42,51 @@
         </div>
     </div>
 
+    <template id="table-template">
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be added here by JavaScript -->
+            </tbody>
+        </table>
+    </template>
+
     <script>
-        function createTable(tableId, headerText) {
-            const table = document.createElement('table');
-            table.id = tableId;
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>${headerText}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Rows will be added here by JavaScript -->
-                </tbody>
-            `;
-            return table;
-        }
+        document.addEventListener('htmx:afterSwap', (event) => {
+            if (event.detail.target.id === 'hidden-content') {
+                const data = JSON.parse(event.detail.xhr.responseText);
+                const content = document.getElementById('content');
+                const template = document.getElementById('table-template').content;
 
-        function populateTable(containerId, tableId, headerText, data) {
-            const container = document.getElementById(containerId);
-            if (data && data.length > 0) {
-                const table = createTable(tableId, headerText);
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `<td>${item}</td>`;
-                    table.querySelector('tbody').appendChild(row);
-                });
-                container.appendChild(table);
-            } else {
-                console.log(`No data for ${tableId}`);
+                function createTable(headerText, data) {
+                    if (!data) return; // Ensure data is not null or undefined
+                    const table = template.cloneNode(true);
+                    table.querySelector('th').textContent = headerText;
+                    const tbody = table.querySelector('tbody');
+                    data.forEach(item => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td>${item}</td>`;
+                        tbody.appendChild(row);
+                    });
+                    content.appendChild(table);
+                }
+
+                createTable('Nodes', data.Nodes);
+                createTable('Namespaces', data.Namespaces);
+                createTable('Pods', data.Pods);
+                createTable('Deployments', data.Deployments);
+                createTable('StatefulSets', data.StatefulSets);
+                createTable('Services', data.Services);
+                createTable('PersistentVolumes', data.PersistentVolumes);
+                createTable('PersistentVolumeClaims', data.PersistentVolumeClaims);
+                createTable('StorageClasses', data.StorageClasses);
+                createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses);
             }
-        }
-
-        fetch('/api/data')
-            .then(response => response.json())
-            .then(data => {
-                console.log('API Data:', data); // Log the API response
-
-                // Log each data category to verify its content
-                console.log('Nodes:', data.Nodes);
-                console.log('Namespaces:', data.Namespaces);
-                console.log('Pods:', data.Pods);
-                console.log('Deployments:', data.Deployments);
-                console.log('StatefulSets:', data.StatefulSets);
-                console.log('Services:', data.Services);
-                console.log('PersistentVolumes:', data.PersistentVolumes);
-                console.log('PersistentVolumeClaims:', data.PersistentVolumeClaims);
-                console.log('StorageClasses:', data.StorageClasses);
-                console.log('VolumeSnapshotClasses:', data.VolumeSnapshotClasses);
-
-                populateTable('content', 'nodes-table', 'Nodes', data.Nodes);
-                populateTable('content', 'namespaces-table', 'Namespaces', data.Namespaces);
-                populateTable('content', 'pods-table', 'Pods', data.Pods);
-                populateTable('content', 'deployments-table', 'Deployments', data.Deployments);
-                populateTable('content', 'statefulsets-table', 'StatefulSets', data.StatefulSets);
-                populateTable('content', 'services-table', 'Services', data.Services);
-                populateTable('content', 'persistentvolumes-table', 'PersistentVolumes', data.PersistentVolumes);
-                populateTable('content', 'persistentvolumeclaims-table', 'PersistentVolumeClaims', data.PersistentVolumeClaims);
-                populateTable('content', 'storageclasses-table', 'StorageClasses', data.StorageClasses);
-                populateTable('content', 'volumesnapshotclasses-table', 'VolumeSnapshotClasses', data.VolumeSnapshotClasses);
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-            });
+        });
     </script>
 </body>
 </html>
