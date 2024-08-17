@@ -3,6 +3,9 @@ package kollect
 
 import (
 	"context"
+	"strings"
+	"time"
+
 	k8sdata "github.com/michaelcade/kollect/api/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -12,7 +15,6 @@ import (
 )
 
 func CollectStorageData(kubeconfig string) (k8sdata.K8sData, error) {
-
 	var data k8sdata.K8sData
 	var err error
 
@@ -141,18 +143,38 @@ func CollectData(kubeconfig string) (k8sdata.K8sData, error) {
 	return data, nil
 }
 
-func fetchNodes(clientset *kubernetes.Clientset) ([]string, error) {
-	nodes, err := clientset.CoreV1().Nodes().List(context.Background(), v1.ListOptions{})
+func fetchNodes(clientset *kubernetes.Clientset) ([]k8sdata.NodeInfo, error) {
+	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var nodeNames []string
+	var nodeInfos []k8sdata.NodeInfo
 	for _, node := range nodes.Items {
-		nodeNames = append(nodeNames, node.Name)
-	}
+		roles := "none"
+		for label := range node.Labels {
+			if strings.HasPrefix(label, "node-role.kubernetes.io/") {
+				role := strings.TrimPrefix(label, "node-role.kubernetes.io/")
+				if roles == "none" {
+					roles = role
+				} else {
+					roles += "," + role
+				}
+			}
+		}
+		age := time.Since(node.CreationTimestamp.Time).String()
+		version := node.Status.NodeInfo.KubeletVersion
+		osImage := node.Status.NodeInfo.OSImage
 
-	return nodeNames, nil
+		nodeInfos = append(nodeInfos, k8sdata.NodeInfo{
+			Name:    node.Name,
+			Roles:   roles,
+			Age:     age,
+			Version: version,
+			OSImage: osImage,
+		})
+	}
+	return nodeInfos, nil
 }
 
 func fetchNamespaces(clientset *kubernetes.Clientset) ([]string, error) {

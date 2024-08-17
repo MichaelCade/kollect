@@ -1,7 +1,15 @@
 package kollect
 
+type NodeInfo struct {
+	Name    string
+	Roles   string
+	Age     string
+	Version string
+	OSImage string
+}
+
 type K8sData struct {
-	Nodes                  []string
+	Nodes                  []NodeInfo
 	Namespaces             []string
 	Pods                   []string
 	Deployments            []string

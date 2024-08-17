@@ -56,35 +56,74 @@
     </template>
 
     <script>
-        document.addEventListener('htmx:afterSwap', (event) => {
+document.addEventListener('htmx:afterSwap', (event) => {
             if (event.detail.target.id === 'hidden-content') {
                 const data = JSON.parse(event.detail.xhr.responseText);
                 const content = document.getElementById('content');
                 const template = document.getElementById('table-template').content;
 
-                function createTable(headerText, data) {
+                function convertToDays(timeString) {
+                    const hoursMatch = timeString.match(/(\d+)h/);
+                    const minutesMatch = timeString.match(/(\d+)m/);
+                    const secondsMatch = timeString.match(/(\d+(\.\d+)?)s/);
+
+                    let totalHours = 0;
+                    let totalMinutes = 0;
+                    let totalSeconds = 0;
+
+                    if (hoursMatch) {
+                        totalHours = parseInt(hoursMatch[1]);
+                    }
+                    if (minutesMatch) {
+                        totalMinutes = parseInt(minutesMatch[1]);
+                    }
+                    if (secondsMatch) {
+                        totalSeconds = parseFloat(secondsMatch[1]);
+                    }
+                
+                    const totalDays = (totalHours / 24) + (totalMinutes / 1440) + (totalSeconds / 86400);
+                    return `${totalDays.toFixed(2)} days`;
+                }
+
+                function createTable(headerText, data, rowTemplate, headers) {
                     if (!data) return; // Ensure data is not null or undefined
                     const table = template.cloneNode(true);
                     table.querySelector('th').textContent = headerText;
+                    const thead = table.querySelector('thead');
+                    const headerRow = document.createElement('tr');
+                    headers.forEach(header => {
+                        const th = document.createElement('th');
+                        th.textContent = header;
+                        headerRow.appendChild(th);
+                    });
+                    thead.appendChild(headerRow);
                     const tbody = table.querySelector('tbody');
                     data.forEach(item => {
                         const row = document.createElement('tr');
-                        row.innerHTML = `<td>${item}</td>`;
+                        row.innerHTML = rowTemplate(item);
                         tbody.appendChild(row);
                     });
                     content.appendChild(table);
                 }
 
-                createTable('Nodes', data.Nodes);
-                createTable('Namespaces', data.Namespaces);
-                createTable('Pods', data.Pods);
-                createTable('Deployments', data.Deployments);
-                createTable('StatefulSets', data.StatefulSets);
-                createTable('Services', data.Services);
-                createTable('PersistentVolumes', data.PersistentVolumes);
-                createTable('PersistentVolumeClaims', data.PersistentVolumeClaims);
-                createTable('StorageClasses', data.StorageClasses);
-                createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses);
+                function nodeRowTemplate(item) {
+                    return `<td>${item.Name}</td><td>${item.Roles}</td><td>${convertToDays(item.Age)}</td><td>${item.Version}</td><td>${item.OSImage}</td>`;
+                }
+
+                function defaultRowTemplate(item) {
+                    return `<td>${item}</td>`;
+                }
+
+                createTable('Nodes', data.Nodes, nodeRowTemplate, ['Name', 'Roles', 'Age', 'Version', 'OS-Image']);
+                createTable('Namespaces', data.Namespaces, defaultRowTemplate, ['Namespace']);
+                createTable('Pods', data.Pods, defaultRowTemplate, ['Pod']);
+                createTable('Deployments', data.Deployments, defaultRowTemplate, ['Deployment']);
+                createTable('StatefulSets', data.StatefulSets, defaultRowTemplate, ['StatefulSet']);
+                createTable('Services', data.Services, defaultRowTemplate, ['Service']);
+                createTable('PersistentVolumes', data.PersistentVolumes, defaultRowTemplate, ['PersistentVolume']);
+                createTable('PersistentVolumeClaims', data.PersistentVolumeClaims, defaultRowTemplate, ['PersistentVolumeClaim']);
+                createTable('StorageClasses', data.StorageClasses, defaultRowTemplate, ['StorageClass']);
+                createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses, defaultRowTemplate, ['VolumeSnapshotClass']);
             }
         });
     </script>
