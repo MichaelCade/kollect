@@ -8,6 +8,19 @@ type NodeInfo struct {
 	OSImage string
 }
 
+type PodsInfo struct {
+	Name      string
+	Namespace string
+	Status    string
+}
+
+type DeploymentInfo struct {
+	Name       string
+	Namespace  string
+	Containers string
+	Image      string
+}
+
 type StatefulSetInfo struct {
 	Name          string
 	Namespace     string
@@ -18,7 +31,7 @@ type StatefulSetInfo struct {
 type K8sData struct {
 	Nodes                  []NodeInfo
 	Namespaces             []string
-	Pods                   []string
+	Pods                   []PodsInfo
 	Deployments            []string
 	StatefulSets           []StatefulSetInfo
 	Services               []string

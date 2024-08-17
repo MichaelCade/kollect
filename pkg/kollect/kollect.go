@@ -191,18 +191,22 @@ func fetchNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
 	return namespaceNames, nil
 }
 
-func fetchPods(clientset *kubernetes.Clientset) ([]string, error) {
+func fetchPods(clientset *kubernetes.Clientset) ([]k8sdata.PodsInfo, error) {
 	pods, err := clientset.CoreV1().Pods("").List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var podNames []string
+	var podInfos []k8sdata.PodsInfo
 	for _, pod := range pods.Items {
-		podNames = append(podNames, pod.Name)
+		podInfos = append(podInfos, k8sdata.PodsInfo{
+			Name:      pod.Name,
+			Namespace: pod.Namespace,
+			Status:    string(pod.Status.Phase),
+		})
 	}
 
-	return podNames, nil
+	return podInfos, nil
 }
 
 func fetchDeployments(clientset *kubernetes.Clientset) ([]string, error) {
