@@ -44,11 +44,6 @@ func CollectStorageData(kubeconfig string) (k8sdata.K8sData, error) {
 		return k8sdata.K8sData{}, err
 	}
 
-	data.Namespaces, err = fetchNamespaces(clientset)
-	if err != nil {
-		return k8sdata.K8sData{}, err
-	}
-
 	data.StatefulSets, err = fetchStatefulSets(clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
