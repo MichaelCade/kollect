@@ -106,6 +106,10 @@ document.addEventListener('htmx:afterSwap', (event) => {
                     content.appendChild(table);
                 }
 
+                function defaultRowTemplate(item) {
+                    return `<td>${item}</td>`;
+                }
+
                 function nodeRowTemplate(item) {
                     return `<td>${item.Name}</td><td>${item.Roles}</td><td>${convertToDays(item.Age)}</td><td>${item.Version}</td><td>${item.OSImage}</td>`;
                 }
@@ -126,8 +130,12 @@ document.addEventListener('htmx:afterSwap', (event) => {
                     return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Type}</td><td>${item.ExternalIP}</td><td>${item.Ports}</td>`;
                 }
 
-                function defaultRowTemplate(item) {
-                    return `<td>${item}</td>`;
+                function ServiceRowTemplate(item) {
+                    return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Type}</td><td>${item.ExternalIP}</td><td>${item.Ports}</td>`;
+                }
+
+                function PerVolRowTemplate(item) {
+                    return `<td>${item.Name}</td><td>${item.Capacity}</td><td>${item.AccessModes}</td><td>${item.Status}</td><td>${item.AssociatedClaim}</td><td>${item.StorageClass}</td><td>${item.VolumeMode}</td>`;
                 }
 
                 createTable('Nodes', data.Nodes, nodeRowTemplate, ['Name', 'Roles', 'Age', 'Version', 'OS-Image']);
@@ -136,7 +144,7 @@ document.addEventListener('htmx:afterSwap', (event) => {
                 createTable('Deployments', data.Deployments, DeploymentRowTemplate, ['Deployments', 'Namespace', 'Containers', 'Images']);
                 createTable('StatefulSets', data.StatefulSets, stsRowTemplate, ['StatefulSet', 'Namespace', 'Ready Replicas','Image']);
                 createTable('Services', data.Services, ServiceRowTemplate, ['Service', 'Namespace', 'Type', 'Cluster IP', 'Ports']);
-                createTable('PersistentVolumes', data.PersistentVolumes, defaultRowTemplate, ['PersistentVolume']);
+                createTable('PersistentVolumes', data.PersistentVolumes, PerVolRowTemplate, ['PersistentVolume', 'Capacity', 'Access Modes', 'Status', 'Claim', 'StorageClass', 'Volume Mode']);
                 createTable('PersistentVolumeClaims', data.PersistentVolumeClaims, defaultRowTemplate, ['PersistentVolumeClaim']);
                 createTable('StorageClasses', data.StorageClasses, defaultRowTemplate, ['StorageClass']);
                 createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses, defaultRowTemplate, ['VolumeSnapshotClass']);

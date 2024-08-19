@@ -282,18 +282,31 @@ func fetchServices(clientset *kubernetes.Clientset) ([]k8sdata.ServiceInfo, erro
 	return serviceInfos, nil
 }
 
-func fetchPersistentVolumes(clientset *kubernetes.Clientset) ([]string, error) {
-	persistentVolumes, err := clientset.CoreV1().PersistentVolumes().List(context.Background(), v1.ListOptions{})
+func fetchPersistentVolumes(clientset *kubernetes.Clientset) ([]k8sdata.PersistentVolumeInfo, error) {
+	pvs, err := clientset.CoreV1().PersistentVolumes().List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var persistentVolumeNames []string
-	for _, persistentVolume := range persistentVolumes.Items {
-		persistentVolumeNames = append(persistentVolumeNames, persistentVolume.Name)
+	var pvInfos []k8sdata.PersistentVolumeInfo
+	for _, pv := range pvs.Items {
+		accessModes := []string{}
+		for _, mode := range pv.Spec.AccessModes {
+			accessModes = append(accessModes, string(mode))
+		}
+		accessModesStr := strings.Join(accessModes, ",")
+		pvInfos = append(pvInfos, k8sdata.PersistentVolumeInfo{
+			Name:            pv.Name,
+			Capacity:        pv.Spec.Capacity.Storage().String(),
+			AccessModes:     accessModesStr,
+			Status:          string(pv.Status.Phase),
+			AssociatedClaim: pv.Spec.ClaimRef.Name,
+			StorageClass:    pv.Spec.StorageClassName,
+			VolumeMode:      string(*pv.Spec.VolumeMode),
+		})
 	}
 
-	return persistentVolumeNames, nil
+	return pvInfos, nil
 }
 
 func fetchPersistentVolumeClaims(clientset *kubernetes.Clientset) ([]string, error) {

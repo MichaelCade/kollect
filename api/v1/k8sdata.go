@@ -74,7 +74,7 @@ type K8sData struct {
 	Deployments            []DeploymentInfo
 	StatefulSets           []StatefulSetInfo
 	Services               []ServiceInfo
-	PersistentVolumes      []string
+	PersistentVolumes      []PersistentVolumeInfo
 	PersistentVolumeClaims []string
 	StorageClasses         []string
 	VolumeSnapshotClasses  []string
