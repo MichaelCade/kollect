@@ -353,17 +353,20 @@ func fetchStorageClasses(clientset *kubernetes.Clientset) ([]k8sdata.StorageClas
 	return scInfos, nil
 }
 
-func fetchVolumeSnapshotClasses(client dynamic.Interface) ([]string, error) {
+func fetchVolumeSnapshotClasses(client dynamic.Interface) ([]k8sdata.VolumeSnapshotClassInfo, error) {
 	gvr := schema.GroupVersionResource{Group: "snapshot.storage.k8s.io", Version: "v1", Resource: "volumesnapshotclasses"}
 	list, err := client.Resource(gvr).List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var names []string
+	var vscInfos []k8sdata.VolumeSnapshotClassInfo
 	for _, item := range list.Items {
-		names = append(names, item.GetName())
+		vscInfos = append(vscInfos, k8sdata.VolumeSnapshotClassInfo{
+			Name:   item.GetName(),
+			Driver: item.Object["driver"].(string),
+		})
 	}
 
-	return names, nil
+	return vscInfos, nil
 }
