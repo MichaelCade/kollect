@@ -76,7 +76,7 @@ type K8sData struct {
 	Services               []ServiceInfo
 	PersistentVolumes      []PersistentVolumeInfo
 	PersistentVolumeClaims []PersistentVolumeClaimInfo
-	StorageClasses         []string
+	StorageClasses         []StorageClassInfo
 	VolumeSnapshotClasses  []string
 	// Add other fields as needed
 }

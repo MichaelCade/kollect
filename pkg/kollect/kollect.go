@@ -331,18 +331,26 @@ func fetchPersistentVolumeClaims(clientset *kubernetes.Clientset) ([]k8sdata.Per
 	return pvcInfos, nil
 }
 
-func fetchStorageClasses(clientset *kubernetes.Clientset) ([]string, error) {
-	storageClasses, err := clientset.StorageV1().StorageClasses().List(context.Background(), v1.ListOptions{})
+func fetchStorageClasses(clientset *kubernetes.Clientset) ([]k8sdata.StorageClassInfo, error) {
+	scs, err := clientset.StorageV1().StorageClasses().List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var storageClassNames []string
-	for _, storageClass := range storageClasses.Items {
-		storageClassNames = append(storageClassNames, storageClass.Name)
+	var scInfos []k8sdata.StorageClassInfo
+	for _, sc := range scs.Items {
+		volumeExpansion := false
+		if sc.AllowVolumeExpansion != nil {
+			volumeExpansion = *sc.AllowVolumeExpansion
+		}
+		scInfos = append(scInfos, k8sdata.StorageClassInfo{
+			Name:            sc.Name,
+			Provisioner:     sc.Provisioner,
+			VolumeExpansion: fmt.Sprintf("%v", volumeExpansion),
+		})
 	}
 
-	return storageClassNames, nil
+	return scInfos, nil
 }
 
 func fetchVolumeSnapshotClasses(client dynamic.Interface) ([]string, error) {
