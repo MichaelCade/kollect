@@ -1,14 +1,15 @@
-// cmd/kollect/main.go
 package main
 
 import (
 	"encoding/json"
 	"flag"
-	"github.com/michaelcade/kollect/pkg/kollect"
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+
+	"github.com/michaelcade/kollect/pkg/kollect"
 )
 
 func main() {
@@ -39,7 +40,16 @@ func main() {
 		}
 	})
 
-	log.Println("Server starting on port 8080")
+	log.Println("Server starting on port http://localhost:8080")
+
+	// Open the browser
+	go func() {
+		err := exec.Command("open", "http://localhost:8080").Start()
+		if err != nil {
+			log.Fatalf("Failed to open browser: %v", err)
+		}
+	}()
+
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatalf("Failed to start server: %v", err)
