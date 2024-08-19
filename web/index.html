@@ -138,6 +138,10 @@ document.addEventListener('htmx:afterSwap', (event) => {
                     return `<td>${item.Name}</td><td>${item.Capacity}</td><td>${item.AccessModes}</td><td>${item.Status}</td><td>${item.AssociatedClaim}</td><td>${item.StorageClass}</td><td>${item.VolumeMode}</td>`;
                 }
 
+                function PerVolClaimRowTemplate(item) {
+                    return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Status}</td><td>${item.Volume}</td><td>${item.Capacity}</td><td>${item.AccessMode}</td><td>${item.StorageClass}</td>`;
+                }
+
                 createTable('Nodes', data.Nodes, nodeRowTemplate, ['Name', 'Roles', 'Age', 'Version', 'OS-Image']);
                 createTable('Namespaces', data.Namespaces, defaultRowTemplate, ['Namespace']);
                 createTable('Pods', data.Pods, PodRowTemplate, ['Pod', 'Namespace', 'Status']);
@@ -145,7 +149,7 @@ document.addEventListener('htmx:afterSwap', (event) => {
                 createTable('StatefulSets', data.StatefulSets, stsRowTemplate, ['StatefulSet', 'Namespace', 'Ready Replicas','Image']);
                 createTable('Services', data.Services, ServiceRowTemplate, ['Service', 'Namespace', 'Type', 'Cluster IP', 'Ports']);
                 createTable('PersistentVolumes', data.PersistentVolumes, PerVolRowTemplate, ['PersistentVolume', 'Capacity', 'Access Modes', 'Status', 'Claim', 'StorageClass', 'Volume Mode']);
-                createTable('PersistentVolumeClaims', data.PersistentVolumeClaims, defaultRowTemplate, ['PersistentVolumeClaim']);
+                createTable('PersistentVolumeClaims', data.PersistentVolumeClaims, PerVolClaimRowTemplate, ['PersistentVolumeClaim', 'Namespace', 'Status', 'Volume', 'Capacity', 'Access Mode', 'StorageClass']);
                 createTable('StorageClasses', data.StorageClasses, defaultRowTemplate, ['StorageClass']);
                 createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses, defaultRowTemplate, ['VolumeSnapshotClass']);
             }

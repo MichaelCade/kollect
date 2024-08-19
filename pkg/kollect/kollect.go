@@ -309,18 +309,26 @@ func fetchPersistentVolumes(clientset *kubernetes.Clientset) ([]k8sdata.Persiste
 	return pvInfos, nil
 }
 
-func fetchPersistentVolumeClaims(clientset *kubernetes.Clientset) ([]string, error) {
-	persistentVolumeClaims, err := clientset.CoreV1().PersistentVolumeClaims("").List(context.Background(), v1.ListOptions{})
+func fetchPersistentVolumeClaims(clientset *kubernetes.Clientset) ([]k8sdata.PersistentVolumeClaimInfo, error) {
+	pvcs, err := clientset.CoreV1().PersistentVolumeClaims("").List(context.Background(), v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var persistentVolumeClaimNames []string
-	for _, persistentVolumeClaim := range persistentVolumeClaims.Items {
-		persistentVolumeClaimNames = append(persistentVolumeClaimNames, persistentVolumeClaim.Name)
+	var pvcInfos []k8sdata.PersistentVolumeClaimInfo
+	for _, pvc := range pvcs.Items {
+		pvcInfos = append(pvcInfos, k8sdata.PersistentVolumeClaimInfo{
+			Name:         pvc.Name,
+			Namespace:    pvc.Namespace,
+			Status:       string(pvc.Status.Phase),
+			Volume:       pvc.Spec.VolumeName,
+			Capacity:     pvc.Spec.Resources.Requests.Storage().String(),
+			AccessMode:   strings.Join(strings.Fields(fmt.Sprint(pvc.Spec.AccessModes)), ","),
+			StorageClass: *pvc.Spec.StorageClassName,
+		})
 	}
 
-	return persistentVolumeClaimNames, nil
+	return pvcInfos, nil
 }
 
 func fetchStorageClasses(clientset *kubernetes.Clientset) ([]string, error) {
