@@ -61,7 +61,7 @@ func CollectStorageData(kubeconfig string) (k8sdata.K8sData, error) {
 
 	data.VolumeSnapshotClasses, err = fetchVolumeSnapshotClasses(dynamicClient)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		//return k8sdata.K8sData{}, err
 	}
 
 	return data, nil
@@ -133,7 +133,7 @@ func CollectData(kubeconfig string) (k8sdata.K8sData, error) {
 
 	data.VolumeSnapshotClasses, err = fetchVolumeSnapshotClasses(dynamicClient)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		// return k8sdata.K8sData{}, err
 	}
 
 	return data, nil
