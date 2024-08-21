@@ -14,9 +14,8 @@ import (
 
 func main() {
 	storageOnly := flag.Bool("storage", false, "Collect only storage-related objects")
+	kubeconfig := flag.String("kubeconfig", filepath.Join(os.Getenv("HOME"), ".kube", "config"), "Path to the kubeconfig file")
 	flag.Parse()
-
-	kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
 	http.Handle("/", http.FileServer(http.Dir("web")))
 	http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
@@ -24,17 +23,19 @@ func main() {
 		var err error
 
 		if *storageOnly {
-			data, err = kollect.CollectStorageData(kubeconfig)
+			data, err = kollect.CollectStorageData(*kubeconfig)
 		} else {
-			data, err = kollect.CollectData(kubeconfig)
+			data, err = kollect.CollectData(*kubeconfig)
 		}
 
 		if err != nil {
+			log.Printf("Error collecting data: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		err = json.NewEncoder(w).Encode(data)
 		if err != nil {
+			log.Printf("Error encoding data: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
