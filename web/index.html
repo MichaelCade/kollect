@@ -26,14 +26,20 @@
           background-color: #3c413c;
           color: white;
         }
+        .logo {
+          display: block;
+          margin-left: auto;
+          margin-right: auto;
+          width: 10%; 
+        }
     </style>
 </head>
 <body>
     <div class="container mt-4">
         <div class="row">
           <div class="col-md-12">
-            <img src="logo-placeholder.jpeg" alt="Logo">
-            <h1>Kollect - Welcome to the Kubernetes Data Collector!</h1>
+            <img src="kollect.png" alt="Logo" class="logo">
+            <!-- <h1>Kollect - Welcome to the Kubernetes Data Collector!</h1> -->
             <div id="hidden-content" hx-get="/api/data" hx-trigger="load" hx-target="#hidden-content" hx-swap="innerHTML" style="display: none;"></div>
             <div id="content">
                 <!-- Tables will be added here by JavaScript -->
