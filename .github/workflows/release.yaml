@@ -32,4 +32,4 @@ jobs:
         goversion: "https://go.dev/dl/go1.23.1.linux-amd64.tar.gz"
         project_path: "./cmd/kollect"
         binary_name: "kollect"
-        extra_files: "./LICENSE ./README.md"
+        extra_files: "./LICENSE.md ./README.md"
