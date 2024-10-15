@@ -1,46 +1,55 @@
-# .github/workflows/release.yaml
+name: Release
+
 on:
   release:
     types: [created]
+
 permissions:
-    contents: write
-    packages: write
+  contents: write
+  packages: write
+
 jobs:
-  releases-matrix:
-    name: Release Go Binary
+  build:
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
-        # build and publish in parallel: linux/386, linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
         goos: [linux, windows, darwin]
-        goarch: ["386", amd64, arm64]
+        goarch: [amd64, arm64, 386]
         exclude:
           - goos: darwin
-            goarch: "386"
-          - goos: windows
-            goarch: arm64
+            goarch: 386
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: List repository contents
-        run: ls -la
-      - name: Install Go 1.23
+
+      - name: Install Go 1.22
         run: |
-          wget https://golang.org/dl/go1.23.3.linux-amd64.tar.gz
-          sudo tar -C /usr/local -xzf go1.23.3.linux-amd64.tar.gz
+          wget https://golang.org/dl/go1.22.3.linux-amd64.tar.gz
+          sudo tar -C /usr/local -xzf go1.22.3.linux-amd64.tar.gz
           echo 'export PATH=$PATH:/usr/local/go/bin' >> $GITHUB_ENV
+          echo 'export GOTOOLCHAIN=go1.22.3' >> $GITHUB_ENV
           source $GITHUB_ENV
-          go version
+          /usr/local/go/bin/go version
+
+      - name: Install dependencies
+        run: /usr/local/go/bin/go mod tidy
+
       - name: Build binary
         run: |
           mkdir -p build-artifacts-${{ github.run_id }}
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} /usr/local/go/bin/go build -o build-artifacts-${{ github.run_id }}/kollect-${{ matrix.goos }}-${{ matrix.goarch }}
+          cd cmd/kollect
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} /usr/local/go/bin/go build -o ../../build-artifacts-${{ github.run_id }}/kollect-${{ matrix.goos }}-${{ matrix.goarch }}
+
       - name: List build-artifacts directory
         run: ls -la build-artifacts-${{ github.run_id }}
+
       - name: Copy additional files
         if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
         run: |
           cp LICENSE README.md -r web build-artifacts-${{ github.run_id }}/
+
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
