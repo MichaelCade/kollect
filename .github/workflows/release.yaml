@@ -40,9 +40,15 @@ jobs:
           mkdir -p build-artifacts-${{ github.run_id }}
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build-artifacts-${{ github.run_id }}/kollect ./cmd/kollect
 
+      - name: List build-artifacts directory before copying files
+        run: ls -la build-artifacts-${{ github.run_id }}
+
       - name: Copy additional files
         run: |
           cp -r ./LICENSE ./README.md ./build-artifacts-${{ github.run_id }}/
+
+      - name: List build-artifacts directory after copying files
+        run: ls -la build-artifacts-${{ github.run_id }}
 
       - name: Create release
         uses: softprops/action-gh-release@v1
