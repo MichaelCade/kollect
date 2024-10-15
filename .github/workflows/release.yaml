@@ -18,20 +18,35 @@ jobs:
         goos: [linux, windows, darwin]
         goarch: ["386", amd64, arm64]
         exclude:
-          - goarch: "386"
-            goos: darwin
-          - goarch: arm64
-            goos: windows
+          - goos: darwin
+            goarch: "386"
+          - goos: windows
+            goarch: arm64
+
     steps:
-    - uses: actions/checkout@v4
-    - name: List files for debugging
-      run: ls -R
-    - uses: wangyoucao577/go-release-action@v1
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        goversion: "https://go.dev/dl/go1.23.1.linux-amd64.tar.gz"
-        project_path: "./cmd/kollect"
-        binary_name: "kollect"
-        extra_files: "./LICENSE ./README.md"
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: List repository contents
+        run: ls -la
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Build binary
+        run: |
+          mkdir -p build-artifacts-${{ github.run_id }}
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build-artifacts-${{ github.run_id }}/kollect ./cmd/kollect
+
+      - name: Copy additional files
+        run: |
+          cp -r ./LICENSE ./README.md ./build-artifacts-${{ github.run_id }}/
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build-artifacts-${{ github.run_id }}/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
