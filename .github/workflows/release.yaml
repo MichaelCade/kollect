@@ -9,12 +9,20 @@ permissions:
   packages: write
 
 jobs:
-  release-linux-amd64:
-    name: release linux/amd64
+  build:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64, arm64, 386]
+        exclude:
+          - goos: darwin
+            goarch: 386
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v2
 
       - name: Install Go 1.22
         run: |
@@ -32,7 +40,7 @@ jobs:
         run: |
           mkdir -p build-artifacts-${{ github.run_id }}
           cd cmd/kollect
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} /usr/local/go/bin/go build -o ../../build-artifacts-${{ github.run_id }}/kollect
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} /usr/local/go/bin/go build -o ../../build-artifacts-${{ github.run_id }}/kollect-${{ matrix.goos }}-${{ matrix.goarch }}
 
       - name: List build-artifacts directory
         run: ls -la build-artifacts-${{ github.run_id }}
