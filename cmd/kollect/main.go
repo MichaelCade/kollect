@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/michaelcade/kollect/pkg/aws"
 	"github.com/michaelcade/kollect/pkg/kollect"
 )
 
@@ -18,6 +19,7 @@ func main() {
 	kubeconfig := flag.String("kubeconfig", filepath.Join(os.Getenv("HOME"), ".kube", "config"), "Path to the kubeconfig file")
 	browser := flag.Bool("browser", false, "Open the web interface in a browser")
 	output := flag.String("output", "", "Output file to save the collected data")
+	inventoryType := flag.String("inventory", "kubernetes", "Type of inventory to collect (kubernetes/aws)")
 	help := flag.Bool("help", false, "Show help message")
 	flag.Parse()
 
@@ -25,10 +27,23 @@ func main() {
 		fmt.Println("Usage: kollect [flags]")
 		fmt.Println("Flags:")
 		flag.PrintDefaults()
+		fmt.Println("\nTo pretty-print JSON output, you can use `jq`:")
+		fmt.Println("  ./kollect | jq")
 		return
 	}
 
-	data, err := collectData(*storageOnly, *kubeconfig)
+	var data interface{}
+	var err error
+
+	switch *inventoryType {
+	case "aws":
+		data, err = aws.CollectAWSData()
+	case "kubernetes":
+		data, err = collectData(*storageOnly, *kubeconfig)
+	default:
+		log.Fatalf("Invalid inventory type: %s", *inventoryType)
+	}
+
 	if err != nil {
 		log.Fatalf("Error collecting data: %v", err)
 	}
