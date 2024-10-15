@@ -46,6 +46,7 @@ jobs:
         run: ls -la build-artifacts-${{ github.run_id }}
 
       - name: Copy additional files
+        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
         run: |
           cp LICENSE README.md build-artifacts-${{ github.run_id }}/
 
