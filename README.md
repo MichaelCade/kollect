@@ -150,6 +150,7 @@ Run the Kollect binary with the desired flags:
 - `-kubeconfig`: Path to the kubeconfig file (default: `$HOME/.kube/config`)
 - `-browser`: Open the web interface in a browser
 - `-output`: Output file to save the collected data
+- `-inventory`: Type of inventory to collect (kubernetes, aws, azure, gcp) (default: kubernetes)
 - `-help`: Show help message
 
 ### Examples

@@ -145,16 +145,71 @@
                         return `<td>${item.Name}</td><td>${item.Driver}</td>`;
                     }
 
-                    createTable('Nodes', data.Nodes, nodeRowTemplate, ['Name', 'Roles', 'Age', 'Version', 'OS-Image']);
-                    createTable('Namespaces', data.Namespaces, defaultRowTemplate, ['Namespace']);
-                    createTable('Pods', data.Pods, podRowTemplate, ['Pod', 'Namespace', 'Status']);
-                    createTable('Deployments', data.Deployments, deploymentRowTemplate, ['Deployments', 'Namespace', 'Containers', 'Images']);
-                    createTable('StatefulSets', data.StatefulSets, stsRowTemplate, ['StatefulSet', 'Namespace', 'Ready Replicas','Image']);
-                    createTable('Services', data.Services, serviceRowTemplate, ['Service', 'Namespace', 'Type', 'Cluster IP', 'Ports']);
-                    createTable('PersistentVolumes', data.PersistentVolumes, perVolRowTemplate, ['PersistentVolume', 'Capacity', 'Access Modes', 'Status', 'Claim', 'StorageClass', 'Volume Mode']);
-                    createTable('PersistentVolumeClaims', data.PersistentVolumeClaims, perVolClaimRowTemplate, ['PersistentVolumeClaim', 'Namespace', 'Status', 'Volume', 'Capacity', 'Access Mode', 'StorageClass']);
-                    createTable('StorageClasses', data.StorageClasses, storageClassRowTemplate, ['StorageClass', 'Provisioner', 'Volume Expansion']);
-                    createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses, volSnapshotClassRowTemplate, ['VolumeSnapshotClass', 'Driver']);
+                    function ec2InstanceRowTemplate(item) {
+                        return `<td>${item.InstanceID}</td><td>${item.Type}</td><td>${item.State}</td>`;
+                    }
+
+                    function s3BucketRowTemplate(item) {
+                        return `<td>${item.Name}</td>`;
+                    }
+
+                    function rdsInstanceRowTemplate(item) {
+                        return `<td>${item.InstanceID}</td><td>${item.Engine}</td><td>${item.Status}</td>`;
+                    }
+
+                    function dynamoDBTableRowTemplate(item) {
+                        return `<td>${item.TableName}</td><td>${item.Status}</td>`;
+                    }
+
+                    function vpcRowTemplate(item) {
+                        return `<td>${item.VPCID}</td><td>${item.State}</td>`;
+                    }
+
+                    if (data.Nodes) {
+                        createTable('Nodes', data.Nodes, nodeRowTemplate, ['Name', 'Roles', 'Age', 'Version', 'OS-Image']);
+                    }
+                    if (data.Namespaces) {
+                        createTable('Namespaces', data.Namespaces, defaultRowTemplate, ['Namespace']);
+                    }
+                    if (data.Pods) {
+                        createTable('Pods', data.Pods, podRowTemplate, ['Pod', 'Namespace', 'Status']);
+                    }
+                    if (data.Deployments) {
+                        createTable('Deployments', data.Deployments, deploymentRowTemplate, ['Deployments', 'Namespace', 'Containers', 'Images']);
+                    }
+                    if (data.StatefulSets) {
+                        createTable('StatefulSets', data.StatefulSets, stsRowTemplate, ['StatefulSet', 'Namespace', 'Ready Replicas','Image']);
+                    }
+                    if (data.Services) {
+                        createTable('Services', data.Services, serviceRowTemplate, ['Service', 'Namespace', 'Type', 'Cluster IP', 'Ports']);
+                    }
+                    if (data.PersistentVolumes) {
+                        createTable('PersistentVolumes', data.PersistentVolumes, perVolRowTemplate, ['PersistentVolume', 'Capacity', 'Access Modes', 'Status', 'Claim', 'StorageClass', 'Volume Mode']);
+                    }
+                    if (data.PersistentVolumeClaims) {
+                        createTable('PersistentVolumeClaims', data.PersistentVolumeClaims, perVolClaimRowTemplate, ['PersistentVolumeClaim', 'Namespace', 'Status', 'Volume', 'Capacity', 'Access Mode', 'StorageClass']);
+                    }
+                    if (data.StorageClasses) {
+                        createTable('StorageClasses', data.StorageClasses, storageClassRowTemplate, ['StorageClass', 'Provisioner', 'Volume Expansion']);
+                    }
+                    if (data.VolumeSnapshotClasses) {
+                        createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses, volSnapshotClassRowTemplate, ['VolumeSnapshotClass', 'Driver']);
+                    }
+                    if (data.EC2Instances) {
+                        createTable('EC2 Instances', data.EC2Instances, ec2InstanceRowTemplate, ['Instance ID', 'Type', 'State']);
+                    }
+                    if (data.S3Buckets) {
+                        createTable('S3 Buckets', data.S3Buckets, s3BucketRowTemplate, ['Bucket Name']);
+                    }
+                    if (data.RDSInstances) {
+                        createTable('RDS Instances', data.RDSInstances, rdsInstanceRowTemplate, ['Instance ID', 'Engine', 'Status']);
+                    }
+                    if (data.DynamoDBTables) {
+                        createTable('DynamoDB Tables', data.DynamoDBTables, dynamoDBTableRowTemplate, ['Table Name', 'Status']);
+                    }
+                    if (data.VPCs) {
+                        createTable('VPCs', data.VPCs, vpcRowTemplate, ['VPC ID', 'State']);
+                    }
                 } catch (error) {
                     console.error("Error processing data:", error);
                 }
