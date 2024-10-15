@@ -18,7 +18,15 @@ func main() {
 	kubeconfig := flag.String("kubeconfig", filepath.Join(os.Getenv("HOME"), ".kube", "config"), "Path to the kubeconfig file")
 	browser := flag.Bool("browser", false, "Open the web interface in a browser")
 	output := flag.String("output", "", "Output file to save the collected data")
+	help := flag.Bool("help", false, "Show help message")
 	flag.Parse()
+
+	if *help {
+		fmt.Println("Usage: kollect [flags]")
+		fmt.Println("Flags:")
+		flag.PrintDefaults()
+		return
+	}
 
 	data, err := collectData(*storageOnly, *kubeconfig)
 	if err != nil {
@@ -60,7 +68,6 @@ func saveToFile(data interface{}, filename string) error {
 }
 
 func printData(data interface{}) {
-	// Use nushell or any other formatting tool to print data
 	prettyData, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		log.Fatalf("Error formatting data: %v", err)
