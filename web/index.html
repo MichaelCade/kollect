@@ -1,53 +1,68 @@
 <!DOCTYPE html>
-<html data-bs-theme="dark">
+<html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <title>Kollect - Welcome to the Kubernetes Data Collector!</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kollect</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+    <link rel="stylesheet" href="https://unpkg.com/@material-ui/core@4.11.4/dist/material-ui.min.css" />
     <script src="https://unpkg.com/htmx.org@1.7.0"></script>
     <script src="https://unpkg.com/hyperscript.org@0.9.7"></script>
     <style>
-        h1 {
-          font-size: 2em;
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
         }
-        table {
-          width: 90%;
-          margin: 20px auto;
-          border-collapse: collapse;
-          box-shadow: 0px 0px 20px rgba(0,0,0,0.15);
-        }
-        th, td {
-          border: 1px solid #dddddd;
-          padding: 8px;
-          text-align: left;
-        }
-        th {
-          background-color: #3c413c;
-          color: white;
+        .container {
+            padding: 20px;
         }
         .logo {
-          display: block;
-          margin-left: auto;
-          margin-right: auto;
-          width: 10%; 
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 10%; 
+        }
+        .table-container {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            margin: 20px 0;
+            border-collapse: collapse;
+            box-shadow: 0px 0px 20px rgba(0,0,0,0.15);
+        }
+        th, td {
+            border: 1px solid #dddddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #3c413c;
+            color: white;
+        }
+        .export-button {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="container mt-4">
-        <div class="row">
-          <div class="col-md-12">
-            <img src="kollect.png" alt="Logo" class="logo">
-            <!-- <h1>Kollect - Welcome to the Kubernetes Data Collector!</h1> -->
-            <div id="hidden-content" hx-get="/api/data" hx-trigger="load" hx-target="#hidden-content" hx-swap="innerHTML" style="display: none;"></div>
-            <div id="content">
-                <!-- Tables will be added here by JavaScript -->
-            </div>
-          </div>
+    <div class="container">
+        <img src="kollect.png" alt="Logo" class="logo">
+        <div class="export-button">
+            <button id="export-button" class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedPrimary">
+                Export Data
+            </button>
+        </div>
+        <div id="hidden-content" hx-get="/api/data" hx-trigger="load" hx-target="#hidden-content" hx-swap="innerHTML" style="display: none;"></div>
+        <div id="content" class="table-container">
+            <!-- Tables will be added here by JavaScript -->
         </div>
     </div>
-
     <template id="table-template">
         <table>
             <thead>
@@ -60,113 +75,106 @@
             </tbody>
         </table>
     </template>
-
     <script>
-document.addEventListener('htmx:afterSwap', (event) => {
+        document.addEventListener('htmx:afterSwap', (event) => {
             if (event.detail.target.id === 'hidden-content') {
-                const data = JSON.parse(event.detail.xhr.responseText);
-                const content = document.getElementById('content');
-                const template = document.getElementById('table-template').content;
+                try {
+                    const data = JSON.parse(event.detail.xhr.responseText);
+                    console.log("Fetched Data:", data); // Log fetched data
+                    const content = document.getElementById('content');
+                    const template = document.getElementById('table-template').content;
 
-                function convertToDays(timeString) {
-                    const hoursMatch = timeString.match(/(\d+)h/);
-                    const minutesMatch = timeString.match(/(\d+)m/);
-                    const secondsMatch = timeString.match(/(\d+(\.\d+)?)s/);
-
-                    let totalHours = 0;
-                    let totalMinutes = 0;
-                    let totalSeconds = 0;
-
-                    if (hoursMatch) {
-                        totalHours = parseInt(hoursMatch[1]);
+                    function createTable(headerText, data, rowTemplate, headers) {
+                        if (!data) return; // Ensure data is not null or undefined
+                        const table = template.cloneNode(true);
+                        table.querySelector('th').textContent = headerText;
+                        const thead = table.querySelector('thead');
+                        const headerRow = document.createElement('tr');
+                        headers.forEach(header => {
+                            const th = document.createElement('th');
+                            th.textContent = header;
+                            headerRow.appendChild(th);
+                        });
+                        thead.appendChild(headerRow);
+                        const tbody = table.querySelector('tbody');
+                        data.forEach(item => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = rowTemplate(item);
+                            tbody.appendChild(row);
+                        });
+                        content.appendChild(table);
                     }
-                    if (minutesMatch) {
-                        totalMinutes = parseInt(minutesMatch[1]);
+
+                    function nodeRowTemplate(item) {
+                        return `<td>${item.Name}</td><td>${item.Roles}</td><td>${item.Age}</td><td>${item.Version}</td><td>${item.OSImage}</td>`;
                     }
-                    if (secondsMatch) {
-                        totalSeconds = parseFloat(secondsMatch[1]);
+
+                    function defaultRowTemplate(item) {
+                        return `<td>${item}</td>`;
                     }
-                
-                    const totalDays = (totalHours / 24) + (totalMinutes / 1440) + (totalSeconds / 86400);
-                    return `${totalDays.toFixed(2)} days`;
-                }
 
-                function createTable(headerText, data, rowTemplate, headers) {
-                    if (!data) return; // Ensure data is not null or undefined
-                    const table = template.cloneNode(true);
-                    table.querySelector('th').textContent = headerText;
-                    const thead = table.querySelector('thead');
-                    const headerRow = document.createElement('tr');
-                    headers.forEach(header => {
-                        const th = document.createElement('th');
-                        th.textContent = header;
-                        headerRow.appendChild(th);
-                    });
-                    thead.appendChild(headerRow);
-                    const tbody = table.querySelector('tbody');
-                    data.forEach(item => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = rowTemplate(item);
-                        tbody.appendChild(row);
-                    });
-                    content.appendChild(table);
-                }
+                    function podRowTemplate(item) {
+                        return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Status}</td>`;
+                    }
 
-                function defaultRowTemplate(item) {
-                    return `<td>${item}</td>`;
-                }
+                    function deploymentRowTemplate(item) {
+                        return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Containers.join(', ')}</td><td>${item.Images.join(', ')}</td>`;
+                    }
 
-                function nodeRowTemplate(item) {
-                    return `<td>${item.Name}</td><td>${item.Roles}</td><td>${convertToDays(item.Age)}</td><td>${item.Version}</td><td>${item.OSImage}</td>`;
-                }
+                    function stsRowTemplate(item) {
+                        return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.ReadyReplicas}</td><td>${item.Image}</td>`;
+                    }
 
-                function PodRowTemplate(item) {
-                    return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Status}</td>`;
-                }
+                    function serviceRowTemplate(item) {
+                        return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Type}</td><td>${item.ClusterIP}</td><td>${item.Ports}</td>`;
+                    }
 
-                function DeploymentRowTemplate(item) {
-                    return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Containers}</td><td>${item.Images}</td>`;
-                }
+                    function perVolRowTemplate(item) {
+                        return `<td>${item.Name}</td><td>${item.Capacity}</td><td>${item.AccessModes}</td><td>${item.Status}</td><td>${item.AssociatedClaim}</td><td>${item.StorageClass}</td><td>${item.VolumeMode}</td>`;
+                    }
 
-                function stsRowTemplate(item) {
-                    return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.ReadyReplicas}</td><td>${item.Image}</td>`;
-                }
+                    function perVolClaimRowTemplate(item) {
+                        return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Status}</td><td>${item.Volume}</td><td>${item.Capacity}</td><td>${item.AccessMode}</td><td>${item.StorageClass}</td>`;
+                    }
 
-                function ServiceRowTemplate(item) {
-                    return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Type}</td><td>${item.ExternalIP}</td><td>${item.Ports}</td>`;
-                }
+                    function storageClassRowTemplate(item) {
+                        return `<td>${item.Name}</td><td>${item.Provisioner}</td><td>${item.VolumeExpansion}</td>`;
+                    }
 
-                function ServiceRowTemplate(item) {
-                    return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Type}</td><td>${item.ExternalIP}</td><td>${item.Ports}</td>`;
-                }
+                    function volSnapshotClassRowTemplate(item) {
+                        return `<td>${item.Name}</td><td>${item.Driver}</td>`;
+                    }
 
-                function PerVolRowTemplate(item) {
-                    return `<td>${item.Name}</td><td>${item.Capacity}</td><td>${item.AccessModes}</td><td>${item.Status}</td><td>${item.AssociatedClaim}</td><td>${item.StorageClass}</td><td>${item.VolumeMode}</td>`;
+                    createTable('Nodes', data.Nodes, nodeRowTemplate, ['Name', 'Roles', 'Age', 'Version', 'OS-Image']);
+                    createTable('Namespaces', data.Namespaces, defaultRowTemplate, ['Namespace']);
+                    createTable('Pods', data.Pods, podRowTemplate, ['Pod', 'Namespace', 'Status']);
+                    createTable('Deployments', data.Deployments, deploymentRowTemplate, ['Deployments', 'Namespace', 'Containers', 'Images']);
+                    createTable('StatefulSets', data.StatefulSets, stsRowTemplate, ['StatefulSet', 'Namespace', 'Ready Replicas','Image']);
+                    createTable('Services', data.Services, serviceRowTemplate, ['Service', 'Namespace', 'Type', 'Cluster IP', 'Ports']);
+                    createTable('PersistentVolumes', data.PersistentVolumes, perVolRowTemplate, ['PersistentVolume', 'Capacity', 'Access Modes', 'Status', 'Claim', 'StorageClass', 'Volume Mode']);
+                    createTable('PersistentVolumeClaims', data.PersistentVolumeClaims, perVolClaimRowTemplate, ['PersistentVolumeClaim', 'Namespace', 'Status', 'Volume', 'Capacity', 'Access Mode', 'StorageClass']);
+                    createTable('StorageClasses', data.StorageClasses, storageClassRowTemplate, ['StorageClass', 'Provisioner', 'Volume Expansion']);
+                    createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses, volSnapshotClassRowTemplate, ['VolumeSnapshotClass', 'Driver']);
+                } catch (error) {
+                    console.error("Error processing data:", error);
                 }
-
-                function PerVolClaimRowTemplate(item) {
-                    return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Status}</td><td>${item.Volume}</td><td>${item.Capacity}</td><td>${item.AccessMode}</td><td>${item.StorageClass}</td>`;
-                }
-
-                function StorageClassRowTemplate(item) {
-                    return `<td>${item.Name}</td><td>${item.Provisioner}</td><td>${item.VolumeExpansion}</td>`;
-                }
-
-                function VolSnapshotClassRowTemplate(item) {
-                    return `<td>${item.Name}</td><td>${item.Driver}</td>`;
-                }
-
-                createTable('Nodes', data.Nodes, nodeRowTemplate, ['Name', 'Roles', 'Age', 'Version', 'OS-Image']);
-                createTable('Namespaces', data.Namespaces, defaultRowTemplate, ['Namespace']);
-                createTable('Pods', data.Pods, PodRowTemplate, ['Pod', 'Namespace', 'Status']);
-                createTable('Deployments', data.Deployments, DeploymentRowTemplate, ['Deployments', 'Namespace', 'Containers', 'Images']);
-                createTable('StatefulSets', data.StatefulSets, stsRowTemplate, ['StatefulSet', 'Namespace', 'Ready Replicas','Image']);
-                createTable('Services', data.Services, ServiceRowTemplate, ['Service', 'Namespace', 'Type', 'Cluster IP', 'Ports']);
-                createTable('PersistentVolumes', data.PersistentVolumes, PerVolRowTemplate, ['PersistentVolume', 'Capacity', 'Access Modes', 'Status', 'Claim', 'StorageClass', 'Volume Mode']);
-                createTable('PersistentVolumeClaims', data.PersistentVolumeClaims, PerVolClaimRowTemplate, ['PersistentVolumeClaim', 'Namespace', 'Status', 'Volume', 'Capacity', 'Access Mode', 'StorageClass']);
-                createTable('StorageClasses', data.StorageClasses, StorageClassRowTemplate, ['StorageClass', 'Provisioner', 'Volume Expansion']);
-                createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses, VolSnapshotClassRowTemplate, ['VolumeSnapshotClass', 'Driver']);
             }
+        });
+
+        document.getElementById('export-button').addEventListener('click', () => {
+            fetch('/api/data')
+                .then(response => response.json())
+                .then(data => {
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'data.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                })
+                .catch(error => console.error('Error exporting data:', error));
         });
     </script>
 </body>
