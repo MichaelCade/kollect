@@ -1,5 +1,3 @@
-# .github/workflows/release.yaml
-
 name: Release
 
 on:
@@ -26,18 +24,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.23'
+      - name: Install Go 1.22
+        run: |
+          wget https://golang.org/dl/go1.22.3.linux-amd64.tar.gz
+          sudo tar -C /usr/local -xzf go1.22.3.linux-amd64.tar.gz
+          echo 'export PATH=$PATH:/usr/local/go/bin' >> $GITHUB_ENV
+          echo 'export GOTOOLCHAIN=go1.22.3' >> $GITHUB_ENV
+          source $GITHUB_ENV
+          go version
 
       - name: Install dependencies
-        run: go mod tidy
+        run: /usr/local/go/bin/go mod tidy
 
       - name: Build binary
         run: |
           mkdir -p build-artifacts-${{ github.run_id }}
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build-artifacts-${{ github.run_id }}/kollect ./cmd/kollect
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} /usr/local/go/bin/go build -o build-artifacts-${{ github.run_id }}/kollect ./cmd/kollect
 
       - name: List build-artifacts directory
         run: ls -la build-artifacts-${{ github.run_id }}
