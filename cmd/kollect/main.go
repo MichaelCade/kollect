@@ -9,8 +9,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	"github.com/michaelcade/kollect/pkg/aws"
+	"github.com/michaelcade/kollect/pkg/azure"
 	"github.com/michaelcade/kollect/pkg/kollect"
 )
 
@@ -19,7 +21,7 @@ func main() {
 	kubeconfig := flag.String("kubeconfig", filepath.Join(os.Getenv("HOME"), ".kube", "config"), "Path to the kubeconfig file")
 	browser := flag.Bool("browser", false, "Open the web interface in a browser")
 	output := flag.String("output", "", "Output file to save the collected data")
-	inventoryType := flag.String("inventory", "kubernetes", "Type of inventory to collect (kubernetes/aws)")
+	inventoryType := flag.String("inventory", "kubernetes", "Type of inventory to collect (kubernetes/aws/azure)")
 	help := flag.Bool("help", false, "Show help message")
 	flag.Parse()
 
@@ -38,6 +40,8 @@ func main() {
 	switch *inventoryType {
 	case "aws":
 		data, err = aws.CollectAWSData()
+	case "azure":
+		data, err = azure.CollectAzureData()
 	case "kubernetes":
 		data, err = collectData(*storageOnly, *kubeconfig)
 	default:
@@ -104,7 +108,15 @@ func startWebServer(data interface{}) {
 
 	// Open the browser
 	go func() {
-		err := exec.Command("open", "http://localhost:8080").Start()
+		var err error
+		switch runtime.GOOS {
+		case "darwin":
+			err = exec.Command("open", "http://localhost:8080").Start()
+		case "windows":
+			err = exec.Command("rundll32", "url.dll,FileProtocolHandler", "http://localhost:8080").Start()
+		default: // Linux and other Unix-like systems
+			err = exec.Command("xdg-open", "http://localhost:8080").Start()
+		}
 		if err != nil {
 			log.Fatalf("Failed to open browser: %v", err)
 		}

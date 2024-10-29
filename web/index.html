@@ -52,7 +52,7 @@
 </head>
 <body>
     <div class="container">
-        <img src="kollect.png" alt="Logo" class="logo">
+        <img src="Kollect.png" alt="Logo" class="logo">
         <div class="export-button">
             <button id="export-button" class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedPrimary">
                 Export Data
@@ -165,6 +165,34 @@
                         return `<td>${item.VPCID}</td><td>${item.State}</td>`;
                     }
 
+                    function azureVMRowTemplate(item) {
+                        return `<td>${item.name}</td><td>${item.location}</td><td>${item.hardwareProfile.vmSize}</td>`;
+                    }
+
+                    function azureStorageAccountRowTemplate(item) {
+                        return `<td>${item.name}</td><td>${item.location}</td><td>${item.kind}</td>`;
+                    }
+
+                    function azureBlobContainerRowTemplate(item) {
+                        return `<td>${item.name}</td><td>${item.properties.immutableStorageWithVersioning.enabled}</td><td>${item.id}</td>`;
+                    }
+
+                    function azureVirtualNetworkRowTemplate(item) {
+                        return `<td>${item.name}</td><td>${item.location}</td>`;
+                    }
+
+                    function azureSQLDatabaseRowTemplate(item) {
+                        return `<td>${item.name}</td><td>${item.server}</td>`;
+                    }
+
+                    function azureFileShareRowTemplate(item) {
+                        return `<td>${item.name}</td><td>${item.storageAccount}</td>`;
+                    }
+
+                    function azureCosmosDBRowTemplate(item) {
+                        return `<td>${item.name}</td><td>${item.location}</td>`;
+                    }
+
                     if (data.Nodes) {
                         createTable('Nodes', data.Nodes, nodeRowTemplate, ['Name', 'Roles', 'Age', 'Version', 'OS-Image']);
                     }
@@ -209,6 +237,27 @@
                     }
                     if (data.VPCs) {
                         createTable('VPCs', data.VPCs, vpcRowTemplate, ['VPC ID', 'State']);
+                    }
+                    if (data.AzureVMs) {
+                        createTable('Azure VMs', data.AzureVMs, azureVMRowTemplate, ['Name', 'Location', 'Size']);
+                    }
+                    if (data.AzureStorageAccounts) {
+                        createTable('Azure Storage Accounts', data.AzureStorageAccounts, azureStorageAccountRowTemplate, ['name', 'location', 'kind']);
+                    }
+                    if (data.AzureBlobContainers) {
+                        createTable('Azure Blob Containers', data.AzureBlobContainers, azureBlobContainerRowTemplate, ['name', 'Immutable', 'id']);
+                    }
+                    if (data.AzureVirtualNetworks) {
+                        createTable('Azure Virtual Networks', data.AzureVirtualNetworks, azureVirtualNetworkRowTemplate, ['name', 'location']);
+                    }
+                    if (data.AzureSQLDatabases) {
+                        createTable('Azure SQL Databases', data.AzureSQLDatabases, azureSQLDatabaseRowTemplate, ['name', 'server']);
+                    }
+                    if (data.AzureFileShares) {
+                        createTable('Azure File Shares', data.AzureFileShares, azureFileShareRowTemplate, ['name', 'storageAccount']);
+                    }
+                    if (data.AzureCosmosDBs) {
+                        createTable('Azure CosmosDB Accounts', data.AzureCosmosDBs, azureCosmosDBRowTemplate, ['name', 'location']);
                     }
                 } catch (error) {
                     console.error("Error processing data:", error);
