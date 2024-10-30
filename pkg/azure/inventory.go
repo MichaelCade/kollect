@@ -10,6 +10,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/cosmos/armcosmos"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/sql/armsql"
@@ -18,6 +19,8 @@ import (
 
 type AzureData struct {
 	AzureVMs             []armcompute.VirtualMachine
+	AzureVMSS            []armcompute.VirtualMachineScaleSet
+	AzureAKSClusters     []armcontainerservice.ManagedCluster
 	AzureStorageAccounts []armstorage.Account
 	AzureBlobContainers  []armstorage.ListContainerItem
 	AzureVirtualNetworks []armnetwork.VirtualNetwork
@@ -52,6 +55,38 @@ func CollectAzureData() (AzureData, error) {
 		}
 		for _, vm := range page.Value {
 			data.AzureVMs = append(data.AzureVMs, *vm)
+		}
+	}
+
+	// Collect VMSS
+	vmssClient, err := armcompute.NewVirtualMachineScaleSetsClient(subscriptionID, cred, nil)
+	if err != nil {
+		return data, err
+	}
+	vmssPager := vmssClient.NewListAllPager(nil)
+	for vmssPager.More() {
+		page, err := vmssPager.NextPage(ctx)
+		if err != nil {
+			log.Fatalf("Failed to get VMSS: %v", err)
+		}
+		for _, vmss := range page.Value {
+			data.AzureVMSS = append(data.AzureVMSS, *vmss)
+		}
+	}
+
+	// Collect AKS Clusters
+	aksClient, err := armcontainerservice.NewManagedClustersClient(subscriptionID, cred, nil)
+	if err != nil {
+		return data, err
+	}
+	aksPager := aksClient.NewListPager(nil)
+	for aksPager.More() {
+		page, err := aksPager.NextPage(ctx)
+		if err != nil {
+			log.Fatalf("Failed to get AKS Clusters: %v", err)
+		}
+		for _, aks := range page.Value {
+			data.AzureAKSClusters = append(data.AzureAKSClusters, *aks)
 		}
 	}
 

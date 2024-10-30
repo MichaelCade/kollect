@@ -185,10 +185,6 @@
                         return `<td>${item.name}</td><td>${item.server}</td>`;
                     }
 
-                    function azureFileShareRowTemplate(item) {
-                        return `<td>${item.name}</td><td>${item.storageAccount}</td>`;
-                    }
-
                     function azureCosmosDBRowTemplate(item) {
                         return `<td>${item.name}</td><td>${item.location}</td>`;
                     }
@@ -239,8 +235,14 @@
                         createTable('VPCs', data.VPCs, vpcRowTemplate, ['VPC ID', 'State']);
                     }
                     if (data.AzureVMs) {
-                        createTable('Azure VMs', data.AzureVMs, azureVMRowTemplate, ['Name', 'Location', 'Size']);
+                        createTable('Azure VMs', data.AzureVMs, azureVMRowTemplate, ['name', 'location', 'vmSize']);
                     }
+                    if (data.AzureVMSS) {
+                        createTable("azure-vmss", data.AzureData.AzureVMSS, ["name", "location", "sku"]);
+                    }
+                    if (data.AzureAKSClusters) {
+                        createTable("azure-aks", data.AzureData.AzureAKSClusters, ["name", "location", "kubernetesVersion"]);
+                }
                     if (data.AzureStorageAccounts) {
                         createTable('Azure Storage Accounts', data.AzureStorageAccounts, azureStorageAccountRowTemplate, ['name', 'location', 'kind']);
                     }
@@ -252,9 +254,6 @@
                     }
                     if (data.AzureSQLDatabases) {
                         createTable('Azure SQL Databases', data.AzureSQLDatabases, azureSQLDatabaseRowTemplate, ['name', 'server']);
-                    }
-                    if (data.AzureFileShares) {
-                        createTable('Azure File Shares', data.AzureFileShares, azureFileShareRowTemplate, ['name', 'storageAccount']);
                     }
                     if (data.AzureCosmosDBs) {
                         createTable('Azure CosmosDB Accounts', data.AzureCosmosDBs, azureCosmosDBRowTemplate, ['name', 'location']);
