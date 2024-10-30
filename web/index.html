@@ -182,7 +182,7 @@
                     }
 
                     function azureSQLDatabaseRowTemplate(item) {
-                        return `<td>${item.name}</td><td>${item.server}</td>`;
+                        return `<td>${item.name}</td><td>${item.location}</td>`;
                     }
 
                     function azureCosmosDBRowTemplate(item) {
@@ -253,7 +253,7 @@
                         createTable('Azure Virtual Networks', data.AzureVirtualNetworks, azureVirtualNetworkRowTemplate, ['name', 'location']);
                     }
                     if (data.AzureSQLDatabases) {
-                        createTable('Azure SQL Databases', data.AzureSQLDatabases, azureSQLDatabaseRowTemplate, ['name', 'server']);
+                        createTable('Azure SQL Databases', data.AzureSQLDatabases, azureSQLDatabaseRowTemplate, ['name', 'location']);
                     }
                     if (data.AzureCosmosDBs) {
                         createTable('Azure CosmosDB Accounts', data.AzureCosmosDBs, azureCosmosDBRowTemplate, ['name', 'location']);
