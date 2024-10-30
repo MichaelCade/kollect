@@ -166,7 +166,7 @@
                     }
 
                     function azureVMRowTemplate(item) {
-                        return `<td>${item.name}</td><td>${item.location}</td><td>${item.hardwareProfile.vmSize}</td>`;
+                        return `<td>${item.name}</td><td>${item.location}</td><td>${item.properties.hardwareProfile.vmSize}</td>`;
                     }
 
                     function azureStorageAccountRowTemplate(item) {
@@ -235,7 +235,7 @@
                         createTable('VPCs', data.VPCs, vpcRowTemplate, ['VPC ID', 'State']);
                     }
                     if (data.AzureVMs) {
-                        createTable('Azure VMs', data.AzureVMs, azureVMRowTemplate, ['name', 'location', 'vmSize']);
+                        createTable('Azure VMs', data.AzureVMs, azureVMRowTemplate, ['name', 'location', 'VM Size']);
                     }
                     if (data.AzureVMSS) {
                         createTable("azure-vmss", data.AzureData.AzureVMSS, ["name", "location", "sku"]);
