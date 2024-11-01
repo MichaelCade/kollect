@@ -85,7 +85,7 @@
                     const template = document.getElementById('table-template').content;
 
                     function createTable(headerText, data, rowTemplate, headers) {
-                        if (!data) return; // Ensure data is not null or undefined
+                        if (!data || data.length === 0) return; // Ensure data is not null or empty
                         const table = template.cloneNode(true);
                         table.querySelector('th').textContent = headerText;
                         const thead = table.querySelector('thead');
@@ -146,23 +146,23 @@
                     }
 
                     function ec2InstanceRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.InstanceID}</td><td>${item.Type}</td><td>${item.State}</td>`;
+                        return `<td>${item.Name}</td><td>${item.InstanceID}</td><td>${item.Type}</td><td>${item.State}</td><td>${item.Region}</td>`;
                     }
 
                     function s3BucketRowTemplate(item) {
-                        return `<td>${item.Name}</td>`;
+                        return `<td>${item.Name}</td><td>${item.Immutable}</td><td>${item.Region}</td>`;
                     }
 
                     function rdsInstanceRowTemplate(item) {
-                        return `<td>${item.InstanceID}</td><td>${item.Engine}</td><td>${item.Status}</td>`;
+                        return `<td>${item.InstanceID}</td><td>${item.Engine}</td><td>${item.Status}</td><td>${item.Region}</td>`;
                     }
 
                     function dynamoDBTableRowTemplate(item) {
-                        return `<td>${item.TableName}</td><td>${item.Status}</td>`;
+                        return `<td>${item.TableName}</td><td>${item.Status}</td><td>${item.Region}</td>`;
                     }
 
                     function vpcRowTemplate(item) {
-                        return `<td>${item.VPCID}</td><td>${item.State}</td>`;
+                        return `<td>${item.VPCID}</td><td>${item.State}</td><td>${item.Region}</td>`;
                     }
 
                     function azureVMRowTemplate(item) {
@@ -220,19 +220,19 @@
                         createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses, volSnapshotClassRowTemplate, ['VolumeSnapshotClass', 'Driver']);
                     }
                     if (data.EC2Instances) {
-                        createTable('EC2 Instances', data.EC2Instances, ec2InstanceRowTemplate, ['Name','Instance ID', 'Type', 'State']);
+                        createTable('EC2 Instances', data.EC2Instances, ec2InstanceRowTemplate, ['Name','Instance ID', 'Type', 'State', 'Region']);
                     }
                     if (data.S3Buckets) {
-                        createTable('S3 Buckets', data.S3Buckets, s3BucketRowTemplate, ['Bucket Name']);
+                        createTable('S3 Buckets', data.S3Buckets, s3BucketRowTemplate, ['Bucket Name', 'Immutable', 'Region']);
                     }
                     if (data.RDSInstances) {
-                        createTable('RDS Instances', data.RDSInstances, rdsInstanceRowTemplate, ['Instance ID', 'Engine', 'Status']);
+                        createTable('RDS Instances', data.RDSInstances, rdsInstanceRowTemplate, ['Instance ID', 'Engine', 'Status', 'Region']);
                     }
                     if (data.DynamoDBTables) {
-                        createTable('DynamoDB Tables', data.DynamoDBTables, dynamoDBTableRowTemplate, ['Table Name', 'Status']);
+                        createTable('DynamoDB Tables', data.DynamoDBTables, dynamoDBTableRowTemplate, ['Table Name', 'Status', 'Region']);
                     }
                     if (data.VPCs) {
-                        createTable('VPCs', data.VPCs, vpcRowTemplate, ['VPC ID', 'State']);
+                        createTable('VPCs', data.VPCs, vpcRowTemplate, ['VPC ID', 'State', 'Region']);
                     }
                     if (data.AzureVMs) {
                         createTable('Azure VMs', data.AzureVMs, azureVMRowTemplate, ['name', 'location', 'VM Size']);
@@ -242,7 +242,7 @@
                     }
                     if (data.AzureAKSClusters) {
                         createTable("azure-aks", data.AzureData.AzureAKSClusters, ["name", "location", "kubernetesVersion"]);
-                }
+                    }
                     if (data.AzureStorageAccounts) {
                         createTable('Azure Storage Accounts', data.AzureStorageAccounts, azureStorageAccountRowTemplate, ['name', 'location', 'kind']);
                     }

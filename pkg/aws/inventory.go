@@ -1,10 +1,10 @@
-// pkg/aws/inventory.go
 package aws
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -17,26 +17,32 @@ type EC2InstanceInfo struct {
 	InstanceID string
 	Type       string
 	State      string
+	Region     string
 }
 
 type S3BucketInfo struct {
-	Name string
+	Name      string
+	Immutable bool
+	Region    string
 }
 
 type RDSInstanceInfo struct {
 	InstanceID string
 	Engine     string
 	Status     string
+	Region     string
 }
 
 type DynamoDBTableInfo struct {
 	TableName string
 	Status    string
+	Region    string
 }
 
 type VPCInfo struct {
-	VPCID string
-	State string
+	VPCID  string
+	State  string
+	Region string
 }
 
 type AWSData struct {
@@ -63,10 +69,11 @@ func FetchEC2Instances() ([]EC2InstanceInfo, error) {
 	for _, reservation := range result.Reservations {
 		for _, instance := range reservation.Instances {
 			instances = append(instances, EC2InstanceInfo{
-				Name:       *instance.KeyName,
-				InstanceID: *instance.InstanceId,
+				Name:       aws.ToString(instance.KeyName),
+				InstanceID: aws.ToString(instance.InstanceId),
 				Type:       string(instance.InstanceType),
 				State:      string(instance.State.Name),
+				Region:     cfg.Region,
 			})
 		}
 	}
@@ -88,8 +95,26 @@ func FetchS3Buckets() ([]S3BucketInfo, error) {
 
 	var buckets []S3BucketInfo
 	for _, bucket := range result.Buckets {
+		region, err := svc.GetBucketLocation(context.TODO(), &s3.GetBucketLocationInput{
+			Bucket: bucket.Name,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("unable to get bucket location for %s, %v", aws.ToString(bucket.Name), err)
+		}
+
+		// Check if the bucket has an Object Lock configuration (immutability)
+		objectLockConfig, err := svc.GetObjectLockConfiguration(context.TODO(), &s3.GetObjectLockConfigurationInput{
+			Bucket: bucket.Name,
+		})
+		immutable := false
+		if err == nil && objectLockConfig.ObjectLockConfiguration != nil {
+			immutable = objectLockConfig.ObjectLockConfiguration.ObjectLockEnabled == "Enabled"
+		}
+
 		buckets = append(buckets, S3BucketInfo{
-			Name: *bucket.Name,
+			Name:      aws.ToString(bucket.Name),
+			Region:    string(region.LocationConstraint),
+			Immutable: immutable,
 		})
 	}
 
@@ -111,9 +136,10 @@ func FetchRDSInstances() ([]RDSInstanceInfo, error) {
 	var instances []RDSInstanceInfo
 	for _, instance := range result.DBInstances {
 		instances = append(instances, RDSInstanceInfo{
-			InstanceID: *instance.DBInstanceIdentifier,
-			Engine:     *instance.Engine,
-			Status:     *instance.DBInstanceStatus,
+			InstanceID: aws.ToString(instance.DBInstanceIdentifier),
+			Engine:     aws.ToString(instance.Engine),
+			Status:     aws.ToString(instance.DBInstanceStatus),
+			Region:     cfg.Region,
 		})
 	}
 
@@ -143,6 +169,7 @@ func FetchDynamoDBTables() ([]DynamoDBTableInfo, error) {
 		tables = append(tables, DynamoDBTableInfo{
 			TableName: tableName,
 			Status:    string(describeResult.Table.TableStatus),
+			Region:    cfg.Region,
 		})
 	}
 
@@ -164,8 +191,9 @@ func FetchVPCs() ([]VPCInfo, error) {
 	var vpcs []VPCInfo
 	for _, vpc := range result.Vpcs {
 		vpcs = append(vpcs, VPCInfo{
-			VPCID: *vpc.VpcId,
-			State: string(vpc.State),
+			VPCID:  aws.ToString(vpc.VpcId),
+			State:  string(vpc.State),
+			Region: cfg.Region,
 		})
 	}
 
