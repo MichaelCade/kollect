@@ -146,7 +146,7 @@
                     }
 
                     function ec2InstanceRowTemplate(item) {
-                        return `<td>${item.InstanceID}</td><td>${item.Type}</td><td>${item.State}</td>`;
+                        return `<td>${item.Name}</td><td>${item.InstanceID}</td><td>${item.Type}</td><td>${item.State}</td>`;
                     }
 
                     function s3BucketRowTemplate(item) {
@@ -220,7 +220,7 @@
                         createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses, volSnapshotClassRowTemplate, ['VolumeSnapshotClass', 'Driver']);
                     }
                     if (data.EC2Instances) {
-                        createTable('EC2 Instances', data.EC2Instances, ec2InstanceRowTemplate, ['Instance ID', 'Type', 'State']);
+                        createTable('EC2 Instances', data.EC2Instances, ec2InstanceRowTemplate, ['Name','Instance ID', 'Type', 'State']);
                     }
                     if (data.S3Buckets) {
                         createTable('S3 Buckets', data.S3Buckets, s3BucketRowTemplate, ['Bucket Name']);

@@ -13,6 +13,7 @@ import (
 )
 
 type EC2InstanceInfo struct {
+	Name       string
 	InstanceID string
 	Type       string
 	State      string
@@ -62,6 +63,7 @@ func FetchEC2Instances() ([]EC2InstanceInfo, error) {
 	for _, reservation := range result.Reservations {
 		for _, instance := range reservation.Instances {
 			instances = append(instances, EC2InstanceInfo{
+				Name:       *instance.KeyName,
 				InstanceID: *instance.InstanceId,
 				Type:       string(instance.InstanceType),
 				State:      string(instance.State.Name),
