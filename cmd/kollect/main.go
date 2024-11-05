@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	storageOnly := flag.Bool("storage", false, "Collect only storage-related objects")
+	storageOnly := flag.Bool("storage", false, "Collect only storage-related objects (Kubernetes Only)")
 	kubeconfig := flag.String("kubeconfig", filepath.Join(os.Getenv("HOME"), ".kube", "config"), "Path to the kubeconfig file")
 	browser := flag.Bool("browser", false, "Open the web interface in a browser")
 	output := flag.String("output", "", "Output file to save the collected data")
