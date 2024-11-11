@@ -62,8 +62,9 @@ func main() {
 	}
 
 	if *browser {
-		startWebServer(data)
+		startWebServer(data, true)
 	} else {
+		startWebServer(data, false)
 		printData(data)
 	}
 }
@@ -94,7 +95,7 @@ func printData(data interface{}) {
 	fmt.Println(string(prettyData))
 }
 
-func startWebServer(data interface{}) {
+func startWebServer(data interface{}, openBrowser bool) {
 	http.Handle("/", http.FileServer(http.Dir("web")))
 	http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewEncoder(w).Encode(data)
@@ -106,21 +107,23 @@ func startWebServer(data interface{}) {
 
 	log.Println("Server starting on port http://localhost:8080")
 
-	// Open the browser
-	go func() {
-		var err error
-		switch runtime.GOOS {
-		case "darwin":
-			err = exec.Command("open", "http://localhost:8080").Start()
-		case "windows":
-			err = exec.Command("rundll32", "url.dll,FileProtocolHandler", "http://localhost:8080").Start()
-		default: // Linux and other Unix-like systems
-			err = exec.Command("xdg-open", "http://localhost:8080").Start()
-		}
-		if err != nil {
-			log.Fatalf("Failed to open browser: %v", err)
-		}
-	}()
+	if openBrowser {
+		// Open the browser
+		go func() {
+			var err error
+			switch runtime.GOOS {
+			case "darwin":
+				err = exec.Command("open", "http://localhost:8080").Start()
+			case "windows":
+				err = exec.Command("rundll32", "url.dll,FileProtocolHandler", "http://localhost:8080").Start()
+			default: // Linux and other Unix-like systems
+				err = exec.Command("xdg-open", "http://localhost:8080").Start()
+			}
+			if err != nil {
+				log.Printf("Warning: Failed to open browser: %v", err)
+			}
+		}()
+	}
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
