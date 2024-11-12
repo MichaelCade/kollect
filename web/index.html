@@ -145,6 +145,10 @@
                         return `<td>${item.Name}</td><td>${item.Driver}</td>`;
                     }
 
+                    function volumeSnapshotRowTemplate(item) {
+                        return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Volume}</td><td>${item.CreationTimestamp}</td><td>${item.RestoreSize}</td>`;
+                    }
+
                     function ec2InstanceRowTemplate(item) {
                         return `<td>${item.Name}</td><td>${item.InstanceID}</td><td>${item.Type}</td><td>${item.State}</td><td>${item.Region}</td>`;
                     }
@@ -218,6 +222,9 @@
                     }
                     if (data.VolumeSnapshotClasses) {
                         createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses, volSnapshotClassRowTemplate, ['VolumeSnapshotClass', 'Driver']);
+                    }
+                    if (data.VolumeSnapshots) {
+                        createTable('VolumeSnapshots', data.VolumeSnapshots, volumeSnapshotRowTemplate, ['Name', 'Namespace', 'Volume', 'Creation Timestamp', 'Restore Size']);
                     }
                     if (data.EC2Instances) {
                         createTable('EC2 Instances', data.EC2Instances, ec2InstanceRowTemplate, ['Name','Instance ID', 'Type', 'State', 'Region']);

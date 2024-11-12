@@ -45,6 +45,10 @@ func CollectStorageData(ctx context.Context, kubeconfig string) (k8sdata.K8sData
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
+	data.VolumeSnapshots, err = fetchVolumeSnapshots(ctx, dynamicClient)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
 	return data, nil
 }
 
@@ -99,6 +103,10 @@ func CollectData(ctx context.Context, kubeconfig string) (k8sdata.K8sData, error
 		return k8sdata.K8sData{}, err
 	}
 	data.VolumeSnapshotClasses, err = fetchVolumeSnapshotClasses(ctx, dynamicClient)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+	data.VolumeSnapshots, err = fetchVolumeSnapshots(ctx, dynamicClient)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
@@ -340,4 +348,44 @@ func fetchVolumeSnapshotClasses(ctx context.Context, dynamicClient dynamic.Inter
 	}
 
 	return volumeSnapshotClassInfos, nil
+}
+
+func fetchVolumeSnapshots(ctx context.Context, dynamicClient dynamic.Interface) ([]k8sdata.VolumeSnapshotInfo, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    "snapshot.storage.k8s.io",
+		Version:  "v1",
+		Resource: "volumesnapshots",
+	}
+	volumeSnapshots, err := dynamicClient.Resource(gvr).List(ctx, v1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var volumeSnapshotInfos []k8sdata.VolumeSnapshotInfo
+	for _, vs := range volumeSnapshots.Items {
+		volumeSnapshot := k8sdata.VolumeSnapshotInfo{
+			Name:      vs.GetName(),
+			Namespace: vs.GetNamespace(),
+		}
+
+		if volumeName, found, err := unstructured.NestedString(vs.Object, "spec", "source", "persistentVolumeClaimName"); err == nil && found {
+			volumeSnapshot.Volume = volumeName
+		}
+
+		if creationTimestamp, found, err := unstructured.NestedString(vs.Object, "metadata", "creationTimestamp"); err == nil && found {
+			volumeSnapshot.CreationTimestamp = creationTimestamp
+		}
+
+		if restoreSize, found, err := unstructured.NestedString(vs.Object, "status", "restoreSize"); err == nil && found {
+			volumeSnapshot.RestoreSize = restoreSize
+		}
+
+		if status, found, err := unstructured.NestedBool(vs.Object, "status", "readyToUse"); err == nil && found {
+			volumeSnapshot.Status = status
+		}
+
+		volumeSnapshotInfos = append(volumeSnapshotInfos, volumeSnapshot)
+	}
+
+	return volumeSnapshotInfos, nil
 }

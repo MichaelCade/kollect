@@ -67,6 +67,15 @@ type VolumeSnapshotClassInfo struct {
 	Driver string
 }
 
+type VolumeSnapshotInfo struct {
+	Name              string
+	Namespace         string
+	Volume            string
+	CreationTimestamp string
+	RestoreSize       string
+	Status            bool
+}
+
 type K8sData struct {
 	Nodes                  []NodeInfo
 	Namespaces             []string
@@ -78,5 +87,6 @@ type K8sData struct {
 	PersistentVolumeClaims []PersistentVolumeClaimInfo
 	StorageClasses         []StorageClassInfo
 	VolumeSnapshotClasses  []VolumeSnapshotClassInfo
+	VolumeSnapshots        []VolumeSnapshotInfo
 	// Add other fields as needed
 }
