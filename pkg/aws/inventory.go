@@ -53,27 +53,27 @@ type AWSData struct {
 	VPCs           []VPCInfo
 }
 
-func FetchEC2Instances() ([]EC2InstanceInfo, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+func FetchEC2Instances(ctx context.Context) ([]EC2InstanceInfo, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load SDK config, %v", err)
 	}
 
 	ec2Client := ec2.NewFromConfig(cfg)
-	regionsOutput, err := ec2Client.DescribeRegions(context.TODO(), &ec2.DescribeRegionsInput{})
+	regionsOutput, err := ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
 		return nil, fmt.Errorf("unable to describe regions, %v", err)
 	}
 
 	var allInstances []EC2InstanceInfo
 	for _, region := range regionsOutput.Regions {
-		regionCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(*region.RegionName))
+		regionCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(*region.RegionName))
 		if err != nil {
 			return nil, fmt.Errorf("unable to load SDK config for region %s, %v", *region.RegionName, err)
 		}
 
 		regionEc2Client := ec2.NewFromConfig(regionCfg)
-		result, err := regionEc2Client.DescribeInstances(context.TODO(), &ec2.DescribeInstancesInput{})
+		result, err := regionEc2Client.DescribeInstances(ctx, &ec2.DescribeInstancesInput{})
 		if err != nil {
 			return nil, fmt.Errorf("unable to describe instances in region %s, %v", *region.RegionName, err)
 		}
@@ -94,21 +94,21 @@ func FetchEC2Instances() ([]EC2InstanceInfo, error) {
 	return allInstances, nil
 }
 
-func FetchS3Buckets() ([]S3BucketInfo, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+func FetchS3Buckets(ctx context.Context) ([]S3BucketInfo, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load SDK config, %v", err)
 	}
 
 	svc := s3.NewFromConfig(cfg)
-	result, err := svc.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
+	result, err := svc.ListBuckets(ctx, &s3.ListBucketsInput{})
 	if err != nil {
 		return nil, fmt.Errorf("unable to list buckets, %v", err)
 	}
 
 	var buckets []S3BucketInfo
 	for _, bucket := range result.Buckets {
-		region, err := svc.GetBucketLocation(context.TODO(), &s3.GetBucketLocationInput{
+		region, err := svc.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
 			Bucket: bucket.Name,
 		})
 		if err != nil {
@@ -116,7 +116,7 @@ func FetchS3Buckets() ([]S3BucketInfo, error) {
 		}
 
 		// Check if the bucket has an Object Lock configuration (immutability)
-		objectLockConfig, err := svc.GetObjectLockConfiguration(context.TODO(), &s3.GetObjectLockConfigurationInput{
+		objectLockConfig, err := svc.GetObjectLockConfiguration(ctx, &s3.GetObjectLockConfigurationInput{
 			Bucket: bucket.Name,
 		})
 		immutable := false
@@ -134,27 +134,27 @@ func FetchS3Buckets() ([]S3BucketInfo, error) {
 	return buckets, nil
 }
 
-func FetchRDSInstances() ([]RDSInstanceInfo, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+func FetchRDSInstances(ctx context.Context) ([]RDSInstanceInfo, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load SDK config, %v", err)
 	}
 
 	ec2Client := ec2.NewFromConfig(cfg)
-	regionsOutput, err := ec2Client.DescribeRegions(context.TODO(), &ec2.DescribeRegionsInput{})
+	regionsOutput, err := ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
 		return nil, fmt.Errorf("unable to describe regions, %v", err)
 	}
 
 	var allInstances []RDSInstanceInfo
 	for _, region := range regionsOutput.Regions {
-		regionCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(*region.RegionName))
+		regionCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(*region.RegionName))
 		if err != nil {
 			return nil, fmt.Errorf("unable to load SDK config for region %s, %v", *region.RegionName, err)
 		}
 
 		regionRdsClient := rds.NewFromConfig(regionCfg)
-		result, err := regionRdsClient.DescribeDBInstances(context.TODO(), &rds.DescribeDBInstancesInput{})
+		result, err := regionRdsClient.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{})
 		if err != nil {
 			return nil, fmt.Errorf("unable to describe DB instances in region %s, %v", *region.RegionName, err)
 		}
@@ -172,33 +172,33 @@ func FetchRDSInstances() ([]RDSInstanceInfo, error) {
 	return allInstances, nil
 }
 
-func FetchDynamoDBTables() ([]DynamoDBTableInfo, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+func FetchDynamoDBTables(ctx context.Context) ([]DynamoDBTableInfo, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load SDK config, %v", err)
 	}
 
 	ec2Client := ec2.NewFromConfig(cfg)
-	regionsOutput, err := ec2Client.DescribeRegions(context.TODO(), &ec2.DescribeRegionsInput{})
+	regionsOutput, err := ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
 		return nil, fmt.Errorf("unable to describe regions, %v", err)
 	}
 
 	var allTables []DynamoDBTableInfo
 	for _, region := range regionsOutput.Regions {
-		regionCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(*region.RegionName))
+		regionCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(*region.RegionName))
 		if err != nil {
 			return nil, fmt.Errorf("unable to load SDK config for region %s, %v", *region.RegionName, err)
 		}
 
 		svc := dynamodb.NewFromConfig(regionCfg)
-		result, err := svc.ListTables(context.TODO(), &dynamodb.ListTablesInput{})
+		result, err := svc.ListTables(ctx, &dynamodb.ListTablesInput{})
 		if err != nil {
 			return nil, fmt.Errorf("unable to list tables in region %s, %v", *region.RegionName, err)
 		}
 
 		for _, tableName := range result.TableNames {
-			describeResult, err := svc.DescribeTable(context.TODO(), &dynamodb.DescribeTableInput{
+			describeResult, err := svc.DescribeTable(ctx, &dynamodb.DescribeTableInput{
 				TableName: &tableName,
 			})
 			if err != nil {
@@ -215,27 +215,27 @@ func FetchDynamoDBTables() ([]DynamoDBTableInfo, error) {
 	return allTables, nil
 }
 
-func FetchVPCs() ([]VPCInfo, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+func FetchVPCs(ctx context.Context) ([]VPCInfo, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load SDK config, %v", err)
 	}
 
 	ec2Client := ec2.NewFromConfig(cfg)
-	regionsOutput, err := ec2Client.DescribeRegions(context.TODO(), &ec2.DescribeRegionsInput{})
+	regionsOutput, err := ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
 		return nil, fmt.Errorf("unable to describe regions, %v", err)
 	}
 
 	var allVPCs []VPCInfo
 	for _, region := range regionsOutput.Regions {
-		regionCfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(*region.RegionName))
+		regionCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(*region.RegionName))
 		if err != nil {
 			return nil, fmt.Errorf("unable to load SDK config for region %s, %v", *region.RegionName, err)
 		}
 
 		regionEc2Client := ec2.NewFromConfig(regionCfg)
-		result, err := regionEc2Client.DescribeVpcs(context.TODO(), &ec2.DescribeVpcsInput{})
+		result, err := regionEc2Client.DescribeVpcs(ctx, &ec2.DescribeVpcsInput{})
 		if err != nil {
 			return nil, fmt.Errorf("unable to describe VPCs in region %s, %v", *region.RegionName, err)
 		}
@@ -252,31 +252,31 @@ func FetchVPCs() ([]VPCInfo, error) {
 	return allVPCs, nil
 }
 
-func CollectAWSData() (AWSData, error) {
+func CollectAWSData(ctx context.Context) (AWSData, error) {
 	var data AWSData
 	var err error
 
-	data.EC2Instances, err = FetchEC2Instances()
+	data.EC2Instances, err = FetchEC2Instances(ctx)
 	if err != nil {
 		return AWSData{}, err
 	}
 
-	data.S3Buckets, err = FetchS3Buckets()
+	data.S3Buckets, err = FetchS3Buckets(ctx)
 	if err != nil {
 		return AWSData{}, err
 	}
 
-	data.RDSInstances, err = FetchRDSInstances()
+	data.RDSInstances, err = FetchRDSInstances(ctx)
 	if err != nil {
 		return AWSData{}, err
 	}
 
-	data.DynamoDBTables, err = FetchDynamoDBTables()
+	data.DynamoDBTables, err = FetchDynamoDBTables(ctx)
 	if err != nil {
 		return AWSData{}, err
 	}
 
-	data.VPCs, err = FetchVPCs()
+	data.VPCs, err = FetchVPCs(ctx)
 	if err != nil {
 		return AWSData{}, err
 	}

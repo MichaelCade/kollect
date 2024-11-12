@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -24,7 +25,6 @@ func main() {
 	inventoryType := flag.String("inventory", "kubernetes", "Type of inventory to collect (kubernetes/aws/azure)")
 	help := flag.Bool("help", false, "Show help message")
 	flag.Parse()
-
 	if *help {
 		fmt.Println("Usage: kollect [flags]")
 		fmt.Println("Flags:")
@@ -34,24 +34,23 @@ func main() {
 		return
 	}
 
+	ctx := context.Background()
+
 	var data interface{}
 	var err error
-
 	switch *inventoryType {
 	case "aws":
-		data, err = aws.CollectAWSData()
+		data, err = aws.CollectAWSData(ctx)
 	case "azure":
-		data, err = azure.CollectAzureData()
+		data, err = azure.CollectAzureData(ctx)
 	case "kubernetes":
-		data, err = collectData(*storageOnly, *kubeconfig)
+		data, err = collectData(ctx, *storageOnly, *kubeconfig)
 	default:
 		log.Fatalf("Invalid inventory type: %s", *inventoryType)
 	}
-
 	if err != nil {
 		log.Fatalf("Error collecting data: %v", err)
 	}
-
 	if *output != "" {
 		err = saveToFile(data, *output)
 		if err != nil {
@@ -60,7 +59,6 @@ func main() {
 		fmt.Printf("Data saved to %s\n", *output)
 		return
 	}
-
 	if *browser {
 		startWebServer(data, true)
 	} else {
@@ -69,11 +67,11 @@ func main() {
 	}
 }
 
-func collectData(storageOnly bool, kubeconfig string) (interface{}, error) {
+func collectData(ctx context.Context, storageOnly bool, kubeconfig string) (interface{}, error) {
 	if storageOnly {
-		return kollect.CollectStorageData(kubeconfig)
+		return kollect.CollectStorageData(ctx, kubeconfig)
 	}
-	return kollect.CollectData(kubeconfig)
+	return kollect.CollectData(ctx, kubeconfig)
 }
 
 func saveToFile(data interface{}, filename string) error {

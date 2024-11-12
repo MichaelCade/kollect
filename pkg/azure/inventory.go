@@ -28,19 +28,16 @@ type AzureData struct {
 	AzureCosmosDBs       []armcosmos.DatabaseAccountGetResults
 }
 
-func CollectAzureData() (AzureData, error) {
+func CollectAzureData(ctx context.Context) (AzureData, error) {
 	var data AzureData
-
 	subscriptionID, err := getAzureSubscriptionID()
 	if err != nil {
 		return data, fmt.Errorf("failed to get Azure subscription ID: %v", err)
 	}
-
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return data, err
 	}
-	ctx := context.Background()
 
 	// Collect VMs
 	vmClient, err := armcompute.NewVirtualMachinesClient(subscriptionID, cred, nil)

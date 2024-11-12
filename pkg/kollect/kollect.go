@@ -1,4 +1,3 @@
-// pkg/kollect/kollect.go
 package kollect
 
 import (
@@ -9,142 +8,108 @@ import (
 
 	k8sdata "github.com/michaelcade/kollect/api/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func CollectStorageData(kubeconfig string) (k8sdata.K8sData, error) {
+func CollectStorageData(ctx context.Context, kubeconfig string) (k8sdata.K8sData, error) {
 	var data k8sdata.K8sData
-	var err error
-
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.Nodes, err = fetchNodes(clientset)
+	data.PersistentVolumes, err = fetchPersistentVolumes(ctx, clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.StatefulSets, err = fetchStatefulSets(clientset)
+	data.PersistentVolumeClaims, err = fetchPersistentVolumeClaims(ctx, clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.PersistentVolumes, err = fetchPersistentVolumes(clientset)
+	data.StorageClasses, err = fetchStorageClasses(ctx, clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.PersistentVolumeClaims, err = fetchPersistentVolumeClaims(clientset)
+	data.VolumeSnapshotClasses, err = fetchVolumeSnapshotClasses(ctx, dynamicClient)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.StorageClasses, err = fetchStorageClasses(clientset)
-	if err != nil {
-		return k8sdata.K8sData{}, err
-	}
-
-	data.VolumeSnapshotClasses, err = fetchVolumeSnapshotClasses(dynamicClient)
-	if err != nil {
-		//return k8sdata.K8sData{}, err
-	}
-
 	return data, nil
 }
 
-func CollectData(kubeconfig string) (k8sdata.K8sData, error) {
+func CollectData(ctx context.Context, kubeconfig string) (k8sdata.K8sData, error) {
 	var data k8sdata.K8sData
-	var err error
-
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.Nodes, err = fetchNodes(clientset)
+	data.Nodes, err = fetchNodes(ctx, clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.Namespaces, err = fetchNamespaces(clientset)
+	data.Namespaces, err = fetchNamespaces(ctx, clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.Pods, err = fetchPods(clientset)
+	data.Pods, err = fetchPods(ctx, clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.Deployments, err = fetchDeployments(clientset)
+	data.Deployments, err = fetchDeployments(ctx, clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.StatefulSets, err = fetchStatefulSets(clientset)
+	data.StatefulSets, err = fetchStatefulSets(ctx, clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.Services, err = fetchServices(clientset)
+	data.Services, err = fetchServices(ctx, clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.PersistentVolumes, err = fetchPersistentVolumes(clientset)
+	data.PersistentVolumes, err = fetchPersistentVolumes(ctx, clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.PersistentVolumeClaims, err = fetchPersistentVolumeClaims(clientset)
+	data.PersistentVolumeClaims, err = fetchPersistentVolumeClaims(ctx, clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.StorageClasses, err = fetchStorageClasses(clientset)
+	data.StorageClasses, err = fetchStorageClasses(ctx, clientset)
 	if err != nil {
 		return k8sdata.K8sData{}, err
 	}
-
-	data.VolumeSnapshotClasses, err = fetchVolumeSnapshotClasses(dynamicClient)
+	data.VolumeSnapshotClasses, err = fetchVolumeSnapshotClasses(ctx, dynamicClient)
 	if err != nil {
-		// return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, err
 	}
-
 	return data, nil
 }
 
-func fetchNodes(clientset *kubernetes.Clientset) ([]k8sdata.NodeInfo, error) {
-	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), v1.ListOptions{})
+func fetchNodes(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata.NodeInfo, error) {
+	nodes, err := clientset.CoreV1().Nodes().List(ctx, v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-
 	var nodeInfos []k8sdata.NodeInfo
 	for _, node := range nodes.Items {
 		roles := "none"
@@ -161,7 +126,6 @@ func fetchNodes(clientset *kubernetes.Clientset) ([]k8sdata.NodeInfo, error) {
 		age := time.Since(node.CreationTimestamp.Time).String()
 		version := node.Status.NodeInfo.KubeletVersion
 		osImage := node.Status.NodeInfo.OSImage
-
 		nodeInfos = append(nodeInfos, k8sdata.NodeInfo{
 			Name:    node.Name,
 			Roles:   roles,
@@ -173,8 +137,8 @@ func fetchNodes(clientset *kubernetes.Clientset) ([]k8sdata.NodeInfo, error) {
 	return nodeInfos, nil
 }
 
-func fetchNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
-	namespaces, err := clientset.CoreV1().Namespaces().List(context.Background(), v1.ListOptions{})
+func fetchNamespaces(ctx context.Context, clientset *kubernetes.Clientset) ([]string, error) {
+	namespaces, err := clientset.CoreV1().Namespaces().List(ctx, v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -187,8 +151,8 @@ func fetchNamespaces(clientset *kubernetes.Clientset) ([]string, error) {
 	return namespaceNames, nil
 }
 
-func fetchPods(clientset *kubernetes.Clientset) ([]k8sdata.PodsInfo, error) {
-	pods, err := clientset.CoreV1().Pods("").List(context.Background(), v1.ListOptions{})
+func fetchPods(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata.PodsInfo, error) {
+	pods, err := clientset.CoreV1().Pods("").List(ctx, v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -205,8 +169,8 @@ func fetchPods(clientset *kubernetes.Clientset) ([]k8sdata.PodsInfo, error) {
 	return podInfos, nil
 }
 
-func fetchDeployments(clientset *kubernetes.Clientset) ([]k8sdata.DeploymentInfo, error) {
-	deployments, err := clientset.AppsV1().Deployments("").List(context.Background(), v1.ListOptions{})
+func fetchDeployments(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata.DeploymentInfo, error) {
+	deployments, err := clientset.AppsV1().Deployments("").List(ctx, v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -230,8 +194,8 @@ func fetchDeployments(clientset *kubernetes.Clientset) ([]k8sdata.DeploymentInfo
 	return deploymentInfos, nil
 }
 
-func fetchStatefulSets(clientset *kubernetes.Clientset) ([]k8sdata.StatefulSetInfo, error) {
-	statefulSets, err := clientset.AppsV1().StatefulSets("").List(context.Background(), v1.ListOptions{})
+func fetchStatefulSets(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata.StatefulSetInfo, error) {
+	statefulSets, err := clientset.AppsV1().StatefulSets("").List(ctx, v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -253,8 +217,8 @@ func fetchStatefulSets(clientset *kubernetes.Clientset) ([]k8sdata.StatefulSetIn
 	return statefulSetInfos, nil
 }
 
-func fetchServices(clientset *kubernetes.Clientset) ([]k8sdata.ServiceInfo, error) {
-	services, err := clientset.CoreV1().Services("").List(context.Background(), v1.ListOptions{})
+func fetchServices(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata.ServiceInfo, error) {
+	services, err := clientset.CoreV1().Services("").List(ctx, v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -277,8 +241,8 @@ func fetchServices(clientset *kubernetes.Clientset) ([]k8sdata.ServiceInfo, erro
 	return serviceInfos, nil
 }
 
-func fetchPersistentVolumes(clientset *kubernetes.Clientset) ([]k8sdata.PersistentVolumeInfo, error) {
-	pvs, err := clientset.CoreV1().PersistentVolumes().List(context.Background(), v1.ListOptions{})
+func fetchPersistentVolumes(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata.PersistentVolumeInfo, error) {
+	pvs, err := clientset.CoreV1().PersistentVolumes().List(ctx, v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -304,64 +268,76 @@ func fetchPersistentVolumes(clientset *kubernetes.Clientset) ([]k8sdata.Persiste
 	return pvInfos, nil
 }
 
-func fetchPersistentVolumeClaims(clientset *kubernetes.Clientset) ([]k8sdata.PersistentVolumeClaimInfo, error) {
-	pvcs, err := clientset.CoreV1().PersistentVolumeClaims("").List(context.Background(), v1.ListOptions{})
+func fetchPersistentVolumeClaims(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata.PersistentVolumeClaimInfo, error) {
+	pvcs, err := clientset.CoreV1().PersistentVolumeClaims("").List(ctx, v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	var pvcInfos []k8sdata.PersistentVolumeClaimInfo
 	for _, pvc := range pvcs.Items {
+		storageClassName := ""
+		if pvc.Spec.StorageClassName != nil {
+			storageClassName = *pvc.Spec.StorageClassName
+		}
 		pvcInfos = append(pvcInfos, k8sdata.PersistentVolumeClaimInfo{
 			Name:         pvc.Name,
 			Namespace:    pvc.Namespace,
 			Status:       string(pvc.Status.Phase),
 			Volume:       pvc.Spec.VolumeName,
 			Capacity:     pvc.Spec.Resources.Requests.Storage().String(),
-			AccessMode:   strings.Join(strings.Fields(fmt.Sprint(pvc.Spec.AccessModes)), ","),
-			StorageClass: *pvc.Spec.StorageClassName,
+			AccessMode:   string(pvc.Spec.AccessModes[0]),
+			StorageClass: storageClassName,
 		})
 	}
 
 	return pvcInfos, nil
 }
 
-func fetchStorageClasses(clientset *kubernetes.Clientset) ([]k8sdata.StorageClassInfo, error) {
-	scs, err := clientset.StorageV1().StorageClasses().List(context.Background(), v1.ListOptions{})
+func fetchStorageClasses(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata.StorageClassInfo, error) {
+	storageClasses, err := clientset.StorageV1().StorageClasses().List(ctx, v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var scInfos []k8sdata.StorageClassInfo
-	for _, sc := range scs.Items {
-		volumeExpansion := false
-		if sc.AllowVolumeExpansion != nil {
-			volumeExpansion = *sc.AllowVolumeExpansion
+	var storageClassInfos []k8sdata.StorageClassInfo
+	for _, sc := range storageClasses.Items {
+		allowVolumeExpansion := "false"
+		if sc.AllowVolumeExpansion != nil && *sc.AllowVolumeExpansion {
+			allowVolumeExpansion = "true"
 		}
-		scInfos = append(scInfos, k8sdata.StorageClassInfo{
+		storageClassInfos = append(storageClassInfos, k8sdata.StorageClassInfo{
 			Name:            sc.Name,
 			Provisioner:     sc.Provisioner,
-			VolumeExpansion: fmt.Sprintf("%v", volumeExpansion),
+			VolumeExpansion: allowVolumeExpansion,
 		})
 	}
 
-	return scInfos, nil
+	return storageClassInfos, nil
 }
 
-func fetchVolumeSnapshotClasses(client dynamic.Interface) ([]k8sdata.VolumeSnapshotClassInfo, error) {
-	gvr := schema.GroupVersionResource{Group: "snapshot.storage.k8s.io", Version: "v1", Resource: "volumesnapshotclasses"}
-	list, err := client.Resource(gvr).List(context.Background(), v1.ListOptions{})
+func fetchVolumeSnapshotClasses(ctx context.Context, dynamicClient dynamic.Interface) ([]k8sdata.VolumeSnapshotClassInfo, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    "snapshot.storage.k8s.io",
+		Version:  "v1",
+		Resource: "volumesnapshotclasses",
+	}
+	volumeSnapshotClasses, err := dynamicClient.Resource(gvr).List(ctx, v1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	var vscInfos []k8sdata.VolumeSnapshotClassInfo
-	for _, item := range list.Items {
-		vscInfos = append(vscInfos, k8sdata.VolumeSnapshotClassInfo{
-			Name:   item.GetName(),
-			Driver: item.Object["driver"].(string),
+	var volumeSnapshotClassInfos []k8sdata.VolumeSnapshotClassInfo
+	for _, vsc := range volumeSnapshotClasses.Items {
+		driver, found, err := unstructured.NestedString(vsc.Object, "driver")
+		if err != nil || !found {
+			return nil, fmt.Errorf("failed to get driver for volume snapshot class %s: %v", vsc.GetName(), err)
+		}
+		volumeSnapshotClassInfos = append(volumeSnapshotClassInfos, k8sdata.VolumeSnapshotClassInfo{
+			Name:   vsc.GetName(),
+			Driver: driver,
 		})
 	}
 
-	return vscInfos, nil
+	return volumeSnapshotClassInfos, nil
 }
