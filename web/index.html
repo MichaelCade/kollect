@@ -6,61 +6,38 @@
     <title>Kollect</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
-    <link rel="stylesheet" href="https://unpkg.com/@material-ui/core@4.11.4/dist/material-ui.min.css" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://unpkg.com/htmx.org@1.7.0"></script>
     <script src="https://unpkg.com/hyperscript.org@0.9.7"></script>
-    <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #f5f5f5;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            padding: 20px;
-        }
-        .logo {
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            width: 10%; 
-        }
-        .table-container {
-            margin-top: 20px;
-        }
-        table {
-            width: 100%;
-            margin: 20px 0;
-            border-collapse: collapse;
-            box-shadow: 0px 0px 20px rgba(0,0,0,0.15);
-        }
-        th, td {
-            border: 1px solid #dddddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #3c413c;
-            color: white;
-        }
-        .export-button {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
         <img src="Kollect.png" alt="Logo" class="logo">
-        <div class="export-button">
-            <button id="export-button" class="MuiButtonBase-root MuiButton-root MuiButton-contained MuiButton-containedPrimary">
-                Export Data
-            </button>
+        <div class="button-container">
+            <div class="inventory-buttons">
+                <button id="kubernetes-button"><i class="fas fa-anchor"></i></button>
+                <button id="aws-button"><i class="fab fa-aws"></i></button>
+                <button id="azure-button"><i class="fab fa-microsoft"></i></button>
+                <button id="google-button"><i class="fab fa-google"></i></button>
+                <button id="veeam-button"><i class="fas fa-cloud"></i></button>
+            </div>
+            <div class="import-export-buttons">
+                <div class="export-button">
+                    <button id="export-button"><i class="fas fa-download"></i></button>
+                </div>
+                <div class="import-button">
+                    <input type="file" id="import-file" style="display: none;" />
+                    <button id="import-button"><i class="fas fa-upload"></i></button>
+                </div>
+            </div>
         </div>
         <div id="hidden-content" hx-get="/api/data" hx-trigger="load" hx-target="#hidden-content" hx-swap="innerHTML" style="display: none;"></div>
         <div id="content" class="table-container">
             <!-- Tables will be added here by JavaScript -->
+        </div>
+        <div id="loading-indicator" class="loading-indicator">
+            <div class="spinner"></div>
         </div>
     </div>
     <template id="table-template">
@@ -75,217 +52,9 @@
             </tbody>
         </table>
     </template>
-    <script>
-        document.addEventListener('htmx:afterSwap', (event) => {
-            if (event.detail.target.id === 'hidden-content') {
-                try {
-                    const data = JSON.parse(event.detail.xhr.responseText);
-                    console.log("Fetched Data:", data); // Log fetched data
-                    const content = document.getElementById('content');
-                    const template = document.getElementById('table-template').content;
-
-                    function createTable(headerText, data, rowTemplate, headers) {
-                        if (!data || data.length === 0) return; // Ensure data is not null or empty
-                        const table = template.cloneNode(true);
-                        table.querySelector('th').textContent = headerText;
-                        const thead = table.querySelector('thead');
-                        const headerRow = document.createElement('tr');
-                        headers.forEach(header => {
-                            const th = document.createElement('th');
-                            th.textContent = header;
-                            headerRow.appendChild(th);
-                        });
-                        thead.appendChild(headerRow);
-                        const tbody = table.querySelector('tbody');
-                        data.forEach(item => {
-                            const row = document.createElement('tr');
-                            row.innerHTML = rowTemplate(item);
-                            tbody.appendChild(row);
-                        });
-                        content.appendChild(table);
-                    }
-
-                    function nodeRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.Roles}</td><td>${item.Age}</td><td>${item.Version}</td><td>${item.OSImage}</td>`;
-                    }
-
-                    function defaultRowTemplate(item) {
-                        return `<td>${item}</td>`;
-                    }
-
-                    function podRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Status}</td>`;
-                    }
-
-                    function deploymentRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Containers.join(', ')}</td><td>${item.Images.join(', ')}</td>`;
-                    }
-
-                    function stsRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.ReadyReplicas}</td><td>${item.Image}</td>`;
-                    }
-
-                    function serviceRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Type}</td><td>${item.ClusterIP}</td><td>${item.Ports}</td>`;
-                    }
-
-                    function perVolRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.Capacity}</td><td>${item.AccessModes}</td><td>${item.Status}</td><td>${item.AssociatedClaim}</td><td>${item.StorageClass}</td><td>${item.VolumeMode}</td>`;
-                    }
-
-                    function perVolClaimRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Status}</td><td>${item.Volume}</td><td>${item.Capacity}</td><td>${item.AccessMode}</td><td>${item.StorageClass}</td>`;
-                    }
-
-                    function storageClassRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.Provisioner}</td><td>${item.VolumeExpansion}</td>`;
-                    }
-
-                    function volSnapshotClassRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.Driver}</td>`;
-                    }
-
-                    function volumeSnapshotRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Volume}</td><td>${item.CreationTimestamp}</td><td>${item.RestoreSize}</td>`;
-                    }
-
-                    function ec2InstanceRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.InstanceID}</td><td>${item.Type}</td><td>${item.State}</td><td>${item.Region}</td>`;
-                    }
-
-                    function s3BucketRowTemplate(item) {
-                        return `<td>${item.Name}</td><td>${item.Immutable}</td><td>${item.Region}</td>`;
-                    }
-
-                    function rdsInstanceRowTemplate(item) {
-                        return `<td>${item.InstanceID}</td><td>${item.Engine}</td><td>${item.Status}</td><td>${item.Region}</td>`;
-                    }
-
-                    function dynamoDBTableRowTemplate(item) {
-                        return `<td>${item.TableName}</td><td>${item.Status}</td><td>${item.Region}</td>`;
-                    }
-
-                    function vpcRowTemplate(item) {
-                        return `<td>${item.VPCID}</td><td>${item.State}</td><td>${item.Region}</td>`;
-                    }
-
-                    function azureVMRowTemplate(item) {
-                        return `<td>${item.name}</td><td>${item.location}</td><td>${item.properties.hardwareProfile.vmSize}</td>`;
-                    }
-
-                    function azureStorageAccountRowTemplate(item) {
-                        return `<td>${item.name}</td><td>${item.location}</td><td>${item.kind}</td>`;
-                    }
-
-                    function azureBlobContainerRowTemplate(item) {
-                        return `<td>${item.name}</td><td>${item.properties.immutableStorageWithVersioning.enabled}</td><td>${item.id}</td>`;
-                    }
-
-                    function azureVirtualNetworkRowTemplate(item) {
-                        return `<td>${item.name}</td><td>${item.location}</td>`;
-                    }
-
-                    function azureSQLDatabaseRowTemplate(item) {
-                        return `<td>${item.name}</td><td>${item.location}</td>`;
-                    }
-
-                    function azureCosmosDBRowTemplate(item) {
-                        return `<td>${item.name}</td><td>${item.location}</td>`;
-                    }
-
-                    if (data.Nodes) {
-                        createTable('Nodes', data.Nodes, nodeRowTemplate, ['Name', 'Roles', 'Age', 'Version', 'OS-Image']);
-                    }
-                    if (data.Namespaces) {
-                        createTable('Namespaces', data.Namespaces, defaultRowTemplate, ['Namespace']);
-                    }
-                    if (data.Pods) {
-                        createTable('Pods', data.Pods, podRowTemplate, ['Pod', 'Namespace', 'Status']);
-                    }
-                    if (data.Deployments) {
-                        createTable('Deployments', data.Deployments, deploymentRowTemplate, ['Deployments', 'Namespace', 'Containers', 'Images']);
-                    }
-                    if (data.StatefulSets) {
-                        createTable('StatefulSets', data.StatefulSets, stsRowTemplate, ['StatefulSet', 'Namespace', 'Ready Replicas','Image']);
-                    }
-                    if (data.Services) {
-                        createTable('Services', data.Services, serviceRowTemplate, ['Service', 'Namespace', 'Type', 'Cluster IP', 'Ports']);
-                    }
-                    if (data.PersistentVolumes) {
-                        createTable('PersistentVolumes', data.PersistentVolumes, perVolRowTemplate, ['PersistentVolume', 'Capacity', 'Access Modes', 'Status', 'Claim', 'StorageClass', 'Volume Mode']);
-                    }
-                    if (data.PersistentVolumeClaims) {
-                        createTable('PersistentVolumeClaims', data.PersistentVolumeClaims, perVolClaimRowTemplate, ['PersistentVolumeClaim', 'Namespace', 'Status', 'Volume', 'Capacity', 'Access Mode', 'StorageClass']);
-                    }
-                    if (data.StorageClasses) {
-                        createTable('StorageClasses', data.StorageClasses, storageClassRowTemplate, ['StorageClass', 'Provisioner', 'Volume Expansion']);
-                    }
-                    if (data.VolumeSnapshotClasses) {
-                        createTable('VolumeSnapshotClasses', data.VolumeSnapshotClasses, volSnapshotClassRowTemplate, ['VolumeSnapshotClass', 'Driver']);
-                    }
-                    if (data.VolumeSnapshots) {
-                        createTable('VolumeSnapshots', data.VolumeSnapshots, volumeSnapshotRowTemplate, ['Name', 'Namespace', 'Volume', 'Creation Timestamp', 'Restore Size']);
-                    }
-                    if (data.EC2Instances) {
-                        createTable('EC2 Instances', data.EC2Instances, ec2InstanceRowTemplate, ['Name','Instance ID', 'Type', 'State', 'Region']);
-                    }
-                    if (data.S3Buckets) {
-                        createTable('S3 Buckets', data.S3Buckets, s3BucketRowTemplate, ['Bucket Name', 'Immutable', 'Region']);
-                    }
-                    if (data.RDSInstances) {
-                        createTable('RDS Instances', data.RDSInstances, rdsInstanceRowTemplate, ['Instance ID', 'Engine', 'Status', 'Region']);
-                    }
-                    if (data.DynamoDBTables) {
-                        createTable('DynamoDB Tables', data.DynamoDBTables, dynamoDBTableRowTemplate, ['Table Name', 'Status', 'Region']);
-                    }
-                    if (data.VPCs) {
-                        createTable('VPCs', data.VPCs, vpcRowTemplate, ['VPC ID', 'State', 'Region']);
-                    }
-                    if (data.AzureVMs) {
-                        createTable('Azure VMs', data.AzureVMs, azureVMRowTemplate, ['name', 'location', 'VM Size']);
-                    }
-                    if (data.AzureVMSS) {
-                        createTable("azure-vmss", data.AzureData.AzureVMSS, ["name", "location", "sku"]);
-                    }
-                    if (data.AzureAKSClusters) {
-                        createTable("azure-aks", data.AzureData.AzureAKSClusters, ["name", "location", "kubernetesVersion"]);
-                    }
-                    if (data.AzureStorageAccounts) {
-                        createTable('Azure Storage Accounts', data.AzureStorageAccounts, azureStorageAccountRowTemplate, ['name', 'location', 'kind']);
-                    }
-                    if (data.AzureBlobContainers) {
-                        createTable('Azure Blob Containers', data.AzureBlobContainers, azureBlobContainerRowTemplate, ['name', 'Immutable', 'id']);
-                    }
-                    if (data.AzureVirtualNetworks) {
-                        createTable('Azure Virtual Networks', data.AzureVirtualNetworks, azureVirtualNetworkRowTemplate, ['name', 'location']);
-                    }
-                    if (data.AzureSQLDatabases) {
-                        createTable('Azure SQL Databases', data.AzureSQLDatabases, azureSQLDatabaseRowTemplate, ['name', 'location']);
-                    }
-                    if (data.AzureCosmosDBs) {
-                        createTable('Azure CosmosDB Accounts', data.AzureCosmosDBs, azureCosmosDBRowTemplate, ['name', 'location']);
-                    }
-                } catch (error) {
-                    console.error("Error processing data:", error);
-                }
-            }
-        });
-
-        document.getElementById('export-button').addEventListener('click', () => {
-            fetch('/api/data')
-                .then(response => response.json())
-                .then(data => {
-                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'data.json';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                })
-                .catch(error => console.error('Error exporting data:', error));
-        });
-    </script>
+    <script src="scripts/common.js"></script>
+    <script src="scripts/kubernetes.js"></script>
+    <script src="scripts/aws.js"></script>
+    <script src="scripts/azure.js"></script>
 </body>
 </html>

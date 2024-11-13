@@ -11,10 +11,16 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sync"
 
 	"github.com/michaelcade/kollect/pkg/aws"
 	"github.com/michaelcade/kollect/pkg/azure"
 	"github.com/michaelcade/kollect/pkg/kollect"
+)
+
+var (
+	dataMutex sync.Mutex
+	data      interface{}
 )
 
 func main() {
@@ -36,7 +42,6 @@ func main() {
 
 	ctx := context.Background()
 
-	var data interface{}
 	var err error
 	switch *inventoryType {
 	case "aws":
@@ -51,6 +56,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error collecting data: %v", err)
 	}
+
 	if *output != "" {
 		err = saveToFile(data, *output)
 		if err != nil {
@@ -59,6 +65,7 @@ func main() {
 		fmt.Printf("Data saved to %s\n", *output)
 		return
 	}
+
 	if *browser {
 		startWebServer(data, true)
 	} else {
@@ -96,15 +103,71 @@ func printData(data interface{}) {
 func startWebServer(data interface{}, openBrowser bool) {
 	http.Handle("/", http.FileServer(http.Dir("web")))
 	http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
+		dataMutex.Lock()
+		defer dataMutex.Unlock()
 		err := json.NewEncoder(w).Encode(data)
 		if err != nil {
 			log.Printf("Error encoding data: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
-
+	http.HandleFunc("/api/import", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+			return
+		}
+		var importedData interface{}
+		err := json.NewDecoder(r.Body).Decode(&importedData)
+		if err != nil {
+			log.Printf("Error decoding imported data: %v", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		dataMutex.Lock()
+		data = importedData
+		dataMutex.Unlock()
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+		if err != nil {
+			log.Printf("Error encoding response: %v", err)
+		}
+	})
+	http.HandleFunc("/api/switch", func(w http.ResponseWriter, r *http.Request) {
+		inventoryType := r.URL.Query().Get("type")
+		ctx := context.Background()
+		var err error
+		switch inventoryType {
+		case "aws":
+			data, err = aws.CollectAWSData(ctx)
+		case "azure":
+			data, err = azure.CollectAzureData(ctx)
+		case "kubernetes":
+			data, err = collectData(ctx, false, filepath.Join(os.Getenv("HOME"), ".kube", "config"))
+		case "google":
+			// Placeholder for Google Cloud data collection
+			data = map[string]string{"message": "Google Cloud data collection not implemented yet"}
+		case "veeam":
+			// Placeholder for Veeam data collection
+			data = map[string]string{"message": "Veeam data collection not implemented yet"}
+		default:
+			http.Error(w, "Invalid inventory type", http.StatusBadRequest)
+			return
+		}
+		if err != nil {
+			log.Printf("Error collecting data: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		dataMutex.Lock()
+		data = data
+		dataMutex.Unlock()
+		w.WriteHeader(http.StatusOK)
+		err = json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+		if err != nil {
+			log.Printf("Error encoding response: %v", err)
+		}
+	})
 	log.Println("Server starting on port http://localhost:8080")
-
 	if openBrowser {
 		// Open the browser
 		go func() {
@@ -122,9 +185,9 @@ func startWebServer(data interface{}, openBrowser bool) {
 			}
 		}()
 	}
-
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatalf("Failed to start server: %v", err)
+
 	}
 }
