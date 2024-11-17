@@ -97,7 +97,8 @@ th {
 }
 
 .inventory-buttons button i, .export-button button i, .import-button button i, #theme-toggle i {
-    color: #f5f5f5; 
+    color: #f5f5f5;
+}
 
 .loading-indicator {
     display: none;
