@@ -134,7 +134,7 @@ func fetchNodes(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata
 				}
 			}
 		}
-		age := time.Since(node.CreationTimestamp.Time).String()
+		age := formatDuration(time.Since(node.CreationTimestamp.Time))
 		version := node.Status.NodeInfo.KubeletVersion
 		osImage := node.Status.NodeInfo.OSImage
 		nodeInfos = append(nodeInfos, k8sdata.NodeInfo{
@@ -146,6 +146,15 @@ func fetchNodes(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata
 		})
 	}
 	return nodeInfos, nil
+}
+
+func formatDuration(d time.Duration) string {
+	days := d / (24 * time.Hour)
+	d -= days * 24 * time.Hour
+	hours := d / time.Hour
+	d -= hours * time.Hour
+	minutes := d / time.Minute
+	return fmt.Sprintf("%dd%dh%dm", days, hours, minutes)
 }
 
 func fetchNamespaces(ctx context.Context, clientset *kubernetes.Clientset) ([]string, error) {
