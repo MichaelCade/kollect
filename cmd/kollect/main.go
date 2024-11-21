@@ -69,7 +69,6 @@ func main() {
 	if *browser {
 		startWebServer(data, true)
 	} else {
-		startWebServer(data, false)
 		printData(data)
 	}
 }
@@ -188,6 +187,5 @@ func startWebServer(data interface{}, openBrowser bool) {
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatalf("Failed to start server: %v", err)
-
 	}
 }
