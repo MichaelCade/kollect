@@ -137,6 +137,7 @@ th {
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
+
 .details-button:hover {
     background-color: var(--button-hover-bg);
     transform: scale(1.05);

@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"log"
+
 	k8sdata "github.com/michaelcade/kollect/api/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -31,23 +33,23 @@ func CollectStorageData(ctx context.Context, kubeconfig string) (k8sdata.K8sData
 	}
 	data.PersistentVolumes, err = fetchPersistentVolumes(ctx, clientset)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching PersistentVolumes: %v", err)
 	}
 	data.PersistentVolumeClaims, err = fetchPersistentVolumeClaims(ctx, clientset)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching PersistentVolumeClaims: %v", err)
 	}
 	data.StorageClasses, err = fetchStorageClasses(ctx, clientset)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching StorageClasses: %v", err)
 	}
 	data.VolumeSnapshotClasses, err = fetchVolumeSnapshotClasses(ctx, dynamicClient)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching VolumeSnapshotClasses: %v", err)
 	}
 	data.VolumeSnapshots, err = fetchVolumeSnapshots(ctx, dynamicClient)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching VolumeSnapshots: %v", err)
 	}
 	return data, nil
 }
@@ -68,47 +70,48 @@ func CollectData(ctx context.Context, kubeconfig string) (k8sdata.K8sData, error
 	}
 	data.Nodes, err = fetchNodes(ctx, clientset)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching Nodes: %v", err)
 	}
 	data.Namespaces, err = fetchNamespaces(ctx, clientset)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching Namespaces: %v", err)
 	}
 	data.Pods, err = fetchPods(ctx, clientset)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching Pods: %v", err)
 	}
 	data.Deployments, err = fetchDeployments(ctx, clientset)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching Deployments: %v", err)
 	}
 	data.StatefulSets, err = fetchStatefulSets(ctx, clientset)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching StatefulSets: %v", err)
 	}
 	data.Services, err = fetchServices(ctx, clientset)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching Services: %v", err)
 	}
 	data.PersistentVolumes, err = fetchPersistentVolumes(ctx, clientset)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching PersistentVolumes: %v", err)
 	}
 	data.PersistentVolumeClaims, err = fetchPersistentVolumeClaims(ctx, clientset)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching PersistentVolumeClaims: %v", err)
 	}
 	data.StorageClasses, err = fetchStorageClasses(ctx, clientset)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching StorageClasses: %v", err)
 	}
 	data.VolumeSnapshotClasses, err = fetchVolumeSnapshotClasses(ctx, dynamicClient)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching VolumeSnapshotClasses: %v", err)
 	}
 	data.VolumeSnapshots, err = fetchVolumeSnapshots(ctx, dynamicClient)
 	if err != nil {
-		return k8sdata.K8sData{}, err
+		log.Printf("Warning: VolumeSnapshots resource not found in the cluster: %v", err)
+		data.VolumeSnapshots = []k8sdata.VolumeSnapshotInfo{}
 	}
 	return data, nil
 }
@@ -131,7 +134,7 @@ func fetchNodes(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata
 				}
 			}
 		}
-		age := time.Since(node.CreationTimestamp.Time).String()
+		age := formatDuration(time.Since(node.CreationTimestamp.Time))
 		version := node.Status.NodeInfo.KubeletVersion
 		osImage := node.Status.NodeInfo.OSImage
 		nodeInfos = append(nodeInfos, k8sdata.NodeInfo{
@@ -143,6 +146,15 @@ func fetchNodes(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata
 		})
 	}
 	return nodeInfos, nil
+}
+
+func formatDuration(d time.Duration) string {
+	days := d / (24 * time.Hour)
+	d -= days * 24 * time.Hour
+	hours := d / time.Hour
+	d -= hours * time.Hour
+	minutes := d / time.Minute
+	return fmt.Sprintf("%dd%dh%dm", days, hours, minutes)
 }
 
 func fetchNamespaces(ctx context.Context, clientset *kubernetes.Clientset) ([]string, error) {
@@ -332,6 +344,10 @@ func fetchVolumeSnapshotClasses(ctx context.Context, dynamicClient dynamic.Inter
 	}
 	volumeSnapshotClasses, err := dynamicClient.Resource(gvr).List(ctx, v1.ListOptions{})
 	if err != nil {
+		if strings.Contains(err.Error(), "the server could not find the requested resource") {
+			log.Printf("Warning: VolumeSnapshotClasses resource not found in the cluster")
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -358,6 +374,10 @@ func fetchVolumeSnapshots(ctx context.Context, dynamicClient dynamic.Interface) 
 	}
 	volumeSnapshots, err := dynamicClient.Resource(gvr).List(ctx, v1.ListOptions{})
 	if err != nil {
+		if strings.Contains(err.Error(), "the server could not find the requested resource") {
+			log.Printf("Warning: VolumeSnapshots resource not found in the cluster")
+			return []k8sdata.VolumeSnapshotInfo{}, nil
+		}
 		return nil, err
 	}
 

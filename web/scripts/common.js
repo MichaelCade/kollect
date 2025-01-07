@@ -9,6 +9,7 @@ function hideLoadingIndicator() {
 }
 
 document.getElementById('export-button').addEventListener('click', () => {
+    showLoadingIndicator();
     fetch('/api/data')
         .then(response => response.json())
         .then(data => {
@@ -21,7 +22,8 @@ document.getElementById('export-button').addEventListener('click', () => {
             a.click();
             document.body.removeChild(a);
         })
-        .catch(error => console.error('Error exporting data:', error));
+        .catch(error => console.error('Error exporting data:', error))
+        .finally(() => hideLoadingIndicator());
 });
 
 document.getElementById('import-button').addEventListener('click', () => {
@@ -31,6 +33,7 @@ document.getElementById('import-button').addEventListener('click', () => {
 document.getElementById('import-file').addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (file) {
+        showLoadingIndicator();
         const reader = new FileReader();
         reader.onload = (e) => {
             const data = JSON.parse(e.target.result);
@@ -46,7 +49,8 @@ document.getElementById('import-file').addEventListener('change', (event) => {
                 // Refresh the page to display the imported data
                 location.reload();
             })
-            .catch(error => console.error('Error importing data:', error));
+            .catch(error => console.error('Error importing data:', error))
+            .finally(() => hideLoadingIndicator());
         };
         reader.readAsText(file);
     }
@@ -59,6 +63,7 @@ document.addEventListener('htmx:afterSwap', (event) => {
             console.log("Fetched Data:", data); // Log fetched data
             const content = document.getElementById('content');
             const template = document.getElementById('table-template').content;
+
             function createTable(headerText, data, rowTemplate, headers) {
                 if (!data || data.length === 0) return; // Ensure data is not null or empty
                 const table = template.cloneNode(true);
@@ -79,9 +84,13 @@ document.addEventListener('htmx:afterSwap', (event) => {
                 });
                 content.appendChild(table);
             }
+
             // Add your row templates and createTable calls here
+
         } catch (error) {
             console.error("Error processing data:", error);
+        } finally {
+            hideLoadingIndicator();
         }
     }
 });
