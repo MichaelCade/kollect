@@ -125,21 +125,3 @@ th {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
-
-.details-button {
-    margin-right: 10px;
-    padding: 10px 20px;
-    font-size: 16px;
-    color: var(--text-color);
-    background-color: var(--button-bg);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.details-button:hover {
-    background-color: var(--button-hover-bg);
-    transform: scale(1.05);
-    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
-}
