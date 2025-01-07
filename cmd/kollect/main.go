@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"flag"
@@ -11,11 +12,14 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/michaelcade/kollect/pkg/aws"
 	"github.com/michaelcade/kollect/pkg/azure"
 	"github.com/michaelcade/kollect/pkg/kollect"
+	"github.com/michaelcade/kollect/pkg/veeam"
+	"golang.org/x/term"
 )
 
 var (
@@ -28,7 +32,10 @@ func main() {
 	kubeconfig := flag.String("kubeconfig", filepath.Join(os.Getenv("HOME"), ".kube", "config"), "Path to the kubeconfig file")
 	browser := flag.Bool("browser", false, "Open the web interface in a browser")
 	output := flag.String("output", "", "Output file to save the collected data")
-	inventoryType := flag.String("inventory", "kubernetes", "Type of inventory to collect (kubernetes/aws/azure)")
+	inventoryType := flag.String("inventory", "kubernetes", "Type of inventory to collect (kubernetes/aws/azure/veeam)")
+	baseURL := flag.String("veeam-url", "", "Veeam server URL")
+	username := flag.String("veeam-username", "", "Veeam username")
+	password := flag.String("veeam-password", "", "Veeam password")
 	help := flag.Bool("help", false, "Show help message")
 	flag.Parse()
 	if *help {
@@ -42,6 +49,26 @@ func main() {
 
 	ctx := context.Background()
 
+	// Load environment variables
+	if *baseURL == "" {
+		*baseURL = os.Getenv("VBR_SERVER_URL")
+	}
+	if *baseURL == "" {
+		serverAddress := promptUser("Enter VBR Server IP or DNS name: ")
+		*baseURL = fmt.Sprintf("https://%s:9419", serverAddress)
+	}
+	if *username == "" {
+		*username = getEnv("VBR_USERNAME", "Enter VBR Username: ")
+	}
+	if *password == "" {
+		*password = getSensitiveInput("Enter VBR Password: ")
+	}
+
+	// Ensure the baseURL includes the protocol scheme
+	if !strings.HasPrefix(*baseURL, "http://") && !strings.HasPrefix(*baseURL, "https://") {
+		*baseURL = "http://" + *baseURL
+	}
+
 	var err error
 	switch *inventoryType {
 	case "aws":
@@ -50,6 +77,8 @@ func main() {
 		data, err = azure.CollectAzureData(ctx)
 	case "kubernetes":
 		data, err = collectData(ctx, *storageOnly, *kubeconfig)
+	case "veeam":
+		data, err = veeam.CollectVeeamData(ctx, *baseURL, *username, *password)
 	default:
 		log.Fatalf("Invalid inventory type: %s", *inventoryType)
 	}
@@ -66,12 +95,41 @@ func main() {
 		return
 	}
 
+	printData(data)
+
 	if *browser {
-		startWebServer(data, true)
+		startWebServer(data, true, *baseURL, *username, *password)
 	} else {
-		startWebServer(data, false)
+		startWebServer(data, false, *baseURL, *username, *password)
 		printData(data)
 	}
+}
+
+func promptUser(prompt string) string {
+	fmt.Print(prompt)
+	scanner := bufio.NewScanner(os.Stdin)
+	if scanner.Scan() {
+		return strings.TrimSpace(scanner.Text())
+	}
+	return ""
+}
+
+func getSensitiveInput(prompt string) string {
+	fmt.Print(prompt)
+	bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println() // Move to the next line after password input
+	if err != nil {
+		log.Fatalf("Error reading password: %v", err)
+	}
+	return strings.TrimSpace(string(bytePassword))
+}
+
+func getEnv(envVar, prompt string) string {
+	value := os.Getenv(envVar)
+	if value == "" {
+		value = promptUser(prompt)
+	}
+	return value
 }
 
 func collectData(ctx context.Context, storageOnly bool, kubeconfig string) (interface{}, error) {
@@ -100,8 +158,13 @@ func printData(data interface{}) {
 	fmt.Println(string(prettyData))
 }
 
-func startWebServer(data interface{}, openBrowser bool) {
-	http.Handle("/", http.FileServer(http.Dir("web")))
+func startWebServer(data interface{}, openBrowser bool, baseURL, username, password string) {
+	// Serve the files from the web directory
+	fileServer := http.FileServer(http.Dir("web"))
+
+	// Serve the files
+	http.Handle("/", fileServer)
+
 	http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
 		dataMutex.Lock()
 		defer dataMutex.Unlock()
@@ -111,6 +174,7 @@ func startWebServer(data interface{}, openBrowser bool) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
+
 	http.HandleFunc("/api/import", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -132,6 +196,7 @@ func startWebServer(data interface{}, openBrowser bool) {
 			log.Printf("Error encoding response: %v", err)
 		}
 	})
+
 	http.HandleFunc("/api/switch", func(w http.ResponseWriter, r *http.Request) {
 		inventoryType := r.URL.Query().Get("type")
 		ctx := context.Background()
@@ -147,8 +212,11 @@ func startWebServer(data interface{}, openBrowser bool) {
 			// Placeholder for Google Cloud data collection
 			data = map[string]string{"message": "Google Cloud data collection not implemented yet"}
 		case "veeam":
-			// Placeholder for Veeam data collection
-			data = map[string]string{"message": "Veeam data collection not implemented yet"}
+			if baseURL == "" || username == "" || password == "" {
+				http.Error(w, "Veeam URL, username, and password must be provided", http.StatusBadRequest)
+				return
+			}
+			data, err = veeam.CollectVeeamData(ctx, baseURL, username, password)
 		default:
 			http.Error(w, "Invalid inventory type", http.StatusBadRequest)
 			return
@@ -167,6 +235,7 @@ func startWebServer(data interface{}, openBrowser bool) {
 			log.Printf("Error encoding response: %v", err)
 		}
 	})
+
 	log.Println("Server starting on port http://localhost:8080")
 	if openBrowser {
 		// Open the browser
@@ -188,6 +257,5 @@ func startWebServer(data interface{}, openBrowser bool) {
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatalf("Failed to start server: %v", err)
-
 	}
 }
