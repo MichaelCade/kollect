@@ -100,7 +100,6 @@ func main() {
 	if *browser {
 		startWebServer(data, true, *baseURL, *username, *password)
 	} else {
-		startWebServer(data, false, *baseURL, *username, *password)
 		printData(data)
 	}
 }
