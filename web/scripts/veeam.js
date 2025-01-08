@@ -52,7 +52,7 @@ document.addEventListener('htmx:afterSwap', (event) => {
                 createTable('Managed Servers', data.ManagedServers, managedServersRowTemplate, ['Name', 'Type', 'Status', 'Description']);
             }
             if (data.Repositories) {
-                createTable('Repositories', data.Repositories, repositoriesRowTemplate, ['Name', 'Type', 'Description', 'Folder Name', 'Immutability Status']);
+                createTable('Repositories', data.Repositories, repositoriesRowTemplate, ['Name', 'Type', 'Description', 'Bucket Name', 'Folder Name', 'Region ID', 'Infrequent Access Storage', 'Immutability Status', 'Immutable Period']);
             }
             if (data.ScaleOutRepositories) {
                 createTable('Scale-Out Repositories', data.ScaleOutRepositories, scaleOutRepositoriesRowTemplate, ['Name', 'Description', 'Details'], data.Repositories);
@@ -110,8 +110,32 @@ function managedServersRowTemplate(item) {
 }
 
 function repositoriesRowTemplate(item) {
-    const immutabilityStatus = item.bucket && item.bucket.immutability ? item.bucket.immutability.isEnabled : false;
-    return `<td>${item.name}</td><td>${item.type}</td><td>${item.description}</td><td>${item.bucket ? item.bucket.folderName : 'N/A'}</td><td>${immutabilityStatus}</td>`;
+    let immutabilityStatus = false;
+    let immutablePeriod = 'N/A';
+    let bucketName = 'N/A';
+    let regionId = 'N/A';
+    let infrequentAccessStorage = 'N/A';
+
+    if (item.repository) {
+        if (item.repository.makeRecentBackupsImmutableDays) {
+            immutabilityStatus = true;
+            immutablePeriod = item.repository.makeRecentBackupsImmutableDays;
+        }
+    } else if (item.bucket) {
+        bucketName = item.bucket.bucketName || 'N/A';
+        regionId = item.bucket.regionId || 'N/A';
+        infrequentAccessStorage = item.bucket.infrequentAccessStorage && item.bucket.infrequentAccessStorage.isEnabled ? 'Enabled' : 'Disabled';
+
+        if (item.bucket.immutability && item.bucket.immutability.isEnabled) {
+            immutabilityStatus = true;
+            immutablePeriod = item.bucket.immutability.daysCount;
+        } else if (item.bucket.immutabilityEnabled) {
+            immutabilityStatus = true;
+            immutablePeriod = 'N/A';
+        }
+    }
+
+    return `<td>${item.name}</td><td>${item.type}</td><td>${item.description}</td><td>${bucketName}</td><td>${item.bucket ? item.bucket.folderName : 'N/A'}</td><td>${regionId}</td><td>${infrequentAccessStorage}</td><td>${immutabilityStatus}</td><td>${immutablePeriod}</td>`;
 }
 
 function scaleOutRepositoriesRowTemplate(item, repositories) {
@@ -125,6 +149,8 @@ function scaleOutRepositoriesRowTemplate(item, repositories) {
     const archiveTier = item.archiveTier && item.archiveTier.isEnabled ? 'Enabled' : 'Disabled';
     const copyPolicy = item.capacityTier && item.capacityTier.copyPolicyEnabled ? 'Enabled' : 'Disabled';
     const movePolicy = item.capacityTier && item.capacityTier.movePolicyEnabled ? 'Enabled' : 'Disabled';
+    const operationalRestorePeriodDays = item.capacityTier && item.capacityTier.operationalRestorePeriodDays ? item.capacityTier.operationalRestorePeriodDays : 'N/A';
+    const archivePeriodDays = item.archiveTier && item.archiveTier.archivePeriodDays ? item.archiveTier.archivePeriodDays : 'N/A';
 
     const performanceExtents = item.performanceTier && item.performanceTier.performanceExtents ? item.performanceTier.performanceExtents.map(extent => {
         const repo = repositories.find(repo => repo.id === extent.id);
@@ -151,8 +177,10 @@ function scaleOutRepositoriesRowTemplate(item, repositories) {
                 <ul>${performanceExtents}</ul>
                 <p>Capacity Tier: ${capacityTier}</p>
                 <ul>${capacityExtents}</ul>
+                <p>Operational Restore Period Days: ${operationalRestorePeriodDays}</p>
                 <p>Archive Tier: ${archiveTier}</p>
                 <ul>${archiveExtents}</ul>
+                <p>Archive Period Days: ${archivePeriodDays}</ul>
                 <p>Copy Policy: ${copyPolicy}</p>
                 <p>Move Policy: ${movePolicy}</p>
             </div>
