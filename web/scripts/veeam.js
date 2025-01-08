@@ -16,7 +16,7 @@ document.addEventListener('htmx:afterSwap', (event) => {
             console.log("Fetched Data:", data); // Log fetched data
             const content = document.getElementById('content');
             const template = document.getElementById('table-template').content;
-            function createTable(headerText, data, rowTemplate, headers) {
+            function createTable(headerText, data, rowTemplate, headers, repositories) {
                 if (!data || data.length === 0) return; // Ensure data is not null or empty
                 const table = template.cloneNode(true);
                 table.querySelector('th').textContent = headerText;
@@ -31,7 +31,7 @@ document.addEventListener('htmx:afterSwap', (event) => {
                 const tbody = table.querySelector('tbody');
                 data.forEach(item => {
                     const row = document.createElement('tr');
-                    row.innerHTML = rowTemplate(item);
+                    row.innerHTML = rowTemplate(item, repositories);
                     tbody.appendChild(row);
                 });
                 content.appendChild(table);
@@ -55,7 +55,7 @@ document.addEventListener('htmx:afterSwap', (event) => {
                 createTable('Repositories', data.Repositories, repositoriesRowTemplate, ['Name', 'Type', 'Description', 'Folder Name', 'Immutability Status']);
             }
             if (data.ScaleOutRepositories) {
-                createTable('Scale-Out Repositories', data.ScaleOutRepositories, scaleOutRepositoriesRowTemplate, ['Name', 'Description', 'Details']);
+                createTable('Scale-Out Repositories', data.ScaleOutRepositories, scaleOutRepositoriesRowTemplate, ['Name', 'Description', 'Details'], data.Repositories);
             }
             if (data.Proxies) {
                 createTable('Proxies', data.Proxies, proxiesRowTemplate, ['Name', 'Type', 'Description', 'Max Task Count', 'Transport Mode']);
@@ -114,16 +114,32 @@ function repositoriesRowTemplate(item) {
     return `<td>${item.name}</td><td>${item.type}</td><td>${item.description}</td><td>${item.bucket ? item.bucket.folderName : 'N/A'}</td><td>${immutabilityStatus}</td>`;
 }
 
-function scaleOutRepositoriesRowTemplate(item) {
+function scaleOutRepositoriesRowTemplate(item, repositories) {
+    if (!repositories) {
+        console.error("Repositories data is undefined");
+        return '';
+    }
+
     const performanceTier = item.performanceTier && item.performanceTier.performanceExtents ? 'Enabled' : 'Disabled';
     const capacityTier = item.capacityTier && item.capacityTier.isEnabled ? 'Enabled' : 'Disabled';
     const archiveTier = item.archiveTier && item.archiveTier.isEnabled ? 'Enabled' : 'Disabled';
     const copyPolicy = item.capacityTier && item.capacityTier.copyPolicyEnabled ? 'Enabled' : 'Disabled';
     const movePolicy = item.capacityTier && item.capacityTier.movePolicyEnabled ? 'Enabled' : 'Disabled';
 
-    const performanceExtents = item.performanceTier && item.performanceTier.performanceExtents ? item.performanceTier.performanceExtents.map(extent => `<li>${extent.name}</li>`).join('') : 'N/A';
-    const capacityExtents = item.capacityTier && item.capacityTier.extents ? item.capacityTier.extents.map(extent => `<li>${extent.id}</li>`).join('') : 'N/A';
-    const archiveExtents = item.archiveTier && item.archiveTier.extentId ? `<li>${item.archiveTier.extentId}</li>` : 'N/A';
+    const performanceExtents = item.performanceTier && item.performanceTier.performanceExtents ? item.performanceTier.performanceExtents.map(extent => {
+        const repo = repositories.find(repo => repo.id === extent.id);
+        return `<li>${repo ? repo.name : extent.id}</li>`;
+    }).join('') : 'N/A';
+
+    const capacityExtents = item.capacityTier && item.capacityTier.extents ? item.capacityTier.extents.map(extent => {
+        const repo = repositories.find(repo => repo.id === extent.id);
+        return `<li>${repo ? repo.name : extent.id}</li>`;
+    }).join('') : 'N/A';
+
+    const archiveExtents = item.archiveTier && item.archiveTier.extentId ? (() => {
+        const repo = repositories.find(repo => repo.id === item.archiveTier.extentId);
+        return `<li>${repo ? repo.name : item.archiveTier.extentId}</li>`;
+    })() : 'N/A';
 
     return `
         <td>${item.name}</td>
@@ -183,7 +199,6 @@ function backupJobsRowTemplate(item) {
         </td>
     `;
 }
-
 
 function toggleDetails(id) {
     const details = document.getElementById(`details-${id}`);
