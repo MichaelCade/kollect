@@ -145,17 +145,20 @@ th {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-around;
-    width: 100%;
-    max-width: 1200px;
-    margin: 20px auto;
-    background-color: var(--chart-background-color);
-    color: var(--chart-text-color);
+    align-items: flex-start;
+    gap: 20px; /* Add some space between the charts */
+}
+
+.chart-wrapper {
+    flex: 1 1 30%; /* Allow the charts to take up equal space */
+    min-width: 300px; /* Ensure a minimum width for each chart */
+    max-width: 750px; /* Ensure a maximum width for each chart */
+    height: 400px; /* Set a fixed height for each chart */
 }
 
 .chart-container canvas {
-    flex: 1 1 45%;
-    max-width: 45%;
-    margin: 10px;
+    width: 100% !important;
+    height: 100% !important; /* Ensure the canvas takes up the full height of the wrapper */
     background-color: var(--chart-background-color);
     color: var(--chart-text-color);
 }

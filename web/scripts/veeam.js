@@ -51,7 +51,7 @@ document.addEventListener('htmx:afterSwap', (event) => {
                 createTable('Credentials', data.Credentials, credentialsRowTemplate, ['Username', 'Description', 'Type']);
             }
             if (data.CloudCredentials) {
-                createTable('Cloud Credentials', data.CloudCredentials, cloudCredentialsRowTemplate, ['Account', 'Description', 'Type']);
+                createTable('Cloud Credentials', data.CloudCredentials, cloudCredentialsRowTemplate, ['Account', 'Type', 'Description']);
             }
             if (data.KMSServers) {
                 createTable('KMS Servers', data.KMSServers, kmsServersRowTemplate, ['ID', 'Name']);
@@ -242,6 +242,12 @@ function generateCharts(data) {
     try {
         console.log("Data for charts:", data);
 
+        // Get the current text color and font properties from CSS variables
+        const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim();
+        const fontFamily = getComputedStyle(document.documentElement).getPropertyValue('--chart-font-family').trim();
+        const fontSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--chart-font-size').trim(), 10);
+        const titleFontSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--chart-title-font-size').trim(), 10);
+
         // Check for Backup Jobs data
         if (data.BackupJobs && data.BackupJobs.length) {
             const backupJobsCtx = document.getElementById('backupJobsChart');
@@ -264,21 +270,42 @@ function generateCharts(data) {
                 type: 'bar',
                 data: backupJobsData,
                 options: {
+                    indexAxis: 'y', // Use horizontal bar chart
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamily,
+                                    size: fontSize
+                                },
+                                autoSkip: false // Ensure all labels are shown
+                            }
+                        },
+                        x: {
+                            display: false // Remove the numbers on the bottom axis
                         }
                     },
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Number of Protected VMs'
+                            text: 'Number of Protected VMs',
+                            color: textColor,
+                            font: {
+                                family: fontFamily,
+                                size: titleFontSize
+                            }
                         },
                         legend: {
-                            display: true,
                             labels: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamily,
+                                    size: fontSize
+                                },
                                 generateLabels: function(chart) {
                                     return [
                                         {
@@ -332,21 +359,186 @@ function generateCharts(data) {
                 }]
             };
             console.log("Scale-Out Repositories Data:", scaleOutReposData);
+
+            // Calculate the maximum value for the x-axis
+            const maxValue = Math.max(
+                ...scaleOutReposData.datasets.map(dataset => Math.max(...dataset.data))
+            );
+
             new Chart(scaleOutReposCtx2d, {
                 type: 'bar',
                 data: scaleOutReposData,
                 options: {
+                    indexAxis: 'y', // Use horizontal bar chart
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamily,
+                                    size: fontSize
+                                },
+                                autoSkip: false // Ensure all labels are shown
+                            }
+                        },
+                        x: {
+                            display: false, // Remove the numbers on the bottom axis
+                            max: maxValue + 0.1 // Set the maximum value for the x-axis dynamically with a buffer
+                        }
+                    },
+                    layout: {
+                        padding: {
+                            right: 20 // Add padding to the right side of the chart
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Scale-Out Repositories',
+                            color: textColor,
+                            font: {
+                                family: fontFamily,
+                                size: titleFontSize
+                            }
+                        },
+                        legend: {
+                            labels: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamily,
+                                    size: fontSize
+                                }
+                            }
+                        },
+                        tooltip: {
+                            displayColors: false, // Remove color box
+                            callbacks: {
+                                label: function(context) {
+                                    const repo = data.ScaleOutRepositories[context.dataIndex];
+                                    const repositories = data.Repositories; // Assuming repositories data is available in data.Repositories
+
+                                    const performanceTier = repo.performanceTier && repo.performanceTier.performanceExtents ? 'Enabled' : 'Disabled';
+                                    const capacityTier = repo.capacityTier && repo.capacityTier.isEnabled ? 'Enabled' : 'Disabled';
+                                    const archiveTier = repo.archiveTier && repo.archiveTier.isEnabled ? 'Enabled' : 'Disabled';
+                                    const copyPolicy = repo.capacityTier && repo.capacityTier.copyPolicyEnabled ? 'Enabled' : 'Disabled';
+                                    const movePolicy = repo.capacityTier && repo.capacityTier.movePolicyEnabled ? 'Enabled' : 'Disabled';
+                                    const operationalRestorePeriodDays = repo.capacityTier && repo.capacityTier.operationalRestorePeriodDays ? repo.capacityTier.operationalRestorePeriodDays : 'N/A';
+                                    const archivePeriodDays = repo.archiveTier && repo.archiveTier.archivePeriodDays ? repo.archiveTier.archivePeriodDays : 'N/A';
+
+                                    const performanceExtents = repo.performanceTier && repo.performanceTier.performanceExtents ? repo.performanceTier.performanceExtents.map(extent => {
+                                        const repository = repositories.find(r => r.id === extent.id);
+                                        return repository ? repository.name : extent.id;
+                                    }).join(', ') : 'N/A';
+
+                                    const capacityExtents = repo.capacityTier && repo.capacityTier.extents ? repo.capacityTier.extents.map(extent => {
+                                        const repository = repositories.find(r => r.id === extent.id);
+                                        return repository ? repository.name : extent.id;
+                                    }).join(', ') : 'N/A';
+
+                                    const archiveExtents = repo.archiveTier && repo.archiveTier.extentId ? (() => {
+                                        const repository = repositories.find(r => r.id === repo.archiveTier.extentId);
+                                        return repository ? repository.name : repo.archiveTier.extentId;
+                                    })() : 'N/A';
+
+                                    let label = `${context.dataset.label}: ${context.raw}\n`;
+                                    if (context.dataset.label === 'Performance Tier') {
+                                        label += `Performance Tier: ${performanceTier}\nPerformance Extents: ${performanceExtents}`;
+                                    } else if (context.dataset.label === 'Capacity Tier') {
+                                        label += `Capacity Tier: ${capacityTier}\nCapacity Extents: ${capacityExtents}\nOperational Restore Period Days: ${operationalRestorePeriodDays}\nCopy Policy: ${copyPolicy}\nMove Policy: ${movePolicy}`;
+                                    } else if (context.dataset.label === 'Archive Tier') {
+                                        label += `Archive Tier: ${archiveTier}\nArchive Extents: ${archiveExtents}\nArchive Period Days: ${archivePeriodDays}`;
+                                    }
+                                    return label.split('\n'); // Add line breaks
+                                }
+                            },
+                            bodyFont: {
+                                family: fontFamily,
+                                size: fontSize
+                            },
+                            boxWidth: 0 // Remove the box width to allow more space for text
                         }
                     }
                 }
             });
         } else {
             console.warn("No Scale-Out Repositories data available");
+        }
+
+        // Create a polar chart for Credential Types
+        if (data.Credentials && data.CloudCredentials) {
+            const credentialsCtx = document.getElementById('credentialsChart');
+            if (!credentialsCtx) {
+                console.error("Canvas element 'credentialsChart' not found.");
+                return;
+            }
+            const credentialsCtx2d = credentialsCtx.getContext('2d');
+
+            // Aggregate credential types, excluding "Standard"
+            const credentialTypes = {};
+            data.Credentials.filter(cred => cred.type !== 'Standard').forEach(cred => {
+                credentialTypes[cred.type] = (credentialTypes[cred.type] || 0) + 1;
+            });
+            data.CloudCredentials.filter(cred => cred.type !== 'Standard').forEach(cred => {
+                credentialTypes[cred.type] = (credentialTypes[cred.type] || 0) + 1;
+            });
+
+            const credentialLabels = Object.keys(credentialTypes);
+            const credentialData = Object.values(credentialTypes);
+
+            const credentialsData = {
+                labels: credentialLabels,
+                datasets: [{
+                    label: 'Credential Types',
+                    data: credentialData,
+                    backgroundColor: ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
+                    borderWidth: 1
+                }]
+            };
+            console.log("Credentials Data:", credentialsData);
+            new Chart(credentialsCtx2d, {
+                type: 'polarArea',
+                data: credentialsData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamily,
+                                    size: fontSize
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Credential Types',
+                            color: textColor,
+                            font: {
+                                family: fontFamily,
+                                size: titleFontSize
+                            }
+                        },
+                        legend: {
+                            labels: {
+                                color: textColor,
+                                font: {
+                                    family: fontFamily,
+                                    size: fontSize
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            console.warn("No Credentials or Cloud Credentials data available");
         }
 
         console.log("Charts created successfully.");
