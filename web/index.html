@@ -10,72 +10,76 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
         <script src="https://unpkg.com/htmx.org@1.7.0"></script>
         <script src="https://unpkg.com/hyperscript.org@0.9.7"></script>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Add Chart.js library -->
     </head>
-    <body>
-        <div class="container">
-            <img src="dark_Kollect.png" alt="Logo" class="logo" id="logo">
-            <button id="theme-toggle"><i class="fas fa-sun"></i></button>
-            <div class="button-container">
-                <div class="inventory-buttons">
-                    <button id="kubernetes-button"><img src="images/kubernetes.svg" alt="Kubernetes"></button>
-                    <button id="aws-button"><img src="images/aws.svg" alt="AWS"></button>
-                    <button id="azure-button"><img src="images/azure.svg" alt="Azure"></button>
-                    <button id="google-button"><img src="images/gcp.svg" alt="Google"></button>
-                    <button id="veeam-button"><img src="images/veeam.svg" alt="Veeam"></button>
+<body>
+    <div class="container">
+        <img src="dark_Kollect.png" alt="Logo" class="logo" id="logo">
+        <button id="theme-toggle"><i class="fas fa-sun"></i></button>
+        <div class="button-container">
+            <div class="inventory-buttons">
+                <button id="kubernetes-button"><img src="images/kubernetes.svg" alt="Kubernetes"></button>
+                <button id="aws-button"><img src="images/aws.svg" alt="AWS"></button>
+                <button id="azure-button"><img src="images/azure.svg" alt="Azure"></button>
+                <button id="google-button"><img src="images/gcp.svg" alt="Google"></button>
+                <button id="veeam-button"><img src="images/veeam.svg" alt="Veeam"></button>
+            </div>
+            <div class="import-export-buttons">
+                <div class="export-button">
+                    <button id="export-button"><i class="fas fa-download"></i></button>
                 </div>
-                <div class="import-export-buttons">
-                    <div class="export-button">
-                        <button id="export-button"><i class="fas fa-download"></i></button>
-                    </div>
-                    <div class="import-button">
-                        <input type="file" id="import-file" style="display: none;" />
-                        <button id="import-button"><i class="fas fa-upload"></i></button>
-                    </div>
+                <div class="import-button">
+                    <input type="file" id="import-file" style="display: none;" />
+                    <button id="import-button"><i class="fas fa-upload"></i></button>
                 </div>
-            </div>
-            <div id="hidden-content" hx-get="/api/data" hx-trigger="load" hx-target="#hidden-content" hx-swap="innerHTML" style="display: none;"></div>
-            <div id="content" class="table-container">
-                <!-- Tables will be added here by JavaScript -->
-            </div>
-            <!-- Corrected canvas element for Veeam chart generation -->
-            <div id="chart-container" style="width: 100%; max-width: 600px; margin: 20px auto;">
-                <canvas id="veeamCanvas" width="400" height="200"></canvas>
-            </div>
-            <div id="loading-indicator" class="loading-indicator">
-                <div class="spinner"></div>
             </div>
         </div>
-        <template id="table-template">
-            <table>
-                <thead>
-                    <tr>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Rows will be added here by JavaScript -->
-                </tbody>
-            </table>
-        </template>
-        <script src="scripts/common.js"></script>
-        <script src="scripts/kubernetes.js"></script>
-        <script src="scripts/aws.js"></script>
-        <script src="scripts/azure.js"></script>
-        <script src="scripts/veeam.js"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                // Theme toggle functionality
-                document.getElementById('theme-toggle').addEventListener('click', () => {
-                    const currentTheme = document.documentElement.getAttribute('data-theme');
-                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-                    document.documentElement.setAttribute('data-theme', newTheme);
-                    const icon = newTheme === 'dark' ? 'fa-moon' : 'fa-sun';
-                    document.getElementById('theme-toggle').innerHTML = `<i class="fas ${icon}"></i>`;
-                    const logo = newTheme === 'dark' ? 'dark_Kollect.png' : 'Kollect.png';
-                    document.getElementById('logo').src = logo;
-                });
+        <div id="hidden-content" hx-get="/api/data" hx-trigger="load" hx-target="#hidden-content" hx-swap="innerHTML" style="display: none;"></div>
+        <div id="content" class="table-container">
+            <!-- Tables will be added here by JavaScript -->
+        </div>
+        <!-- Add canvas elements for new charts -->
+        <div id="chart-container" class="chart-container" style="display: flex; flex-wrap: wrap; justify-content: space-around; width: 100%; max-width: 1200px; margin: 20px auto;">
+            <div  style="flex: 1 1 45%; max-width: 45%; margin: 10px;">
+                <canvas id="backupJobsChart" style="width:100%; height:400px;"></canvas>
+            </div>
+            <div style="flex: 1 1 45%; max-width: 45%; margin: 10px;">
+                <canvas id="scaleOutReposChart" style="width:100%; height:400px;"></canvas>
+            </div>
+        </div>
+        <div id="loading-indicator" class="loading-indicator">
+            <div class="spinner"></div>
+        </div>
+    </div>
+    <template id="table-template">
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows will be added here by JavaScript -->
+            </tbody>
+        </table>
+    </template>
+    <script src="scripts/common.js"></script>
+    <script src="scripts/kubernetes.js"></script>
+    <script src="scripts/aws.js"></script>
+    <script src="scripts/azure.js"></script>
+    <script src="scripts/veeam.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const currentTheme = document.documentElement.getAttribute('data-theme');
+                const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                const icon = newTheme === 'dark' ? 'fa-moon' : 'fa-sun';
+                document.getElementById('theme-toggle').innerHTML = `<i class="fas ${icon}"></i>`;
+                const logo = newTheme === 'dark' ? 'dark_Kollect.png' : 'Kollect.png';
+                document.getElementById('logo').src = logo;
             });
-        </script>
-    </body>
+        });
+    </script>
+</body>
 </html>

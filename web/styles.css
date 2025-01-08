@@ -6,6 +6,11 @@
     --button-bg: #ABD9F4;
     --button-hover-bg: #9cc2e0;
     --spinner-border-color: #ABD9F4;
+    --chart-background-color: #ffffff;
+    --chart-text-color: #000000;
+    --chart-font-family: 'Roboto';
+    --chart-font-size: 12px;
+    --chart-title-font-size: 16px;
 }
 
 [data-theme="dark"] {
@@ -16,6 +21,8 @@
     --button-bg: #333;
     --button-hover-bg: #444;
     --spinner-border-color: #333;
+    --chart-background-color: #1e1e1e;
+    --chart-text-color: #ffffff;
 }
 
 body {
@@ -134,7 +141,21 @@ th {
     100% { transform: rotate(360deg); }
 }
 
-#chart {
-    margin-top: 20px;
-    max-width: 100%;
+.chart-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    width: 100%;
+    max-width: 1200px;
+    margin: 20px auto;
+    background-color: var(--chart-background-color);
+    color: var(--chart-text-color);
+}
+
+.chart-container canvas {
+    flex: 1 1 45%;
+    max-width: 45%;
+    margin: 10px;
+    background-color: var(--chart-background-color);
+    color: var(--chart-text-color);
 }

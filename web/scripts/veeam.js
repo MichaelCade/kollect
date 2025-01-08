@@ -80,63 +80,6 @@ document.addEventListener('htmx:afterSwap', (event) => {
     }
 });
 
-function generateCharts(data) {
-    try {
-        console.log("Generating charts with data:", data);
-
-        const ctx = document.getElementById('veeamCanvas');
-        if (!ctx) {
-            console.error("Canvas element 'veeamCanvas' not found.");
-            return;
-        }
-
-        const canvasContext = ctx.getContext('2d');
-
-        const chartData = {
-            labels: ['Server Info', 'Credentials', 'Repositories', 'Backup Jobs'],
-            datasets: [
-                {
-                    label: 'Veeam Data Overview',
-                    data: [
-                        data.ServerInfo ? 1 : 0,
-                        data.Credentials ? data.Credentials.length : 0,
-                        data.Repositories ? data.Repositories.length : 0,
-                        data.BackupJobs ? data.BackupJobs.length : 0
-                    ],
-                    backgroundColor: ['rgba(75, 192, 192, 0.2)', 'rgba(255, 99, 132, 0.2)', 'rgba(54, 162, 235, 0.2)', 'rgba(255, 206, 86, 0.2)'],
-                    borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)'],
-                    borderWidth: 1
-                }
-            ]
-        };
-
-        const chartOptions = {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: true,
-                },
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                },
-            },
-        };
-
-        new Chart(canvasContext, {
-            type: 'bar',
-            data: chartData,
-            options: chartOptions
-        });
-
-        console.log("Chart created successfully.");
-    } catch (err) {
-        console.error("Error generating charts:", err);
-    }
-}
-
-
 function serverInfoRowTemplate(item) {
     return `<td>${item.name}</td><td>${item.buildVersion}</td><td>${item.databaseVendor}</td><td>${item.sqlServerVersion}</td><td>${item.vbrId}</td>`;
 }
@@ -294,4 +237,120 @@ function backupJobsRowTemplate(item) {
             </div>
         </td>
     `;
+}
+function generateCharts(data) {
+    try {
+        console.log("Data for charts:", data);
+
+        // Check for Backup Jobs data
+        if (data.BackupJobs && data.BackupJobs.length) {
+            const backupJobsCtx = document.getElementById('backupJobsChart');
+            if (!backupJobsCtx) {
+                console.error("Canvas element 'backupJobsChart' not found.");
+                return;
+            }
+            const backupJobsCtx2d = backupJobsCtx.getContext('2d');
+            const backupJobsData = {
+                labels: data.BackupJobs.map(job => job.name),
+                datasets: [{
+                    label: 'Number of Protected VMs',
+                    data: data.BackupJobs.map(job => job.virtualMachines && job.virtualMachines.includes ? job.virtualMachines.includes.length : 0),
+                    backgroundColor: data.BackupJobs.map(job => job.type === 'Backup' ? '#36A2EB' : job.type === 'VSphereReplica' ? '#FF6384' : '#CCCCCC'),
+                    borderWidth: 1
+                }]
+            };
+            console.log("Backup Jobs Data:", backupJobsData);
+            new Chart(backupJobsCtx2d, {
+                type: 'bar',
+                data: backupJobsData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Number of Protected VMs'
+                        },
+                        legend: {
+                            display: true,
+                            labels: {
+                                generateLabels: function(chart) {
+                                    return [
+                                        {
+                                            text: 'Backup',
+                                            fillStyle: '#36A2EB',
+                                            hidden: false,
+                                            index: 0
+                                        },
+                                        {
+                                            text: 'Replica',
+                                            fillStyle: '#FF6384',
+                                            hidden: false,
+                                            index: 1
+                                        }
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            console.warn("No Backup Jobs data available");
+        }
+
+        // Check for Scale-Out Repositories data
+        if (data.ScaleOutRepositories && data.ScaleOutRepositories.length) {
+            const scaleOutReposCtx = document.getElementById('scaleOutReposChart');
+            if (!scaleOutReposCtx) {
+                console.error("Canvas element 'scaleOutReposChart' not found.");
+                return;
+            }
+            const scaleOutReposCtx2d = scaleOutReposCtx.getContext('2d');
+            const scaleOutReposData = {
+                labels: data.ScaleOutRepositories.map(repo => repo.name),
+                datasets: [{
+                    label: 'Performance Tier',
+                    data: data.ScaleOutRepositories.map(repo => repo.performanceTier ? repo.performanceTier.performanceExtents.length : 0),
+                    backgroundColor: '#FF6384',
+                    borderWidth: 1
+                }, {
+                    label: 'Capacity Tier',
+                    data: data.ScaleOutRepositories.map(repo => repo.capacityTier ? repo.capacityTier.extents.length : 0),
+                    backgroundColor: '#FFCE56',
+                    borderWidth: 1
+                }, {
+                    label: 'Archive Tier',
+                    data: data.ScaleOutRepositories.map(repo => repo.archiveTier ? 1 : 0),
+                    backgroundColor: '#4BC0C0',
+                    borderWidth: 1
+                }]
+            };
+            console.log("Scale-Out Repositories Data:", scaleOutReposData);
+            new Chart(scaleOutReposCtx2d, {
+                type: 'bar',
+                data: scaleOutReposData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        } else {
+            console.warn("No Scale-Out Repositories data available");
+        }
+
+        console.log("Charts created successfully.");
+    } catch (error) {
+        console.error("Error generating charts:", error);
+    }
 }
