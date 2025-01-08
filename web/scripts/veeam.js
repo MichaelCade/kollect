@@ -55,7 +55,7 @@ document.addEventListener('htmx:afterSwap', (event) => {
                 createTable('Repositories', data.Repositories, repositoriesRowTemplate, ['Name', 'Type', 'Description', 'Folder Name', 'Immutability Status']);
             }
             if (data.ScaleOutRepositories) {
-                createTable('Scale-Out Repositories', data.ScaleOutRepositories, scaleOutRepositoriesRowTemplate, ['Name', 'Description']);
+                createTable('Scale-Out Repositories', data.ScaleOutRepositories, scaleOutRepositoriesRowTemplate, ['Name', 'Description', 'Details']);
             }
             if (data.Proxies) {
                 createTable('Proxies', data.Proxies, proxiesRowTemplate, ['Name', 'Type', 'Description', 'Max Task Count', 'Transport Mode']);
@@ -115,7 +115,38 @@ function repositoriesRowTemplate(item) {
 }
 
 function scaleOutRepositoriesRowTemplate(item) {
-    return `<td>${item.name}</td><td>${item.description}</td>`;
+    const performanceTier = item.performanceTier && item.performanceTier.performanceExtents ? 'Enabled' : 'Disabled';
+    const capacityTier = item.capacityTier && item.capacityTier.isEnabled ? 'Enabled' : 'Disabled';
+    const archiveTier = item.archiveTier && item.archiveTier.isEnabled ? 'Enabled' : 'Disabled';
+    const copyPolicy = item.capacityTier && item.capacityTier.copyPolicyEnabled ? 'Enabled' : 'Disabled';
+    const movePolicy = item.capacityTier && item.capacityTier.movePolicyEnabled ? 'Enabled' : 'Disabled';
+
+    const performanceExtents = item.performanceTier && item.performanceTier.performanceExtents ? item.performanceTier.performanceExtents.map(extent => `<li>${extent.name}</li>`).join('') : 'N/A';
+    const capacityExtents = item.capacityTier && item.capacityTier.extents ? item.capacityTier.extents.map(extent => `<li>${extent.id}</li>`).join('') : 'N/A';
+    const archiveExtents = item.archiveTier && item.archiveTier.extentId ? `<li>${item.archiveTier.extentId}</li>` : 'N/A';
+
+    return `
+        <td>${item.name}</td>
+        <td>${item.description}</td>
+        <td>
+            <button class="details-button" onclick="toggleDetails('${item.id}')"><i class="fas fa-info-circle"></i> Details</button>
+            <div id="details-${item.id}" style="display:none;">
+                <p>Performance Tier: ${performanceTier}</p>
+                <ul>${performanceExtents}</ul>
+                <p>Capacity Tier: ${capacityTier}</p>
+                <ul>${capacityExtents}</ul>
+                <p>Archive Tier: ${archiveTier}</p>
+                <ul>${archiveExtents}</ul>
+                <p>Copy Policy: ${copyPolicy}</p>
+                <p>Move Policy: ${movePolicy}</p>
+            </div>
+        </td>
+    `;
+}
+
+function toggleDetails(id) {
+    const details = document.getElementById(`details-${id}`);
+    details.style.display = details.style.display === 'none' ? 'block' : 'none';
 }
 
 function proxiesRowTemplate(item) {
