@@ -145,8 +145,13 @@ func saveToFile(data interface{}, filename string) error {
 	}
 	defer file.Close()
 
-	encoder := json.NewEncoder(file)
-	return encoder.Encode(data)
+	prettyData, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write(prettyData)
+	return err
 }
 
 func printData(data interface{}) {
