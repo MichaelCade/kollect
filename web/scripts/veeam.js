@@ -13,13 +13,17 @@ document.addEventListener('htmx:afterSwap', (event) => {
     if (event.detail.target.id === 'hidden-content') {
         try {
             const data = JSON.parse(event.detail.xhr.responseText);
-            console.log("Fetched Data:", data); // Log fetched data
+            console.log("Fetched Data:", data);
+
             const content = document.getElementById('content');
             const template = document.getElementById('table-template').content;
+
             function createTable(headerText, data, rowTemplate, headers, repositories) {
-                if (!data || data.length === 0) return; // Ensure data is not null or empty
+                if (!data || data.length === 0) return;
+
                 const table = template.cloneNode(true);
                 table.querySelector('th').textContent = headerText;
+
                 const thead = table.querySelector('thead');
                 const headerRow = document.createElement('tr');
                 headers.forEach(header => {
@@ -28,14 +32,18 @@ document.addEventListener('htmx:afterSwap', (event) => {
                     headerRow.appendChild(th);
                 });
                 thead.appendChild(headerRow);
+
                 const tbody = table.querySelector('tbody');
                 data.forEach(item => {
                     const row = document.createElement('tr');
                     row.innerHTML = rowTemplate(item, repositories);
                     tbody.appendChild(row);
                 });
+
                 content.appendChild(table);
             }
+
+            // Generate tables for each dataset
             if (data.ServerInfo) {
                 createTable('Server Info', [data.ServerInfo], serverInfoRowTemplate, ['Name', 'Build Version', 'Database Vendor', 'SQL Server Version', 'VBR ID']);
             }
@@ -63,11 +71,71 @@ document.addEventListener('htmx:afterSwap', (event) => {
             if (data.BackupJobs) {
                 createTable('Backup Jobs', data.BackupJobs, backupJobsRowTemplate, ['Job Name', 'ID', 'Description', 'Type', 'Is Disabled', 'Is High Priority', 'Job Details']);
             }
+
+            // Generate charts after creating tables
+            generateCharts(data);
         } catch (error) {
             console.error("Error processing data:", error);
         }
     }
 });
+
+function generateCharts(data) {
+    try {
+        console.log("Generating charts with data:", data);
+
+        const ctx = document.getElementById('veeamCanvas');
+        if (!ctx) {
+            console.error("Canvas element 'veeamCanvas' not found.");
+            return;
+        }
+
+        const canvasContext = ctx.getContext('2d');
+
+        const chartData = {
+            labels: ['Server Info', 'Credentials', 'Repositories', 'Backup Jobs'],
+            datasets: [
+                {
+                    label: 'Veeam Data Overview',
+                    data: [
+                        data.ServerInfo ? 1 : 0,
+                        data.Credentials ? data.Credentials.length : 0,
+                        data.Repositories ? data.Repositories.length : 0,
+                        data.BackupJobs ? data.BackupJobs.length : 0
+                    ],
+                    backgroundColor: ['rgba(75, 192, 192, 0.2)', 'rgba(255, 99, 132, 0.2)', 'rgba(54, 162, 235, 0.2)', 'rgba(255, 206, 86, 0.2)'],
+                    borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)', 'rgba(54, 162, 235, 1)', 'rgba(255, 206, 86, 1)'],
+                    borderWidth: 1
+                }
+            ]
+        };
+
+        const chartOptions = {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                },
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                },
+            },
+        };
+
+        new Chart(canvasContext, {
+            type: 'bar',
+            data: chartData,
+            options: chartOptions
+        });
+
+        console.log("Chart created successfully.");
+    } catch (err) {
+        console.error("Error generating charts:", err);
+    }
+}
+
 
 function serverInfoRowTemplate(item) {
     return `<td>${item.name}</td><td>${item.buildVersion}</td><td>${item.databaseVendor}</td><td>${item.sqlServerVersion}</td><td>${item.vbrId}</td>`;
@@ -226,9 +294,4 @@ function backupJobsRowTemplate(item) {
             </div>
         </td>
     `;
-}
-
-function toggleDetails(id) {
-    const details = document.getElementById(`details-${id}`);
-    details.style.display = details.style.display === 'none' ? 'block' : 'none';
 }
