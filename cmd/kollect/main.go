@@ -3,9 +3,12 @@ package main
 import (
 	"bufio"
 	"context"
+	"embed"
+	_ "embed"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -25,6 +28,8 @@ import (
 var (
 	dataMutex sync.Mutex
 	data      interface{}
+	//go:embed web/*
+	staticFiles embed.FS
 )
 
 func main() {
@@ -164,7 +169,11 @@ func printData(data interface{}) {
 
 func startWebServer(data interface{}, openBrowser bool, baseURL, username, password string) {
 	// Serve the files from the web directory
-	fileServer := http.FileServer(http.Dir("web"))
+	fsys, err := fs.Sub(staticFiles, "web")
+	if err != nil {
+		panic(err)
+	}
+	fileServer := http.FileServer(http.FS(fsys))
 
 	// Serve the files
 	http.Handle("/", fileServer)
@@ -258,7 +267,7 @@ func startWebServer(data interface{}, openBrowser bool, baseURL, username, passw
 			}
 		}()
 	}
-	err := http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
