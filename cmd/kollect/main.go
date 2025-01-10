@@ -99,6 +99,7 @@ func main() {
 
 	if *browser {
     startWebServer(data, true, *baseURL, *username, *password)
+   }
 }
 
 func promptUser(prompt string) string {
