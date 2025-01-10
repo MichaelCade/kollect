@@ -33,6 +33,11 @@
                 </div>
             </div>
         </div>
+        <div id="chatbot-container">
+            <input type="text" id="chatbot-input" placeholder="Ask me anything about your environment...">
+            <div id="chatbot-output"></div>
+        </div>
+        <script src="scripts/chatbot.js"></script>
         <div id="hidden-content" hx-get="/api/data" hx-trigger="load" hx-target="#hidden-content" hx-swap="innerHTML" style="display: none;"></div>
         <div id="content" class="table-container">
             <!-- Tables will be added here by JavaScript -->
