@@ -98,10 +98,8 @@ func main() {
 	printData(data)
 
 	if *browser {
-		startWebServer(data, true, *baseURL, *username, *password)
-	} else {
-		printData(data)
-	}
+    startWebServer(data, true, *baseURL, *username, *password)
+   }
 }
 
 func promptUser(prompt string) string {
