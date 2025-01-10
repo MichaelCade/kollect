@@ -18,8 +18,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ec2 v1.182.0
 	github.com/aws/aws-sdk-go-v2/service/rds v1.87.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.65.3
-	github.com/tmc/langchaingo v0.1.12
-	github.com/ollama/ollama-go v0.1.0
 	golang.org/x/term v0.21.0
 	k8s.io/apimachinery v0.30.1
 	k8s.io/client-go v0.30.1

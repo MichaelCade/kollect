@@ -17,7 +17,6 @@ import (
 
 	"github.com/michaelcade/kollect/pkg/aws"
 	"github.com/michaelcade/kollect/pkg/azure"
-	"github.com/michaelcade/kollect/pkg/chatbot"
 	"github.com/michaelcade/kollect/pkg/kollect"
 	"github.com/michaelcade/kollect/pkg/veeam"
 	"golang.org/x/term"
@@ -240,7 +239,6 @@ func startWebServer(data interface{}, openBrowser bool, baseURL, username, passw
 			log.Printf("Error encoding response: %v", err)
 		}
 	})
-	http.HandleFunc("/api/chatbot", chatbot.HandleChatbotRequest)
 
 	log.Println("Server starting on port http://localhost:8080")
 	if openBrowser {
