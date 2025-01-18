@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -102,8 +103,8 @@ func main() {
 	printData(data)
 
 	if *browser {
-    startWebServer(data, true, *baseURL, *username, *password)
-   }
+		startWebServer(data, true, *baseURL, *username, *password)
+	}
 }
 
 func promptUser(prompt string) string {
