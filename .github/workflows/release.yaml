@@ -50,9 +50,7 @@ jobs:
           echo "Root directory contents:"
           ls -la $GITHUB_WORKSPACE
           echo "Kollect directory contents:"
-          ls -la $GITHUB_WORKSPACE/cmd/kollect
-          echo "Web directory contents:"
-          ls -la $GITHUB_WORKSPACE/cmd/kollect/web || true
+          ls -la $GITHUB_WORKSPACE/cmd/kollect || true
 
       - name: Copy additional files
         run: |
