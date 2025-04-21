@@ -45,18 +45,20 @@ jobs:
         run: ls -la build-artifacts-${{ github.run_id }}
 
       - name: Debug paths
+        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
         run: |
           echo "Root directory contents:"
           ls -la $GITHUB_WORKSPACE
           echo "Kollect directory contents:"
           ls -la $GITHUB_WORKSPACE/cmd/kollect
           echo "Web directory contents:"
-          ls -la $GITHUB_WORKSPACE/cmd/kollect/web
+          ls -la $GITHUB_WORKSPACE/cmd/kollect/web || true
 
       - name: Copy additional files
-        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
         run: |
-          cp $GITHUB_WORKSPACE/LICENSE $GITHUB_WORKSPACE/README.md -r $GITHUB_WORKSPACE/cmd/kollect/web $GITHUB_WORKSPACE/build-artifacts-${{ github.run_id }}/
+          if [ "${matrix.goos}" == "linux" ] && [ "${matrix.goarch}" == "amd64" ]; then
+            cp $GITHUB_WORKSPACE/LICENSE $GITHUB_WORKSPACE/README.md $GITHUB_WORKSPACE/build-artifacts-${{ github.run_id }}/
+          fi
 
       - name: Create release
         uses: softprops/action-gh-release@v1
