@@ -24,25 +24,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Install Go 1.22
-        run: |
-          wget https://golang.org/dl/go1.22.3.linux-amd64.tar.gz
-          sudo tar -C /usr/local -xzf go1.22.3.linux-amd64.tar.gz
-          echo 'export PATH=$PATH:/usr/local/go/bin' >> $GITHUB_ENV
-          echo 'export GOTOOLCHAIN=go1.22.3' >> $GITHUB_ENV
-          source $GITHUB_ENV
-          /usr/local/go/bin/go version
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: 1.22.3
 
       - name: Install dependencies
-        run: /usr/local/go/bin/go mod tidy
+        run: go mod tidy
+
+      - name: Verify build
+        run: go build ./cmd/kollect
 
       - name: Build binary
         run: |
           mkdir -p build-artifacts-${{ github.run_id }}
           cd cmd/kollect
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} /usr/local/go/bin/go build -o ../../build-artifacts-${{ github.run_id }}/kollect-${{ matrix.goos }}-${{ matrix.goarch }}
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../../build-artifacts-${{ github.run_id }}/kollect-${{ matrix.goos }}-${{ matrix.goarch }}
 
-      - name: List build-artifacts directory
+      - name: List build artifacts
         run: ls -la build-artifacts-${{ github.run_id }}
 
       - name: Copy additional files
