@@ -44,14 +44,6 @@ jobs:
       - name: List build artifacts
         run: ls -la build-artifacts-${{ github.run_id }}
 
-      - name: Debug paths
-        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
-        run: |
-          echo "Root directory contents:"
-          ls -la $GITHUB_WORKSPACE
-          echo "Kollect directory contents:"
-          ls -la $GITHUB_WORKSPACE/cmd/kollect || true
-
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
