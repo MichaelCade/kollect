@@ -47,8 +47,8 @@ jobs:
       - name: Copy additional files
         if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
         run: |
-          cp LICENSE README.md -r web build-artifacts-${{ github.run_id }}/
-
+          cp ../../LICENSE ../../README.md -r ./web ../../build-artifacts-${{ github.run_id }}/
+          
       - name: Create release
         uses: softprops/action-gh-release@v1
         with:
