@@ -44,16 +44,19 @@ jobs:
       - name: List build artifacts
         run: ls -la build-artifacts-${{ github.run_id }}
 
+      - name: Debug paths
+        run: |
+          echo "Root directory contents:"
+          ls -la $GITHUB_WORKSPACE
+          echo "Kollect directory contents:"
+          ls -la $GITHUB_WORKSPACE/cmd/kollect
+          echo "Web directory contents:"
+          ls -la $GITHUB_WORKSPACE/cmd/kollect/web
+
       - name: Copy additional files
         if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
         run: |
-          cp ../../LICENSE ../../README.md -r web ../../build-artifacts-${{ github.run_id }}/
-
-      - name: Debug current directory
-        run: |
-         echo "Current directory: $(pwd)"
-         echo "Contents:"
-         ls -la
+          cp $GITHUB_WORKSPACE/LICENSE $GITHUB_WORKSPACE/README.md -r $GITHUB_WORKSPACE/cmd/kollect/web $GITHUB_WORKSPACE/build-artifacts-${{ github.run_id }}/
 
       - name: Create release
         uses: softprops/action-gh-release@v1
