@@ -322,6 +322,28 @@ th {
     opacity: 0.8;
 }
 
+/* Add these styles to your existing stylesheet */
+.attributes-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.attributes-table th {
+    background-color: var(--secondary-bg-color);
+    text-align: left;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.attributes-table td {
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    max-width: 400px;
+    overflow-wrap: break-word;
+}
+
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }

@@ -242,6 +242,41 @@ function loadTestJson(platform) {
         });
 }
 
+function loadTerraformState(source) {
+    showLoadingIndicator();
+    
+    // If source is a URL to an S3 bucket
+    if (source.startsWith('s3://')) {
+        fetch('/api/terraform/s3-state', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ path: source })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            processWithHandler(data);
+        })
+        .catch(error => {
+            console.error(`Error loading Terraform state from S3: ${error}`);
+            document.getElementById('content').innerHTML = `
+                <div class="error-message">
+                    <h2>Error Loading Terraform State</h2>
+                    <p>${error.message}</p>
+                </div>
+            `;
+        })
+        .finally(() => hideLoadingIndicator());
+    }
+    // Add more backend types as needed
+}
+
 document.addEventListener('htmx:afterSwap', (event) => {
     if (event.detail.target.id === 'hidden-content') {
         try {

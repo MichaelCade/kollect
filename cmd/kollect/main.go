@@ -22,6 +22,7 @@ import (
 	"github.com/michaelcade/kollect/pkg/azure"
 	"github.com/michaelcade/kollect/pkg/gcp"
 	"github.com/michaelcade/kollect/pkg/kollect"
+	"github.com/michaelcade/kollect/pkg/terraform"
 	"github.com/michaelcade/kollect/pkg/veeam"
 	"golang.org/x/term"
 )
@@ -42,6 +43,7 @@ func main() {
 	baseURL := flag.String("veeam-url", "", "Veeam server URL")
 	username := flag.String("veeam-username", "", "Veeam username")
 	password := flag.String("veeam-password", "", "Veeam password")
+	terraformStateFile := flag.String("terraform-state", "", "Path to the Terraform state file")
 	help := flag.Bool("help", false, "Show help message")
 
 	flag.Parse()
@@ -79,8 +81,13 @@ func main() {
 		data, err = gcp.CollectGCPData(ctx)
 	case "kubernetes":
 		data, err = collectData(ctx, *storageOnly, *kubeconfig)
+	case "terraform":
+		if *terraformStateFile == "" {
+			fmt.Println("Error: You must specify a Terraform state file with --terraform-state")
+			os.Exit(1)
+		}
+		data, err = terraform.CollectTerraformData(ctx, *terraformStateFile)
 	case "veeam":
-		// Load environment variables for Veeam
 		if *baseURL == "" {
 			*baseURL = os.Getenv("VBR_SERVER_URL")
 		}
@@ -94,8 +101,6 @@ func main() {
 		if *password == "" {
 			*password = getSensitiveInput("Enter VBR Password: ")
 		}
-
-		// Ensure the baseURL includes the protocol scheme
 		if !strings.HasPrefix(*baseURL, "http://") && !strings.HasPrefix(*baseURL, "https://") {
 			*baseURL = "http://" + *baseURL
 		}
@@ -183,14 +188,12 @@ func printData(data interface{}) {
 }
 
 func startWebServer(data interface{}, openBrowser bool, baseURL, username, password string) {
-	// Serve the files from the web directory
 	fsys, err := fs.Sub(staticFiles, "web")
 	if err != nil {
 		panic(err)
 	}
 	fileServer := http.FileServer(http.FS(fsys))
 
-	// Serve the files
 	http.Handle("/", fileServer)
 
 	http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
@@ -238,6 +241,12 @@ func startWebServer(data interface{}, openBrowser bool, baseURL, username, passw
 			data, err = collectData(ctx, false, filepath.Join(os.Getenv("HOME"), ".kube", "config"))
 		case "gcp":
 			data, err = gcp.CollectGCPData(ctx)
+		case "terraform":
+			if r.URL.Query().Get("state-file") == "" {
+				http.Error(w, "Terraform state file must be provided", http.StatusBadRequest)
+				return
+			}
+			data, err = terraform.CollectTerraformData(ctx, r.URL.Query().Get("state-file"))
 		case "veeam":
 			if baseURL == "" || username == "" || password == "" {
 				http.Error(w, "Veeam URL, username, and password must be provided", http.StatusBadRequest)
