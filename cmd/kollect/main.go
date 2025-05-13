@@ -36,13 +36,14 @@ var (
 func main() {
 	storageOnly := flag.Bool("storage", false, "Collect only storage-related objects (Kubernetes Only)")
 	kubeconfig := flag.String("kubeconfig", filepath.Join(os.Getenv("HOME"), ".kube", "config"), "Path to the kubeconfig file")
-	browser := flag.Bool("browser", false, "Open the web interface in a browser")
+	browser := flag.Bool("browser", false, "Open the web interface in a browser (can be used alone to import data)")
 	output := flag.String("output", "", "Output file to save the collected data")
-	inventoryType := flag.String("inventory", "kubernetes", "Type of inventory to collect (kubernetes/aws/azure/gcp/veeam)")
+	inventoryType := flag.String("inventory", "", "Type of inventory to collect (kubernetes/aws/azure/gcp/veeam)")
 	baseURL := flag.String("veeam-url", "", "Veeam server URL")
 	username := flag.String("veeam-username", "", "Veeam username")
 	password := flag.String("veeam-password", "", "Veeam password")
 	help := flag.Bool("help", false, "Show help message")
+
 	flag.Parse()
 	if *help {
 		fmt.Println("Usage: kollect [flags]")
@@ -51,6 +52,19 @@ func main() {
 		fmt.Println("\nTo pretty-print JSON output, you can use `jq`:")
 		fmt.Println("  ./kollect | jq")
 		return
+	}
+
+	if *browser && *inventoryType == "" && *output == "" {
+		fmt.Println("Starting browser interface. Use the import function to load data.")
+		startWebServer(map[string]interface{}{}, true, "", "", "")
+		return
+	}
+
+	if *inventoryType == "" {
+		fmt.Println("Error: You must specify an inventory type with --inventory")
+		fmt.Println("Available inventory types: kubernetes, aws, azure, gcp, veeam")
+		fmt.Println("Or use --browser alone to start web interface for importing data")
+		os.Exit(1)
 	}
 
 	ctx := context.Background()
