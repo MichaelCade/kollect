@@ -114,8 +114,6 @@ func FetchS3Buckets(ctx context.Context) ([]S3BucketInfo, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to get bucket location for %s, %v", aws.ToString(bucket.Name), err)
 		}
-
-		// Check if the bucket has an Object Lock configuration (immutability)
 		objectLockConfig, err := svc.GetObjectLockConfiguration(ctx, &s3.GetObjectLockConfigurationInput{
 			Bucket: bucket.Name,
 		})
@@ -123,7 +121,6 @@ func FetchS3Buckets(ctx context.Context) ([]S3BucketInfo, error) {
 		if err == nil && objectLockConfig.ObjectLockConfiguration != nil {
 			immutable = objectLockConfig.ObjectLockConfiguration.ObjectLockEnabled == "Enabled"
 		}
-
 		buckets = append(buckets, S3BucketInfo{
 			Name:      aws.ToString(bucket.Name),
 			Region:    string(region.LocationConstraint),

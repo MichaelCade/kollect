@@ -190,8 +190,6 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 
 // Helper function to extract resource group from resource ID
 func getResourceGroupFromID(resourceID string) string {
-	// Assuming the resource ID is in the format:
-	// /subscriptions/{subscriptionId}/resourceGroups/{resourceGroupName}/...
 	parts := strings.Split(resourceID, "/")
 	for i, part := range parts {
 		if part == "resourceGroups" && i+1 < len(parts) {

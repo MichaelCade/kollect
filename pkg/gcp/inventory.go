@@ -76,14 +76,13 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 	projectID, err := getCurrentProject()
 	if err != nil {
 		log.Printf("Warning: %v", err)
-		// Continue with the default project ID
+
 	}
 
 	// Collect Compute Instances
 	instances, err := fetchComputeInstances(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch compute instances: %v", err)
-		// Don't return error, just keep empty instance list
 	} else {
 		data.ComputeInstances = instances
 	}
@@ -92,7 +91,6 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 	buckets, err := fetchGCSBuckets(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch GCS buckets: %v", err)
-		// Don't return error, just keep empty bucket list
 	} else {
 		data.GCSBuckets = buckets
 	}
@@ -101,7 +99,6 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 	sqlInstances, err := fetchCloudSQLInstances(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch Cloud SQL instances: %v", err)
-		// Don't return error, just keep empty SQL instance list
 	} else {
 		data.CloudSQLInstances = sqlInstances
 	}
@@ -110,7 +107,6 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 	runServices, err := fetchCloudRunServices(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch Cloud Run services: %v", err)
-		// Don't return error, just keep empty Cloud Run list
 	} else {
 		data.CloudRunServices = runServices
 	}
@@ -119,7 +115,6 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 	functions, err := fetchCloudFunctions(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch Cloud Functions: %v", err)
-		// Don't return error, just keep empty functions list
 	} else {
 		data.CloudFunctions = functions
 	}
@@ -128,13 +123,11 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 }
 
 func getCurrentProject() (string, error) {
-	// Try to get from environment variable
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if projectID != "" {
 		return projectID, nil
 	}
 
-	// Try to get from gcloud CLI
 	cmd := exec.Command("gcloud", "config", "get-value", "project")
 	output, err := cmd.Output()
 	if err == nil {
@@ -144,7 +137,6 @@ func getCurrentProject() (string, error) {
 		}
 	}
 
-	// If we still don't have a project ID, return a default for demo purposes
 	return "demo-project", fmt.Errorf("could not determine GCP project ID, using demo-project")
 }
 
