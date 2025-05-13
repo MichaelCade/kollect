@@ -20,6 +20,7 @@ import (
 
 	"github.com/michaelcade/kollect/pkg/aws"
 	"github.com/michaelcade/kollect/pkg/azure"
+	"github.com/michaelcade/kollect/pkg/gcp"
 	"github.com/michaelcade/kollect/pkg/kollect"
 	"github.com/michaelcade/kollect/pkg/veeam"
 	"golang.org/x/term"
@@ -60,6 +61,8 @@ func main() {
 		data, err = aws.CollectAWSData(ctx)
 	case "azure":
 		data, err = azure.CollectAzureData(ctx)
+	case "gcp":
+		data, err = gcp.CollectGCPData(ctx)
 	case "kubernetes":
 		data, err = collectData(ctx, *storageOnly, *kubeconfig)
 	case "veeam":
