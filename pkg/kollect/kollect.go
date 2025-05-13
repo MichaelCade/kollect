@@ -3,17 +3,18 @@ package kollect
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
-	"log"
-
 	k8sdata "github.com/michaelcade/kollect/api/v1"
+	apiextensionsclientset "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -51,6 +52,17 @@ func CollectStorageData(ctx context.Context, kubeconfig string) (k8sdata.K8sData
 	if err != nil {
 		return k8sdata.K8sData{}, fmt.Errorf("error fetching VolumeSnapshots: %v", err)
 	}
+	data.VirtualMachines, err = fetchVirtualMachines(ctx, dynamicClient)
+	if err != nil {
+		log.Printf("Warning: Failed to fetch VirtualMachines: %v", err)
+		data.VirtualMachines = []k8sdata.VirtualMachineInfo{}
+	}
+	data.DataVolumes, err = fetchDataVolumes(ctx, dynamicClient)
+	if err != nil {
+		log.Printf("Warning: Failed to fetch DataVolumes: %v", err)
+		data.DataVolumes = []k8sdata.DataVolumeInfo{}
+	}
+
 	return data, nil
 }
 
@@ -113,6 +125,24 @@ func CollectData(ctx context.Context, kubeconfig string) (k8sdata.K8sData, error
 		log.Printf("Warning: VolumeSnapshots resource not found in the cluster: %v", err)
 		data.VolumeSnapshots = []k8sdata.VolumeSnapshotInfo{}
 	}
+	data.CustomResourceDefs, err = fetchCustomResourceDefinitions(ctx, config)
+	if err != nil {
+		log.Printf("Warning: Failed to fetch CRDs: %v", err)
+		data.CustomResourceDefs = []k8sdata.CRDInfo{}
+	}
+
+	data.VirtualMachines, err = fetchVirtualMachines(ctx, dynamicClient)
+	if err != nil {
+		log.Printf("Warning: Failed to fetch VirtualMachines: %v", err)
+		data.VirtualMachines = []k8sdata.VirtualMachineInfo{}
+	}
+
+	data.DataVolumes, err = fetchDataVolumes(ctx, dynamicClient)
+	if err != nil {
+		log.Printf("Warning: Failed to fetch DataVolumes: %v", err)
+		data.DataVolumes = []k8sdata.DataVolumeInfo{}
+	}
+
 	return data, nil
 }
 
@@ -408,4 +438,334 @@ func fetchVolumeSnapshots(ctx context.Context, dynamicClient dynamic.Interface) 
 	}
 
 	return volumeSnapshotInfos, nil
+}
+
+func fetchCustomResourceDefinitions(ctx context.Context, config *rest.Config) ([]k8sdata.CRDInfo, error) {
+	apiextensionsClientset, err := apiextensionsclientset.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create apiextensions clientset: %v", err)
+	}
+
+	crds, err := apiextensionsClientset.ApiextensionsV1().CustomResourceDefinitions().List(ctx, v1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list CRDs: %v", err)
+	}
+
+	var crdInfos []k8sdata.CRDInfo
+	for _, crd := range crds.Items {
+		age := formatDuration(time.Since(crd.CreationTimestamp.Time))
+
+		for _, version := range crd.Spec.Versions {
+			if version.Served {
+				scope := string(crd.Spec.Scope)
+				crdInfos = append(crdInfos, k8sdata.CRDInfo{
+					Name:    crd.Name,
+					Group:   crd.Spec.Group,
+					Version: version.Name,
+					Kind:    crd.Spec.Names.Kind,
+					Scope:   scope,
+					Age:     age,
+				})
+			}
+		}
+	}
+
+	return crdInfos, nil
+}
+
+func fetchVirtualMachines(ctx context.Context, dynamicClient dynamic.Interface) ([]k8sdata.VirtualMachineInfo, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    "kubevirt.io",
+		Version:  "v1",
+		Resource: "virtualmachines",
+	}
+
+	vms, err := dynamicClient.Resource(gvr).List(ctx, v1.ListOptions{})
+	if err != nil {
+		if strings.Contains(err.Error(), "the server could not find the requested resource") {
+			log.Printf("Warning: VirtualMachines resource not found in the cluster. Is KubeVirt installed?")
+			return []k8sdata.VirtualMachineInfo{}, nil
+		}
+		return nil, err
+	}
+
+	var vmInfos []k8sdata.VirtualMachineInfo
+	for _, vm := range vms.Items {
+		vmInfo := k8sdata.VirtualMachineInfo{
+			Name:        vm.GetName(),
+			Namespace:   vm.GetNamespace(),
+			DataVolumes: []string{},
+		}
+
+		status, found, _ := unstructured.NestedString(vm.Object, "status", "printableStatus")
+		if !found {
+			phase, phaseFound, _ := unstructured.NestedString(vm.Object, "status", "phase")
+			if phaseFound {
+				status = phase
+			} else {
+				status = "Unknown"
+			}
+		}
+		vmInfo.Status = status
+
+		conditions, found, _ := unstructured.NestedSlice(vm.Object, "status", "conditions")
+		if found {
+			for _, c := range conditions {
+				condition, ok := c.(map[string]interface{})
+				if !ok {
+					continue
+				}
+
+				condType, typeFound, _ := unstructured.NestedString(condition, "type")
+				status, statusFound, _ := unstructured.NestedString(condition, "status")
+
+				if typeFound && statusFound && condType == "Ready" {
+					vmInfo.Ready = status == "True"
+					break
+				}
+			}
+		}
+
+		creationTimestamp := vm.GetCreationTimestamp()
+		vmInfo.Age = formatDuration(time.Since(creationTimestamp.Time))
+
+		runStrategy, found, _ := unstructured.NestedString(vm.Object, "spec", "runStrategy")
+		if !found {
+			running, runningFound, _ := unstructured.NestedBool(vm.Object, "spec", "running")
+			if runningFound {
+				if running {
+					runStrategy = "Always"
+				} else {
+					runStrategy = "Manual"
+				}
+			} else {
+				runStrategy = "Unknown"
+			}
+		}
+		vmInfo.RunStrategy = runStrategy
+
+		getCPU := func() string {
+			paths := [][]string{
+				{"spec", "template", "spec", "domain", "resources", "requests", "cpu"},
+				{"spec", "template", "spec", "domain", "cpu", "cores"},
+				{"spec", "domain", "resources", "requests", "cpu"},
+				{"spec", "domain", "cpu", "cores"},
+			}
+
+			for _, path := range paths {
+				cpu, found, _ := unstructured.NestedString(vm.Object, path...)
+				if found && cpu != "" {
+					return cpu
+				}
+
+				cpuFloat, found, _ := unstructured.NestedFloat64(vm.Object, path...)
+				if found {
+					return fmt.Sprintf("%g", cpuFloat)
+				}
+
+				cpuInt, found, _ := unstructured.NestedInt64(vm.Object, path...)
+				if found {
+					return fmt.Sprintf("%d", cpuInt)
+				}
+			}
+
+			return "N/A"
+		}
+
+		vmInfo.CPU = getCPU()
+
+		getMemory := func() string {
+			paths := [][]string{
+				{"spec", "template", "spec", "domain", "resources", "requests", "memory"},
+				{"spec", "template", "spec", "domain", "memory", "guest"},
+				{"spec", "domain", "resources", "requests", "memory"},
+				{"spec", "domain", "memory", "guest"},
+			}
+
+			for _, path := range paths {
+				memory, found, _ := unstructured.NestedString(vm.Object, path...)
+				if found && memory != "" {
+					return memory
+				}
+			}
+
+			return "N/A"
+		}
+
+		vmInfo.Memory = getMemory()
+
+		extractStorage := func() ([]string, []string) {
+			var dataVols []string
+			var storageVolumes []string
+
+			volumePaths := [][]string{
+				{"spec", "template", "spec", "volumes"},
+				{"spec", "volumes"},
+			}
+
+			for _, volumePath := range volumePaths {
+				volumes, found, _ := unstructured.NestedSlice(vm.Object, volumePath...)
+				if !found || len(volumes) == 0 {
+					continue
+				}
+
+				for _, v := range volumes {
+					volume, ok := v.(map[string]interface{})
+					if !ok {
+						continue
+					}
+
+					volumeName, volNameFound, _ := unstructured.NestedString(volume, "name")
+					if !volNameFound || volumeName == "" {
+						continue
+					}
+
+					dataVolume, dvFound, _ := unstructured.NestedMap(volume, "dataVolume")
+					if dvFound {
+						name, nameFound, _ := unstructured.NestedString(dataVolume, "name")
+						if nameFound && name != "" {
+							dataVols = append(dataVols, name)
+							storageVolumes = append(storageVolumes, fmt.Sprintf("DataVolume: %s", name))
+						}
+						continue
+					}
+
+					pvc, pvcFound, _ := unstructured.NestedMap(volume, "persistentVolumeClaim")
+					if pvcFound {
+						claimName, claimFound, _ := unstructured.NestedString(pvc, "claimName")
+						if claimFound && claimName != "" {
+							storageVolumes = append(storageVolumes, fmt.Sprintf("PVC: %s", claimName))
+
+							if strings.Contains(claimName, vm.GetName()) || strings.HasPrefix(claimName, "dv-") {
+								dataVols = append(dataVols, claimName)
+							}
+						}
+						continue
+					}
+
+					if _, found, _ := unstructured.NestedMap(volume, "configMap"); found {
+						configMapName, nameFound, _ := unstructured.NestedString(volume, "configMap", "name")
+						if nameFound {
+							storageVolumes = append(storageVolumes, fmt.Sprintf("ConfigMap: %s", configMapName))
+						}
+						continue
+					}
+
+					if _, found, _ := unstructured.NestedMap(volume, "secret"); found {
+						secretName, nameFound, _ := unstructured.NestedString(volume, "secret", "secretName")
+						if nameFound {
+							storageVolumes = append(storageVolumes, fmt.Sprintf("Secret: %s", secretName))
+						}
+						continue
+					}
+
+					if _, found, _ := unstructured.NestedMap(volume, "emptyDir"); found {
+						storageVolumes = append(storageVolumes, fmt.Sprintf("EmptyDir: %s", volumeName))
+						continue
+					}
+
+					if _, found, _ := unstructured.NestedMap(volume, "hostPath"); found {
+						path, pathFound, _ := unstructured.NestedString(volume, "hostPath", "path")
+						if pathFound {
+							storageVolumes = append(storageVolumes, fmt.Sprintf("HostPath: %s -> %s", volumeName, path))
+						} else {
+							storageVolumes = append(storageVolumes, fmt.Sprintf("HostPath: %s", volumeName))
+						}
+						continue
+					}
+					storageVolumes = append(storageVolumes, fmt.Sprintf("Volume: %s", volumeName))
+				}
+			}
+
+			return dataVols, storageVolumes
+		}
+
+		dataVols, storageVols := extractStorage()
+		vmInfo.DataVolumes = dataVols
+		vmInfo.Storage = storageVols
+
+		vmInfos = append(vmInfos, vmInfo)
+	}
+
+	return vmInfos, nil
+}
+
+func fetchDataVolumes(ctx context.Context, dynamicClient dynamic.Interface) ([]k8sdata.DataVolumeInfo, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    "cdi.kubevirt.io",
+		Version:  "v1beta1",
+		Resource: "datavolumes",
+	}
+
+	dvs, err := dynamicClient.Resource(gvr).List(ctx, v1.ListOptions{})
+	if err != nil {
+		if strings.Contains(err.Error(), "the server could not find the requested resource") {
+			log.Printf("Warning: DataVolumes resource not found in the cluster. Is CDI installed?")
+			return []k8sdata.DataVolumeInfo{}, nil
+		}
+		return nil, err
+	}
+
+	var dvInfos []k8sdata.DataVolumeInfo
+	for _, dv := range dvs.Items {
+		dvInfo := k8sdata.DataVolumeInfo{
+			Name:      dv.GetName(),
+			Namespace: dv.GetNamespace(),
+		}
+
+		phase, found, _ := unstructured.NestedString(dv.Object, "status", "phase")
+		if found {
+			dvInfo.Phase = phase
+		}
+
+		capacity, found, _ := unstructured.NestedString(dv.Object, "spec", "pvc", "resources", "requests", "storage")
+		if found {
+			dvInfo.Size = capacity
+		}
+
+		source, found, _ := unstructured.NestedMap(dv.Object, "spec", "source")
+		if found {
+			for sourceType, sourceData := range source {
+				dvInfo.SourceType = sourceType
+
+				switch sourceType {
+				case "http":
+					sourceMap, ok := sourceData.(map[string]interface{})
+					if ok {
+						url, urlFound, _ := unstructured.NestedString(sourceMap, "url")
+						if urlFound {
+							dvInfo.SourceInfo = url
+						}
+					}
+				case "pvc":
+					sourceMap, ok := sourceData.(map[string]interface{})
+					if ok {
+						name, nameFound, _ := unstructured.NestedString(sourceMap, "name")
+						namespace, nsFound, _ := unstructured.NestedString(sourceMap, "namespace")
+						if nameFound && nsFound {
+							dvInfo.SourceInfo = fmt.Sprintf("%s/%s", namespace, name)
+						} else if nameFound {
+							dvInfo.SourceInfo = name
+						}
+					}
+				case "registry":
+					sourceMap, ok := sourceData.(map[string]interface{})
+					if ok {
+						url, urlFound, _ := unstructured.NestedString(sourceMap, "url")
+						if urlFound {
+							dvInfo.SourceInfo = url
+						}
+					}
+				}
+				break
+			}
+		}
+
+		creationTimestamp := dv.GetCreationTimestamp()
+		dvInfo.Age = formatDuration(time.Since(creationTimestamp.Time))
+
+		dvInfos = append(dvInfos, dvInfo)
+	}
+
+	return dvInfos, nil
 }

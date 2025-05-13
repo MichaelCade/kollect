@@ -557,17 +557,7 @@
       "VolumeExpansion": "false"
     }
   ],
-  "VolumeSnapshotClasses": [
-    {
-      "Name": "ceph-block-snapclass",
-      "Driver": "rook-ceph.rbd.csi.ceph.com"
-    },
-    {
-      "Name": "ceph-filesystem-snapclass",
-      "Driver": "rook-ceph.cephfs.csi.ceph.com"
-    }
-  ],
-  "VolumeSnapshots": [
+    "VolumeSnapshots": [
     {
       "Name": "mysql-data-snapshot",
       "Namespace": "default",
@@ -599,6 +589,229 @@
       "CreationTimestamp": "2023-05-10T18:45:30Z",
       "RestoreSize": "50Gi",
       "Status": true
+    }
+  ],
+  "VirtualMachines": [
+    {
+      "Name": "ubuntu-vm",
+      "Namespace": "default",
+      "Status": "Running",
+      "Ready": true,
+      "Age": "14d5h12m",
+      "RunStrategy": "Always",
+      "CPU": "2",
+      "Memory": "4Gi",
+      "DataVolumes": ["ubuntu-dv"],
+      "Storage": [
+        "PVC: ubuntu-vm-rootdisk",
+        "ConfigMap: cloud-init-config",
+        "DataVolume: ubuntu-dv"
+      ]
+    },
+    {
+      "Name": "windows-server",
+      "Namespace": "default",
+      "Status": "Running",
+      "Ready": true,
+      "Age": "7d10h31m",
+      "RunStrategy": "Always",
+      "CPU": "4",
+      "Memory": "8Gi",
+      "DataVolumes": ["win-server-dv"],
+      "Storage": [
+        "PVC: windows-server-rootdisk",
+        "PVC: windows-server-data",
+        "DataVolume: win-server-dv"
+      ]
+    },
+    {
+      "Name": "sql-server-vm",
+      "Namespace": "app-production",
+      "Status": "Running",
+      "Ready": true,
+      "Age": "21d8h15m",
+      "RunStrategy": "Always",
+      "CPU": "8",
+      "Memory": "32Gi",
+      "DataVolumes": ["sql-server-dv", "sql-data-dv"],
+      "Storage": [
+        "PVC: sql-server-rootdisk",
+        "PVC: sql-server-data",
+        "PVC: sql-server-log",
+        "DataVolume: sql-server-dv",
+        "DataVolume: sql-data-dv",
+        "Secret: sql-credentials"
+      ]
+    },
+    {
+      "Name": "testing-vm",
+      "Namespace": "app-staging",
+      "Status": "Stopped",
+      "Ready": false,
+      "Age": "5d12h48m",
+      "RunStrategy": "Manual",
+      "CPU": "2",
+      "Memory": "4Gi",
+      "DataVolumes": ["testing-vm-dv"],
+      "Storage": [
+        "PVC: testing-vm-rootdisk",
+        "DataVolume: testing-vm-dv",
+        "ConfigMap: test-config"
+      ]
+    }
+  ],
+  "DataVolumes": [
+    {
+      "Name": "ubuntu-dv",
+      "Namespace": "default",
+      "Phase": "Succeeded",
+      "Size": "20Gi",
+      "SourceType": "http",
+      "SourceInfo": "http://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-amd64.img",
+      "Age": "14d7h23m"
+    },
+    {
+      "Name": "win-server-dv",
+      "Namespace": "default",
+      "Phase": "Succeeded",
+      "Size": "50Gi",
+      "SourceType": "registry",
+      "SourceInfo": "docker.io/kubevirt/windows-server-2019:latest",
+      "Age": "7d12h45m"
+    },
+    {
+      "Name": "sql-server-dv",
+      "Namespace": "app-production",
+      "Phase": "Succeeded",
+      "Size": "60Gi",
+      "SourceType": "registry",
+      "SourceInfo": "docker.io/kubevirt/mssql-server-2019:latest",
+      "Age": "21d9h30m"
+    },
+    {
+      "Name": "sql-data-dv",
+      "Namespace": "app-production",
+      "Phase": "Succeeded",
+      "Size": "100Gi",
+      "SourceType": "pvc",
+      "SourceInfo": "backups/sql-backup-pvc",
+      "Age": "15d18h45m"
+    },
+    {
+      "Name": "testing-vm-dv",
+      "Namespace": "app-staging",
+      "Phase": "Succeeded",
+      "Size": "20Gi",
+      "SourceType": "http",
+      "SourceInfo": "http://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img",
+      "Age": "5d14h22m"
+    },
+    {
+      "Name": "template-dv",
+      "Namespace": "app-staging",
+      "Phase": "Succeeded",
+      "Size": "10Gi",
+      "SourceType": "registry",
+      "SourceInfo": "docker.io/kubevirt/fedora-cloud-container-disk-demo:latest",
+      "Age": "30d5h10m"
+    }
+  ],
+  "CustomResourceDefs": [
+    {
+      "Name": "virtualmachines.kubevirt.io",
+      "Group": "kubevirt.io",
+      "Version": "v1",
+      "Kind": "VirtualMachine",
+      "Scope": "Namespaced",
+      "Age": "120d5h23m"
+    },
+    {
+      "Name": "virtualmachineinstances.kubevirt.io",
+      "Group": "kubevirt.io",
+      "Version": "v1",
+      "Kind": "VirtualMachineInstance",
+      "Scope": "Namespaced",
+      "Age": "120d5h23m"
+    },
+    {
+      "Name": "datavolumes.cdi.kubevirt.io",
+      "Group": "cdi.kubevirt.io",
+      "Version": "v1beta1",
+      "Kind": "DataVolume",
+      "Scope": "Namespaced",
+      "Age": "120d5h23m"
+    },
+    {
+      "Name": "cephclusters.ceph.rook.io",
+      "Group": "ceph.rook.io",
+      "Version": "v1",
+      "Kind": "CephCluster",
+      "Scope": "Namespaced",
+      "Age": "120d5h22m"
+    },
+    {
+      "Name": "prometheuses.monitoring.coreos.com",
+      "Group": "monitoring.coreos.com",
+      "Version": "v1",
+      "Kind": "Prometheus",
+      "Scope": "Namespaced",
+      "Age": "90d10h35m"
+    },
+    {
+      "Name": "alertmanagers.monitoring.coreos.com",
+      "Group": "monitoring.coreos.com",
+      "Version": "v1",
+      "Kind": "Alertmanager",
+      "Scope": "Namespaced",
+      "Age": "90d10h35m"
+    },
+    {
+      "Name": "servicemonitors.monitoring.coreos.com",
+      "Group": "monitoring.coreos.com",
+      "Version": "v1",
+      "Kind": "ServiceMonitor",
+      "Scope": "Namespaced",
+      "Age": "90d10h35m"
+    },
+    {
+      "Name": "certificates.cert-manager.io",
+      "Group": "cert-manager.io",
+      "Version": "v1",
+      "Kind": "Certificate",
+      "Scope": "Namespaced",
+      "Age": "85d8h12m"
+    },
+    {
+      "Name": "issuers.cert-manager.io",
+      "Group": "cert-manager.io",
+      "Version": "v1",
+      "Kind": "Issuer",
+      "Scope": "Namespaced",
+      "Age": "85d8h12m"
+    },
+    {
+      "Name": "clusterissuers.cert-manager.io",
+      "Group": "cert-manager.io",
+      "Version": "v1",
+      "Kind": "ClusterIssuer",
+      "Scope": "Cluster",
+      "Age": "85d8h12m"
+    },
+    {
+      "Name": "backups.velero.io",
+      "Group": "velero.io",
+      "Version": "v1",
+      "Kind": "Backup",
+      "Scope": "Namespaced",
+      "Age": "45d12h30m"
+    },
+    {
+      "Name": "restores.velero.io",
+      "Group": "velero.io",
+      "Version": "v1",
+      "Kind": "Restore",
+      "Scope": "Namespaced",
+      "Age": "45d12h30m"
     }
   ]
 }

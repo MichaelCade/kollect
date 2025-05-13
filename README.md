@@ -1,15 +1,29 @@
 
 # Kollect
 
-Kollect is a tool for collecting and displaying data from Kubernetes clusters, AWS, and Azure resources. It provides a web interface to visualize various resources and allows exporting the collected data as a JSON file.
+Kollect is a tool for collecting and displaying data from Kubernetes clusters, AWS, Azure, Google Cloud, and Veeam resources. It provides a web interface to visualize various resources and allows exporting the collected data as a JSON file.
 
 ## Features
 
-- Collects data from Kubernetes clusters
+- Collects data from Kubernetes clusters (including KubeVirt VMs and CRDs)
 - Collects data from AWS resources (EC2, S3, RDS, DynamoDB, VPCs)
 - Collects data from Azure resources (VMs, Storage Accounts, Blob Storage, Virtual Networks, SQL Databases, File Shares, CosmosDB)
+- Collects data from Google Cloud resources (Compute Instances, Storage Buckets, SQL Instances, VPCs)
+- Collects data from Veeam Backup & Replication servers (Backup Jobs, Repositories, Proxies, Scale-out Repositories)
 - Displays data in a web interface
 - Supports exporting data as a JSON file
+
+## Security & Credentials
+
+**Important:** Kollect does not store, transmit, or share any credentials. The tool works by:
+
+- Using your existing local configurations (kubeconfig, AWS/Azure/GCP profiles)
+- Leveraging environment variables when available
+- Prompting for credentials only when necessary (e.g., Veeam connections)
+- Never persisting credentials to disk
+- Only collecting inventory data - no backup content or sensitive configuration data
+
+All collected data is stored locally and only visualized in your browser on your local machine.
 
 ## Diagram 
 ![](diagram.png)
@@ -43,7 +57,7 @@ Run the Kollect binary with the desired flags:
 
 ### Flags
 
-- `--inventory`: Type of inventory to collect (kubernetes/aws/azure)
+- `--inventory`: Type of inventory to collect (kubernetes/aws/azure/gcp/azure)
 - `--storage`: Collect only storage-related objects (default: false)
 - `--kubeconfig`: Path to the kubeconfig file (default: $HOME/.kube/config)
 - `--browser`: Open the web interface in a browser (default: false)
@@ -70,6 +84,26 @@ Collect data from Azure resources and display it in the terminal:
 ./kollect --inventory azure
 ```
 
+Collect data from Google Cloud resources and display it in the terminal: 
+
+```sh
+./kollect --inventory gcp
+```
+
+Collect data from Veeam Backup & Replication resources and display it in the terminal: 
+
+```sh
+./kollect --inventory veeam ("add flags or have env variables")
+```
+We also have the ability to use the browser so you can import JSON format data. 
+
+Collect data from Google Cloud resources and display it in the terminal: 
+
+```sh
+./kollect --browser
+```
+
+
 Collect data from a Kubernetes cluster and open the web interface:
 
 ```sh
@@ -80,55 +114,6 @@ Collect data from AWS resources and save it to a file:
 
 ```sh
 ./kollect --inventory aws --output aws_data.json
-```
-
-## Development
-
-### Project Structure
-
-```
-.DS_Store
-.github/
-    workflows/
-        release.yaml
-.gitignore
-api/
-    .DS_Store
-    v1/
-        k8sdata.go
-cmd/
-    .DS_Store
-    kollect/
-        main.go
-
-
-go.mod
-
-
-
-
-go.sum
-
-
-LICENSE
-pkg/
-    .DS_Store
-    aws/
-        inventory.go
-    azure/
-        inventory.go
-    kollect/
-        kollect.go
-
-
-README.md
-
-
-test/
-    kollect_test.go
-web/
-    .DS_Store
-    index.html
 ```
 
 ### Building the Project

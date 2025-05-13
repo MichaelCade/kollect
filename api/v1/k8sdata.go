@@ -75,6 +75,37 @@ type VolumeSnapshotInfo struct {
 	RestoreSize       string
 	Status            bool
 }
+type VirtualMachineInfo struct {
+	Name        string
+	Namespace   string
+	Status      string
+	Ready       bool
+	Age         string
+	RunStrategy string
+	DataVolumes []string
+	CPU         string
+	Memory      string
+	Storage     []string
+}
+
+type DataVolumeInfo struct {
+	Name       string
+	Namespace  string
+	Phase      string
+	Size       string
+	SourceType string
+	SourceInfo string
+	Age        string
+}
+
+type CRDInfo struct {
+	Name    string
+	Group   string
+	Version string
+	Kind    string
+	Scope   string
+	Age     string
+}
 
 type K8sData struct {
 	Nodes                  []NodeInfo
@@ -88,5 +119,7 @@ type K8sData struct {
 	StorageClasses         []StorageClassInfo
 	VolumeSnapshotClasses  []VolumeSnapshotClassInfo
 	VolumeSnapshots        []VolumeSnapshotInfo
-	// Add other fields as needed
+	VirtualMachines        []VirtualMachineInfo
+	DataVolumes            []DataVolumeInfo
+	CustomResourceDefs     []CRDInfo
 }

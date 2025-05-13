@@ -71,6 +71,15 @@ document.addEventListener('htmx:afterSwap', (event) => {
             if (data.VolumeSnapshots) {
                 createTable('VolumeSnapshots', data.VolumeSnapshots, volumeSnapshotRowTemplate, ['Name', 'Namespace', 'Volume', 'CreationTimestamp', 'RestoreSize', 'Status']);
             }
+            if (data.CustomResourceDefs) {
+                createTable('Custom Resource Definitions', data.CustomResourceDefs, crdRowTemplate, ['Name', 'Group', 'Version', 'Kind', 'Scope', 'Age']);
+            }
+            if (data.VirtualMachines) {
+                createTable('Virtual Machines', data.VirtualMachines, vmRowTemplate, ['Name', 'Namespace', 'Status', 'Ready', 'Age', 'Run Strategy', 'CPU', 'Memory', 'Data Volumes']);
+            }
+            if (data.DataVolumes) {
+                createTable('Data Volumes', data.DataVolumes, dataVolumeRowTemplate, ['Name', 'Namespace', 'Phase', 'Size', 'Source Type', 'Source', 'Age']);
+            }
         } catch (error) {
             console.error("Error processing data:", error);
         }
@@ -119,4 +128,47 @@ function volSnapshotClassRowTemplate(item) {
 
 function volumeSnapshotRowTemplate(item) {
     return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Volume}</td><td>${item.CreationTimestamp}</td><td>${item.RestoreSize}</td><td>${item.Status}</td>`;
+}
+function crdRowTemplate(item) {
+    return `<td>${item.Name}</td><td>${item.Group}</td><td>${item.Version}</td><td>${item.Kind}</td><td>${item.Scope}</td><td>${item.Age}</td>`;
+}
+
+function vmRowTemplate(item) {
+    const ready = item.Ready ? 'Yes' : 'No';
+    const vmId = `vm-${item.Namespace}-${item.Name}`.replace(/[^a-zA-Z0-9-]/g, '-');
+    
+    return `
+        <td>${item.Name}</td>
+        <td>${item.Namespace}</td>
+        <td>${item.Status}</td>
+        <td>${ready}</td>
+        <td>${item.Age}</td>
+        <td>${item.RunStrategy}</td>
+        <td>${item.CPU || 'N/A'}</td>
+        <td>${item.Memory || 'N/A'}</td>
+        <td>
+            <button class="details-button" onclick="toggleVMDetails('${vmId}')">
+                <i class="fas fa-info-circle"></i> Storage
+            </button>
+            <div id="${vmId}" style="display:none;" class="details-panel">
+                <h4>Storage Volumes</h4>
+                ${item.Storage && item.Storage.length > 0 ? 
+                    `<ul>${item.Storage.map(vol => `<li>${vol}</li>`).join('')}</ul>` : 
+                    '<p>No storage volumes found for this VM.</p>'}
+                
+                <p class="tip">To see detailed PVC information: Check the PersistentVolumeClaims table for volumes in namespace "${item.Namespace}"</p>
+            </div>
+        </td>
+    `;
+}
+
+function toggleVMDetails(id) {
+    const details = document.getElementById(id);
+    if (details) {
+        details.style.display = details.style.display === 'none' ? 'block' : 'none';
+    }
+}
+
+function dataVolumeRowTemplate(item) {
+    return `<td>${item.Name}</td><td>${item.Namespace}</td><td>${item.Phase}</td><td>${item.Size}</td><td>${item.SourceType}</td><td>${item.SourceInfo}</td><td>${item.Age}</td>`;
 }
