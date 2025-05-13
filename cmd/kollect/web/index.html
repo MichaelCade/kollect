@@ -24,6 +24,10 @@
                 <button id="google-button"><img src="images/gcp.svg" alt="Google"></button>
                 <button id="veeam-button"><img src="images/veeam.svg" alt="Veeam"></button>
             </div>
+            <div class="nav-controls" style="text-align: right; margin-top: 10px;">
+                <button id="expand-all" class="control-button"><i class="fas fa-expand-alt"></i> Expand All</button>
+                <button id="collapse-all" class="control-button"><i class="fas fa-compress-alt"></i> Collapse All</button>
+            </div>
             <div class="import-export-buttons">
                 <div class="export-button">
                     <button id="export-button"><i class="fas fa-download"></i></button>
@@ -38,7 +42,6 @@
         <div id="content" class="table-container">
             <!-- Tables will be added here by JavaScript -->
         </div>
-        <!-- Add this right before the closing div for "content" -->
         <div id="charts-container" class="charts-container" style="display: none;">
             <div class="chart-wrapper">
                 <canvas id="backupJobsChart"></canvas>
@@ -52,6 +55,10 @@
         </div>
         <div id="loading-indicator" class="loading-indicator">
             <div class="spinner"></div>
+        </div>
+        <button class="resource-nav-toggle" id="resource-nav-toggle"><i class="fas fa-list"></i></button>
+        <div class="resource-nav" id="resource-nav" style="display: none;">
+            <!-- Resource links will be added here dynamically -->
         </div>
     </div>
     <template id="table-template">
@@ -74,6 +81,7 @@
     <script src="scripts/veeam.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Theme toggle functionality
             document.getElementById('theme-toggle').addEventListener('click', () => {
                 const currentTheme = document.documentElement.getAttribute('data-theme');
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -102,6 +110,21 @@
                         console.error('Error updating charts after theme change:', e);
                     }
                 }
+            });
+            
+            // Navigation controls
+            document.getElementById('expand-all').addEventListener('click', () => {
+                toggleAllTables(false);
+            });
+            
+            document.getElementById('collapse-all').addEventListener('click', () => {
+                toggleAllTables(true);
+            });
+            
+            // Resource navigation toggle
+            document.getElementById('resource-nav-toggle').addEventListener('click', () => {
+                const nav = document.getElementById('resource-nav');
+                nav.style.display = nav.style.display === 'none' ? 'block' : 'none';
             });
         });
     </script>

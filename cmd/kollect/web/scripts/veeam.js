@@ -1,92 +1,128 @@
-document.getElementById('veeam-button').addEventListener('click', () => {
-    showLoadingIndicator();
-    fetch('/api/switch?type=veeam')
-        .then(response => response.json())
-        .then(data => {
-            location.reload();
-        })
-        .catch(error => console.error('Error switching to Veeam:', error))
-        .finally(() => hideLoadingIndicator());
-});
+// veeam.js
 
-document.addEventListener('htmx:afterSwap', (event) => {
-    if (event.detail.target.id === 'hidden-content') {
-        try {
-            const data = JSON.parse(event.detail.xhr.responseText);
-            console.log("Fetched Data:", data);
-
-            // Show charts container if we have Veeam data
-            const chartsContainer = document.getElementById('charts-container');
-            if (data.ServerInfo || data.BackupJobs || data.Repositories) {
-                chartsContainer.style.display = 'grid';
-            } else {
-                chartsContainer.style.display = 'none';
-            }
-
-            const content = document.getElementById('content');
-            const template = document.getElementById('table-template').content;
-
-            function createTable(headerText, data, rowTemplate, headers, repositories) {
-                if (!data || data.length === 0) return;
-
-                const table = template.cloneNode(true);
-                table.querySelector('th').textContent = headerText;
-
-                const thead = table.querySelector('thead');
-                const headerRow = document.createElement('tr');
-                headers.forEach(header => {
-                    const th = document.createElement('th');
-                    th.textContent = header;
-                    headerRow.appendChild(th);
-                });
-                thead.appendChild(headerRow);
-
-                const tbody = table.querySelector('tbody');
-                data.forEach(item => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = rowTemplate(item, repositories);
-                    tbody.appendChild(row);
-                });
-
-                content.appendChild(table);
-            }
-
-            // Generate tables for each dataset
-            if (data.ServerInfo) {
-                createTable('Server Info', [data.ServerInfo], serverInfoRowTemplate, ['Name', 'Build Version', 'Database Vendor', 'SQL Server Version', 'VBR ID']);
-            }
-            if (data.Credentials) {
-                createTable('Credentials', data.Credentials, credentialsRowTemplate, ['Username', 'Description', 'Type']);
-            }
-            if (data.CloudCredentials) {
-                createTable('Cloud Credentials', data.CloudCredentials, cloudCredentialsRowTemplate, ['Account', 'Type', 'Description']);
-            }
-            if (data.KMSServers) {
-                createTable('KMS Servers', data.KMSServers, kmsServersRowTemplate, ['ID', 'Name']);
-            }
-            if (data.ManagedServers) {
-                createTable('Managed Servers', data.ManagedServers, managedServersRowTemplate, ['Name', 'Type', 'Status', 'Description']);
-            }
-            if (data.Repositories) {
-                createTable('Repositories', data.Repositories, repositoriesRowTemplate, ['Name', 'Type', 'Description', 'Bucket Name', 'Folder Name', 'Region ID', 'Infrequent Access Storage', 'Immutability Status', 'Immutable Period']);
-            }
-            if (data.ScaleOutRepositories) {
-                createTable('Scale-Out Repositories', data.ScaleOutRepositories, scaleOutRepositoriesRowTemplate, ['Name', 'Description', 'Details'], data.Repositories);
-            }
-            if (data.Proxies) {
-                createTable('Proxies', data.Proxies, proxiesRowTemplate, ['Name', 'Type', 'Description', 'Max Task Count', 'Transport Mode']);
-            }
-            if (data.BackupJobs) {
-                createTable('Backup Jobs', data.BackupJobs, backupJobsRowTemplate, ['Job Name', 'ID', 'Description', 'Type', 'Is Disabled', 'Is High Priority', 'Job Details']);
-            }
-
-            // Generate charts after creating tables
-            generateCharts(data);
-        } catch (error) {
-            console.error("Error processing data:", error);
+// Register Veeam handler
+registerDataHandler('veeam', 
+    // Test function
+    function(data) {
+        return data.ServerInfo || data.BackupJobs || data.Repositories || 
+               data.Credentials || data.CloudCredentials;
+    },
+    // Handler function
+    function(data) {
+        console.log("Processing Veeam data");
+        
+        // Show charts container for Veeam data
+        const chartsContainer = document.getElementById('charts-container');
+        if (chartsContainer) {
+            chartsContainer.style.display = 'grid';
         }
+        
+        if (data.ServerInfo) {
+            createTable('Server Info', [data.ServerInfo], serverInfoRowTemplate, 
+                ['Name', 'Build Version', 'Database Vendor', 'SQL Server Version', 'VBR ID']);
+        }
+        
+        if (data.Credentials) {
+            createTable('Credentials', data.Credentials, credentialsRowTemplate, 
+                ['Username', 'Description', 'Type']);
+        }
+        
+        if (data.CloudCredentials) {
+            createTable('Cloud Credentials', data.CloudCredentials, cloudCredentialsRowTemplate, 
+                ['Account', 'Type', 'Description']);
+        }
+        
+        if (data.KMSServers) {
+            createTable('KMS Servers', data.KMSServers, kmsServersRowTemplate, 
+                ['ID', 'Name']);
+        }
+        
+        if (data.ManagedServers) {
+            createTable('Managed Servers', data.ManagedServers, managedServersRowTemplate, 
+                ['Name', 'Type', 'Status', 'Description']);
+        }
+        
+        if (data.Repositories) {
+            createTable('Repositories', data.Repositories, repositoriesRowTemplate, 
+                ['Name', 'Type', 'Description', 'Bucket Name', 'Folder Name', 'Region ID', 'Infrequent Access Storage', 'Immutability Status', 'Immutable Period']);
+        }
+        
+        if (data.ScaleOutRepositories) {
+            // Special case code for ScaleOutRepositories...
+            const tableId = 'Scale-Out-Repositories'.replace(/\s+/g, '-').toLowerCase();
+            
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'collapsible-table';
+            tableContainer.id = `table-container-${tableId}`;
+            
+            const tableHeader = document.createElement('div');
+            tableHeader.className = 'table-header collapsed';
+            tableHeader.innerHTML = `
+                <span>Scale-Out Repositories</span>
+                <div>
+                    <span class="table-counter">${data.ScaleOutRepositories.length}</span>
+                    <span class="icon">▼</span>
+                </div>
+            `;
+            
+            const tableContent = document.createElement('div');
+            tableContent.className = 'table-content collapsed';
+            
+            const table = document.createElement('table');
+            
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            const headers = ['Name', 'Description', 'Details'];
+            
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            const tbody = document.createElement('tbody');
+            data.ScaleOutRepositories.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = scaleOutRepositoriesRowTemplate(item, data.Repositories);
+                tbody.appendChild(row);
+            });
+            
+            table.appendChild(tbody);
+            
+            tableHeader.addEventListener('click', function() {
+                tableHeader.classList.toggle('collapsed');
+                tableContent.classList.toggle('collapsed');
+            });
+            
+            tableContent.appendChild(table);
+            tableContainer.appendChild(tableHeader);
+            tableContainer.appendChild(tableContent);
+            
+            document.getElementById('content').appendChild(tableContainer);
+        }
+        
+        if (data.Proxies) {
+            createTable('Proxies', data.Proxies, proxiesRowTemplate, 
+                ['Name', 'Type', 'Description', 'Max Task Count', 'Transport Mode']);
+        }
+        
+        if (data.BackupJobs) {
+            createTable('Backup Jobs', data.BackupJobs, backupJobsRowTemplate, 
+                ['Job Name', 'ID', 'Description', 'Type', 'Is Disabled', 'Is High Priority', 'Job Details']);
+        }
+        
+        // Generate charts after creating tables
+        setTimeout(() => {
+            console.log(`Created Veeam tables`);
+            generateCharts(data);
+        }, 100);
     }
-});
+);
+
+// Rest of your functions remain unchanged
 
 function serverInfoRowTemplate(item) {
     return `<td>${item.name}</td><td>${item.buildVersion}</td><td>${item.databaseVendor}</td><td>${item.sqlServerVersion}</td><td>${item.vbrId}</td>`;
@@ -219,15 +255,18 @@ function scaleOutRepositoriesRowTemplate(item, repositories) {
         <td>${item.description || 'No description'}</td>
         <td>
             <button class="details-button" onclick="toggleDetails('${item.id}')"><i class="fas fa-info-circle"></i> Details</button>
-            <div id="details-${item.id}" style="display:none;">
-                <p>Performance Tier: ${performanceTier}</p>
+            <div id="details-${item.id}" style="display:none;" class="details-panel">
+                <h4>Performance Tier: ${performanceTier}</h4>
                 <ul>${performanceExtents}</ul>
-                <p>Capacity Tier: ${capacityTier}</p>
+                
+                <h4>Capacity Tier: ${capacityTier}</h4>
                 <ul>${capacityExtents}</ul>
                 <p>Operational Restore Period Days: ${operationalRestorePeriodDays}</p>
-                <p>Archive Tier: ${archiveTier}</p>
+                
+                <h4>Archive Tier: ${archiveTier}</h4>
                 <ul>${archiveExtents}</ul>
-                <p>Archive Period Days: ${archivePeriodDays}</ul>
+                <p>Archive Period Days: ${archivePeriodDays}</p>
+                
                 <p>Copy Policy: ${copyPolicy}</p>
                 <p>Move Policy: ${movePolicy}</p>
             </div>
@@ -237,11 +276,13 @@ function scaleOutRepositoriesRowTemplate(item, repositories) {
 
 function toggleDetails(id) {
     const details = document.getElementById(`details-${id}`);
-    details.style.display = details.style.display === 'none' ? 'block' : 'none';
+    if (details) {
+        details.style.display = details.style.display === 'none' ? 'block' : 'none';
+    }
 }
 
 function proxiesRowTemplate(item) {
-    return `<td>${item.name}</td><td>${item.type}</td><td>${item.description}</td><td>${item.server.maxTaskCount}</td><td>${item.server.transportMode}</td>`;
+    return `<td>${item.name}</td><td>${item.type}</td><td>${item.description}</td><td>${item.server && item.server.maxTaskCount || 'N/A'}</td><td>${item.server && item.server.transportMode || 'N/A'}</td>`;
 }
 
 function backupJobsRowTemplate(item) {
@@ -286,8 +327,8 @@ function backupJobsRowTemplate(item) {
         <td>${item.isHighPriority || false}</td>
         <td>
             <button class="details-button" onclick="toggleDetails('${item.id}')"><i class="fas fa-info-circle"></i> Details</button>
-            <div id="details-${item.id}" style="display:none;">
-                <p>Included VMs:</p>
+            <div id="details-${item.id}" style="display:none;" class="details-panel">
+                <h4>Included VMs</h4>
                 <ul>${vms || '<li>No VM data available</li>'}</ul>
                 <p>Backup Repository ID: ${(item.storage && item.storage.backupRepositoryId) || item.storageId || 'N/A'}</p>
                 <p>Retention Policy: ${retentionPolicy}</p>
@@ -426,7 +467,6 @@ function generateCharts(data) {
         }
 
         // Check for Scale-Out Repositories data
-// Similarly, update the ScaleOutRepositories chart code
         if (data.ScaleOutRepositories && data.ScaleOutRepositories.length) {
             const scaleOutReposCtx = document.getElementById('scaleOutReposChart');
             if (!scaleOutReposCtx) {
@@ -587,7 +627,6 @@ function generateCharts(data) {
         }
 
         // Create a polar chart for Credential Types
-        // Update the chart for credential types to be more resilient
         if (data.Credentials || data.CloudCredentials) {
             const credentialsCtx = document.getElementById('credentialsChart');
             if (!credentialsCtx) {
@@ -596,7 +635,7 @@ function generateCharts(data) {
             }
             const credentialsCtx2d = credentialsCtx.getContext('2d');
         
-                        // Initialize credential types object
+            // Initialize credential types object
             const credentialTypes = {};
             
             // Safely add credentials if they exist

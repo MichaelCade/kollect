@@ -12,6 +12,7 @@
     --card-bg: #ffffff;
     --accent-color: #4a90e2;
     --accent-hover: #3a7bcc;
+    --border-color: #ddd;
 }
 
 [data-theme="dark"] {
@@ -25,6 +26,7 @@
     --card-bg: #1e1e1e;
     --accent-color: #5fa3e6;
     --accent-hover: #4a90e2;
+    --border-color: #444;
 }
 
 body {
@@ -53,13 +55,13 @@ body {
 
 table {
     width: 100%;
-    margin: 20px 0;
     border-collapse: collapse;
     box-shadow: 0px 0px 20px rgba(0,0,0,0.15);
+    margin: 0; /* Remove margin to fix nested table issues */
 }
 
 th, td {
-    border: 1px solid #dddddd;
+    border: 1px solid var(--border-color);
     padding: 8px;
     text-align: left;
 }
@@ -105,8 +107,8 @@ th {
     box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-.inventory-buttons button i, .export-button button i, .import-button button i, #theme-toggle i, .details-button i {
-    color: #f5f5f5; 
+.inventory-buttons button i, .export-button button i, .import-button button i, #theme-toggle i {
+    color: var(--text-color); 
 }
 
 .loading-indicator {
@@ -145,7 +147,6 @@ th {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Style for the detail buttons */
 .details-button {
     background-color: var(--accent-color);
     color: white;
@@ -158,6 +159,167 @@ th {
 
 .details-button:hover {
     background-color: var(--accent-hover);
+}
+
+/* Improved Collapsible Table Styles */
+.collapsible-table {
+    margin-bottom: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: var(--card-bg);
+}
+
+.table-header {
+    background-color: var(--table-header-bg);
+    color: var(--table-header-color);
+    padding: 12px 15px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table-header:hover {
+    background-color: var(--button-hover-bg);
+}
+
+.table-header .icon {
+    transition: transform 0.3s ease;
+    display: inline-block;
+}
+
+.table-header.collapsed .icon {
+    transform: rotate(-90deg);
+}
+
+.table-content {
+    height: auto;
+    max-height: 800px;
+    overflow-y: auto;
+    transition: all 0.3s ease-out;
+    position: relative; /* Important for z-index */
+    background-color: var(--card-bg);
+}
+
+.table-content.collapsed {
+    max-height: 0;
+    height: 0;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-top: none;
+}
+
+.table-counter {
+    background-color: var(--accent-color);
+    color: white;
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-size: 0.8em;
+    margin-left: 10px;
+}
+
+/* Resource type navigation */
+.resource-nav {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.resource-nav a {
+    color: var(--text-color);
+    text-decoration: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    display: block;
+}
+
+.resource-nav a:hover {
+    background-color: var(--button-hover-bg);
+}
+
+.resource-nav-toggle {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    z-index: 1001;
+}
+
+.resource-nav-toggle:hover {
+    background-color: var(--accent-hover);
+}
+
+.control-button {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-left: 8px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.control-button:hover {
+    background-color: var(--accent-hover);
+}
+
+.nav-controls {
+    margin: 10px 0;
+    text-align: right;
+}
+
+/* For the details panel in VM storage */
+.details-panel {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+.details-panel h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: var(--accent-color);
+}
+
+.details-panel ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.details-panel .tip {
+    font-size: 12px;
+    font-style: italic;
+    margin-top: 8px;
+    opacity: 0.8;
 }
 
 @keyframes spin {
