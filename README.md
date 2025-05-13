@@ -139,12 +139,89 @@ To build the project, run the following command:
 go build -o kollect ./cmd/kollect
 ```
 
-### Running Tests
+### Running Tests (Under Review)
 
 To run the tests, use the following command:
 
 ```sh
 go test ./...
+```
+## Outputs 
+
+You are able to export to JSON your data from the browser function or of course you will get an output in JSON format to the terminal on each run and each inventory of your desired platform. 
+
+```
+go run cmd/kollect/main.go --inventory kubernetes --storage | jq
+```
+
+With an example of this as 
+
+```
+{
+  "Nodes": null,
+  "Namespaces": null,
+  "Pods": null,
+  "Deployments": null,
+  "StatefulSets": null,
+  "Services": null,
+  "PersistentVolumes": [
+    {
+      "Name": "kasten-nfs-pv",
+      "Capacity": "100Gi",
+      "AccessModes": "ReadWriteMany",
+      "Status": "Bound",
+      "AssociatedClaim": "kasten-nfs-pvc",
+      "StorageClass": "kasten-nfs",
+      "VolumeMode": "Filesystem"
+    },
+    {
+      "Name": "pvc-004b46dc-657e-44b3-ba7f-1d5c33f8278f",
+      "Capacity": "10Gi",
+      "AccessModes": "ReadWriteOnce",
+      "Status": "Bound",
+      "AssociatedClaim": "debian12-iso",
+      "StorageClass": "ceph-block",
+      "VolumeMode": "Filesystem"
+    },
+    {
+      "Name": "pvc-053a8311-dca1-45f9-900b-59366243a985",
+      "Capacity": "30Gi",
+      "AccessModes": "ReadWriteOnce",
+      "Status": "Bound",
+      "AssociatedClaim": "ollama-volume-ollama-0",
+      "StorageClass": "ceph-block",
+      "VolumeMode": "Filesystem"
+    },
+ ],
+  "StorageClasses": [
+    {
+      "Name": "ceph-block",
+      "Provisioner": "rook-ceph.rbd.csi.ceph.com",
+      "VolumeExpansion": "true"
+    },
+    {
+      "Name": "ceph-bucket",
+      "Provisioner": "rook-ceph.ceph.rook.io/bucket",
+      "VolumeExpansion": "false"
+    },
+    {
+      "Name": "ceph-filesystem",
+      "Provisioner": "rook-ceph.cephfs.csi.ceph.com",
+      "VolumeExpansion": "true"
+    }
+  ],
+  "VolumeSnapshotClasses": [
+    {
+      "Name": "ceph-block-sc",
+      "Driver": "rook-ceph.rbd.csi.ceph.com"
+    },
+    {
+      "Name": "ceph-filesystem-sc",
+      "Driver": "rook-ceph.cephfs.csi.ceph.com"
+    }
+  ],
+  "VolumeSnapshots": null
+}
 ```
 
 ## Contributing
