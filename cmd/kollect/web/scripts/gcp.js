@@ -2,12 +2,16 @@
 
 document.getElementById('google-button').addEventListener('click', () => {
     showLoadingIndicator();
-    fetch('/api/switch?type=gcp')
+    fetch('/api/switch?type=gcp')  // Change 'google' to 'gcp' to match the Go code
         .then(response => response.json())
         .then(data => {
             location.reload();
         })
-        .catch(error => console.error('Error switching to GCP:', error))
+        .catch(error => {
+            console.error('Error switching to GCP:', error);
+            const content = document.getElementById('content');
+            content.innerHTML = '<div class="error-message">Error loading GCP data. Please check the console for details.</div>';
+        })
         .finally(() => hideLoadingIndicator());
 });
 

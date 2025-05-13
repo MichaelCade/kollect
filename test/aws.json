@@ -1,0 +1,152 @@
+{
+  "EC2Instances": [
+    {
+      "Name": "web-server-1",
+      "InstanceID": "i-0a1b2c3d4e5f67890",
+      "Type": "t3.medium",
+      "State": "running",
+      "Region": "us-east-1"
+    },
+    {
+      "Name": "app-server-1",
+      "InstanceID": "i-0b2c3d4e5f6789012",
+      "Type": "m5.large",
+      "State": "running",
+      "Region": "us-east-1"
+    },
+    {
+      "Name": "database-replica",
+      "InstanceID": "i-0c3d4e5f67890123a",
+      "Type": "r5.xlarge",
+      "State": "running",
+      "Region": "us-west-1"
+    },
+    {
+      "Name": "dev-server",
+      "InstanceID": "i-0d4e5f6789012345b",
+      "Type": "t3.small",
+      "State": "stopped",
+      "Region": "eu-west-1"
+    },
+    {
+      "Name": "bastion-host",
+      "InstanceID": "i-0e5f6789012345d6c",
+      "Type": "t3.micro",
+      "State": "running",
+      "Region": "ap-northeast-1"
+    }
+  ],
+  "S3Buckets": [
+    {
+      "Name": "my-company-website-assets",
+      "Immutable": false,
+      "Region": "us-east-1"
+    },
+    {
+      "Name": "my-company-backups",
+      "Immutable": true,
+      "Region": "us-west-2"
+    },
+    {
+      "Name": "my-company-logs-archive",
+      "Immutable": true,
+      "Region": "eu-west-1"
+    },
+    {
+      "Name": "my-company-terraform-state",
+      "Immutable": false,
+      "Region": "us-east-1"
+    },
+    {
+      "Name": "my-company-customer-uploads",
+      "Immutable": false,
+      "Region": "eu-central-1"
+    }
+  ],
+  "RDSInstances": [
+    {
+      "InstanceID": "production-postgres",
+      "Engine": "postgres",
+      "Status": "available",
+      "Region": "us-east-1"
+    },
+    {
+      "InstanceID": "replica-postgres-1",
+      "Engine": "postgres",
+      "Status": "available",
+      "Region": "us-east-2"
+    },
+    {
+      "InstanceID": "dev-mysql",
+      "Engine": "mysql",
+      "Status": "available",
+      "Region": "us-west-1"
+    },
+    {
+      "InstanceID": "staging-postgres",
+      "Engine": "postgres",
+      "Status": "available",
+      "Region": "eu-west-1"
+    },
+    {
+      "InstanceID": "analytics-aurora",
+      "Engine": "aurora-mysql",
+      "Status": "available",
+      "Region": "us-east-1"
+    }
+  ],
+  "DynamoDBTables": [
+    {
+      "TableName": "Users",
+      "Status": "ACTIVE",
+      "Region": "us-east-1"
+    },
+    {
+      "TableName": "Sessions",
+      "Status": "ACTIVE",
+      "Region": "us-east-1"
+    },
+    {
+      "TableName": "Products",
+      "Status": "ACTIVE",
+      "Region": "us-west-2"
+    },
+    {
+      "TableName": "Orders",
+      "Status": "ACTIVE",
+      "Region": "us-east-1"
+    },
+    {
+      "TableName": "Metrics",
+      "Status": "ACTIVE",
+      "Region": "eu-west-1"
+    }
+  ],
+  "VPCs": [
+    {
+      "VPCID": "vpc-0a1b2c3d4e5f67890",
+      "State": "available",
+      "Region": "us-east-1"
+    },
+    {
+      "VPCID": "vpc-0b2c3d4e5f6789012",
+      "State": "available",
+      "Region": "us-west-1"
+    },
+    {
+      "VPCID": "vpc-0c3d4e5f67890123a",
+      "State": "available",
+      "Region": "eu-west-1"
+    },
+    {
+      "VPCID": "vpc-0d4e5f6789012345b",
+      "State": "available",
+      "Region": "ap-northeast-1"
+    },
+    {
+      "VPCID": "vpc-0e5f6789012345d6c",
+      "State": "available",
+      "Region": "eu-central-1"
+    }
+  ]
+}

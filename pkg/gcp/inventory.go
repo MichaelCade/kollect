@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"os/exec"
 	"strings"
 
 	"cloud.google.com/go/storage"
@@ -69,42 +71,57 @@ type GCPData struct {
 
 func CollectGCPData(ctx context.Context) (GCPData, error) {
 	var data GCPData
-	var err error
 
 	// Get Project ID from environment or gcloud
 	projectID, err := getCurrentProject()
 	if err != nil {
-		return data, fmt.Errorf("failed to get current project: %v", err)
+		log.Printf("Warning: %v", err)
+		// Continue with the default project ID
 	}
 
 	// Collect Compute Instances
-	data.ComputeInstances, err = fetchComputeInstances(ctx, projectID)
+	instances, err := fetchComputeInstances(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch compute instances: %v", err)
+		// Don't return error, just keep empty instance list
+	} else {
+		data.ComputeInstances = instances
 	}
 
 	// Collect GCS Buckets
-	data.GCSBuckets, err = fetchGCSBuckets(ctx, projectID)
+	buckets, err := fetchGCSBuckets(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch GCS buckets: %v", err)
+		// Don't return error, just keep empty bucket list
+	} else {
+		data.GCSBuckets = buckets
 	}
 
 	// Collect Cloud SQL Instances
-	data.CloudSQLInstances, err = fetchCloudSQLInstances(ctx, projectID)
+	sqlInstances, err := fetchCloudSQLInstances(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch Cloud SQL instances: %v", err)
+		// Don't return error, just keep empty SQL instance list
+	} else {
+		data.CloudSQLInstances = sqlInstances
 	}
 
 	// Collect Cloud Run Services
-	data.CloudRunServices, err = fetchCloudRunServices(ctx, projectID)
+	runServices, err := fetchCloudRunServices(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch Cloud Run services: %v", err)
+		// Don't return error, just keep empty Cloud Run list
+	} else {
+		data.CloudRunServices = runServices
 	}
 
 	// Collect Cloud Functions
-	data.CloudFunctions, err = fetchCloudFunctions(ctx, projectID)
+	functions, err := fetchCloudFunctions(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch Cloud Functions: %v", err)
+		// Don't return error, just keep empty functions list
+	} else {
+		data.CloudFunctions = functions
 	}
 
 	return data, nil
@@ -112,8 +129,23 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 
 func getCurrentProject() (string, error) {
 	// Try to get from environment variable
-	projectID := "your-project-id" // Replace with actual environment variable logic
-	return projectID, nil
+	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	if projectID != "" {
+		return projectID, nil
+	}
+
+	// Try to get from gcloud CLI
+	cmd := exec.Command("gcloud", "config", "get-value", "project")
+	output, err := cmd.Output()
+	if err == nil {
+		projectID = strings.TrimSpace(string(output))
+		if projectID != "" {
+			return projectID, nil
+		}
+	}
+
+	// If we still don't have a project ID, return a default for demo purposes
+	return "demo-project", fmt.Errorf("could not determine GCP project ID, using demo-project")
 }
 
 func fetchComputeInstances(ctx context.Context, projectID string) ([]ComputeInstanceInfo, error) {
@@ -185,7 +217,7 @@ func fetchGCSBuckets(ctx context.Context, projectID string) ([]GCSBucketInfo, er
 
 		if bucketAttrs.RetentionPolicy != nil {
 			bucketInfo.RetentionPolicy = true
-			bucketInfo.RetentionDuration = bucketAttrs.RetentionPolicy.RetentionPeriod
+			bucketInfo.RetentionDuration = int64(bucketAttrs.RetentionPolicy.RetentionPeriod.Seconds())
 		}
 
 		buckets = append(buckets, bucketInfo)
@@ -298,7 +330,7 @@ func fetchCloudFunctions(ctx context.Context, projectID string) ([]CloudFunction
 				Runtime:         function.Runtime,
 				Status:          function.Status,
 				EntryPoint:      function.EntryPoint,
-				AvailableMemory: function.AvailableMemoryMb + "MB",
+				AvailableMemory: fmt.Sprintf("%dMB", function.AvailableMemoryMb),
 				Project:         projectID,
 			})
 		}

@@ -1,0 +1,415 @@
+{
+  "ServerInfo": {
+    "name": "veeam-backup-server",
+    "buildVersion": "12.1.0.2131",
+    "databaseVendor": "Microsoft SQL Server",
+    "sqlServerVersion": "Microsoft SQL Server 2019",
+    "vbrId": "31a4b678-9e0f-4e5c-8742-a631c15e8f77"
+  },
+  "Credentials": [
+    {
+      "id": "8724feac-a530-4b30-b24c-93384e546712",
+      "username": "Administrator",
+      "description": "Default administrator account",
+      "type": "Windows"
+    },
+    {
+      "id": "a5f79e3c-654b-4e2d-8dc6-78910ab23def",
+      "username": "root",
+      "description": "Linux root account",
+      "type": "Linux"
+    },
+    {
+      "id": "b0e12f78-9a5c-4d3e-8b67-12345abcdef0",
+      "username": "vcenteruser",
+      "description": "vCenter administrator account",
+      "type": "vCenter"
+    },
+    {
+      "id": "c7d89e23-f456-7890-abcd-ef1234567890",
+      "username": "sqlservice",
+      "description": "SQL Server service account",
+      "type": "Windows"
+    }
+  ],
+  "CloudCredentials": [
+    {
+      "id": "e8f9d0c1-2b34-56a7-89bc-def01234567",
+      "account": "aws-account",
+      "description": "AWS S3 Storage Account",
+      "type": "AmazonS3"
+    },
+    {
+      "id": "f0e1d2c3-4b56-78a9-0cde-f123456789ab",
+      "account": "az-storage",
+      "description": "Azure Blob Storage Account",
+      "type": "MicrosoftAzureBlob"
+    },
+    {
+      "id": "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      "account": "google-storage",
+      "description": "Google Cloud Storage",
+      "type": "GoogleCloudStorage"
+    }
+  ],
+  "KMSServers": [
+    {
+      "id": "12345678-90ab-cdef-1234-567890abcdef",
+      "name": "Enterprise KMS Server"
+    },
+    {
+      "id": "abcdef12-3456-7890-abcd-ef1234567890",
+      "name": "Development KMS Server"
+    }
+  ],
+  "ManagedServers": [
+    {
+      "id": "b9a87c65-4321-fedc-ba98-7654321fedcb",
+      "name": "vcenter.company.local",
+      "type": "VMware vSphere",
+      "description": "Production vCenter Server",
+      "status": "Online"
+    },
+    {
+      "id": "c9d8e7f6-5432-10fe-dcba-9876543210fe",
+      "name": "hyperv-01.company.local",
+      "type": "Microsoft Hyper-V",
+      "description": "Production Hyper-V Host",
+      "status": "Online"
+    },
+    {
+      "id": "d0e1f2a3-b4c5-d6e7-f8a9-b0c1d2e3f4a5",
+      "name": "esxi-01.company.local",
+      "type": "VMware ESXi",
+      "description": "ESXi Host 1",
+      "status": "Online"
+    },
+    {
+      "id": "e1f2a3b4-c5d6-e7f8-a9b0-c1d2e3f4a5b6",
+      "name": "esxi-02.company.local",
+      "type": "VMware ESXi",
+      "description": "ESXi Host 2",
+      "status": "Warning"
+    }
+  ],
+  "Repositories": [
+    {
+      "id": "f2a3b4c5-d6e7-f8a9-b0c1-d2e3f4a5b6c7",
+      "name": "Local Repository 1",
+      "type": "WinLocal",
+      "description": "Primary backup repository",
+      "path": "D:\\Backups",
+      "usedSpace": 1024000000000,
+      "freeSpace": 2048000000000,
+      "immutabilityEnabled": false
+    },
+    {
+      "id": "a3b4c5d6-e7f8-a9b0-c1d2-e3f4a5b6c7d8",
+      "name": "S3 Repository",
+      "type": "AmazonS3",
+      "description": "Amazon S3 bucket for archives",
+      "bucket": {
+        "bucketName": "veeam-backups-archive",
+        "folderName": "archives",
+        "regionId": "us-west-2",
+        "infrequentAccessStorage": {
+          "isEnabled": true,
+          "movePolicyEnabled": true,
+          "movePolicyDays": 30
+        },
+        "immutabilityEnabled": true,
+        "immutability": {
+          "isEnabled": true,
+          "daysCount": 60
+        }
+      }
+    },
+    {
+      "id": "b4c5d6e7-f8a9-b0c1-d2e3-f4a5b6c7d8e9",
+      "name": "Azure Repository",
+      "type": "AzureBlob",
+      "description": "Azure Blob Storage Repository",
+      "bucket": {
+        "bucketName": "veeambackups",
+        "folderName": "main",
+        "regionId": "eastus",
+        "infrequentAccessStorage": {
+          "isEnabled": false
+        },
+        "immutabilityEnabled": true,
+        "immutability": {
+          "isEnabled": true,
+          "daysCount": 30
+        }
+      }
+    },
+    {
+      "id": "c5d6e7f8-a9b0-c1d2-e3f4-a5b6c7d8e9f0",
+      "name": "NAS Repository",
+      "type": "CifsShare",
+      "description": "NAS Share Repository",
+      "path": "\\\\nas\\backups",
+      "usedSpace": 512000000000,
+      "freeSpace": 1536000000000,
+      "repository": {
+        "makeRecentBackupsImmutableDays": 14
+      }
+    }
+  ],
+  "ScaleOutRepositories": [
+    {
+      "id": "d6e7f8a9-b0c1-d2e3-f4a5-b6c7d8e9f0a1",
+      "name": "Scale-Out Repository 1",
+      "description": "Primary scale-out repository",
+      "extentIds": [
+        "f2a3b4c5-d6e7-f8a9-b0c1-d2e3f4a5b6c7",
+        "c5d6e7f8-a9b0-c1d2-e3f4-a5b6c7d8e9f0"
+      ],
+      "performanceTier": {
+        "type": "Local",
+        "performanceExtents": [
+          {
+            "id": "f2a3b4c5-d6e7-f8a9-b0c1-d2e3f4a5b6c7",
+            "name": "Local Repository 1"
+          },
+          {
+            "id": "c5d6e7f8-a9b0-c1d2-e3f4-a5b6c7d8e9f0",
+            "name": "NAS Repository"
+          }
+        ]
+      },
+      "capacityTier": {
+        "isEnabled": true,
+        "extentId": "a3b4c5d6-e7f8-a9b0-c1d2-e3f4a5b6c7d8",
+        "copyPolicyEnabled": true,
+        "movePolicyEnabled": true,
+        "operationalRestorePeriodDays": 14
+      },
+      "archiveTier": {
+        "isEnabled": true,
+        "extentId": "b4c5d6e7-f8a9-b0c1-d2e3-f4a5b6c7d8e9",
+        "archivePeriodDays": 365
+      }
+    },
+    {
+      "id": "e7f8a9b0-c1d2-e3f4-a5b6-c7d8e9f0a1b2",
+      "name": "Scale-Out Repository 2",
+      "description": "Secondary scale-out repository",
+      "extentIds": [
+        "c5d6e7f8-a9b0-c1d2-e3f4-a5b6c7d8e9f0"
+      ],
+      "performanceTier": {
+        "type": "Local",
+        "performanceExtents": [
+          {
+            "id": "c5d6e7f8-a9b0-c1d2-e3f4-a5b6c7d8e9f0",
+            "name": "NAS Repository"
+          }
+        ]
+      },
+      "capacityTier": {
+        "isEnabled": true,
+        "extentId": "b4c5d6e7-f8a9-b0c1-d2e3-f4a5b6c7d8e9"
+      }
+    }
+  ],
+    "Proxies": [
+    {
+      "id": "f8a9b0c1-d2e3-f4a5-b6c7-d8e9f0a1b2c3",
+      "name": "Backup Proxy 1",
+      "type": "Windows",
+      "description": "Production backup proxy server",
+      "server": {
+        "maxTaskCount": 8,
+        "transportMode": "Automatic"
+      }
+    },
+    {
+      "id": "a9b0c1d2-e3f4-a5b6-c7d8-e9f0a1b2c3d4",
+      "name": "Backup Proxy 2",
+      "type": "Windows",
+      "description": "Secondary backup proxy server",
+      "server": {
+        "maxTaskCount": 4,
+        "transportMode": "Direct"
+      }
+    },
+    {
+      "id": "b0c1d2e3-f4a5-b6c7-d8e9-f0a1b2c3d4e5",
+      "name": "Cloud Proxy",
+      "type": "Linux",
+      "description": "Cloud gateway proxy",
+      "server": {
+        "maxTaskCount": 10,
+        "transportMode": "Automatic"
+      }
+    }
+  ],
+  "BackupJobs": [
+    {
+      "id": "c1d2e3f4-a5b6-c7d8-e9f0-a1b2c3d4e5f6",
+      "name": "Daily VM Backup",
+      "description": "Daily backup of production VMs",
+      "type": "Backup",
+      "isDisabled": false,
+      "isHighPriority": true,
+      "schedule": {
+        "type": "Daily",
+        "time": "22:00:00",
+        "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+      },
+      "retentionPolicy": {
+        "type": "GFS",
+        "dailyBackups": 14,
+        "weeklyBackups": 4,
+        "monthlyBackups": 12,
+        "yearlyBackups": 3
+      },
+      "sourceObjects": [
+        {
+          "name": "web-server-01",
+          "type": "VM"
+        },
+        {
+          "name": "app-server-01",
+          "type": "VM"
+        },
+        {
+          "name": "db-server-01",
+          "type": "VM"
+        }
+      ],
+      "storageId": "d6e7f8a9-b0c1-d2e3-f4a5-b6c7d8e9f0a1"
+    },
+    {
+      "id": "d2e3f4a5-b6c7-d8e9-f0a1-b2c3d4e5f6a7",
+      "name": "Weekly Full Backup",
+      "description": "Weekly full backup of all servers",
+      "type": "Backup",
+      "isDisabled": false,
+      "isHighPriority": false,
+      "schedule": {
+        "type": "Weekly",
+        "time": "01:00:00",
+        "daysOfWeek": ["Sunday"]
+      },
+      "retentionPolicy": {
+        "type": "Simple",
+        "count": 12
+      },
+      "sourceObjects": [
+        {
+          "name": "All Virtual Machines",
+          "type": "Container"
+        }
+      ],
+      "storageId": "d6e7f8a9-b0c1-d2e3-f4a5-b6c7d8e9f0a1"
+    },
+    {
+      "id": "e3f4a5b6-c7d8-e9f0-a1b2-c3d4e5f6a7b8",
+      "name": "SQL Backup",
+      "description": "SQL Server database backup",
+      "type": "DatabaseBackup",
+      "isDisabled": false,
+      "isHighPriority": true,
+      "schedule": {
+        "type": "Daily",
+        "time": "20:00:00",
+        "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+      },
+      "retentionPolicy": {
+        "type": "Simple",
+        "count": 30
+      },
+      "sourceObjects": [
+        {
+          "name": "SQL-SERVER-01\\PRODUCTION",
+          "type": "Database"
+        },
+        {
+          "name": "SQL-SERVER-02\\FINANCE",
+          "type": "Database"
+        }
+      ],
+      "storageId": "f2a3b4c5-d6e7-f8a9-b0c1-d2e3f4a5b6c7"
+    },
+    {
+      "id": "f4a5b6c7-d8e9-f0a1-b2c3-d4e5f6a7b8c9",
+      "name": "Archival Backup",
+      "description": "Monthly backup to archive storage",
+      "type": "BackupCopy",
+      "isDisabled": false,
+      "isHighPriority": false,
+      "schedule": {
+        "type": "Monthly",
+        "time": "03:00:00",
+        "dayOfMonth": 1
+      },
+      "retentionPolicy": {
+        "type": "Simple",
+        "count": 60
+      },
+      "sourceObjects": [
+        {
+          "name": "Weekly Full Backup",
+          "type": "Job"
+        }
+      ],
+      "storageId": "a3b4c5d6-e7f8-a9b0-c1d2-e3f4a5b6c7d8"
+    },
+    {
+      "id": "a5b6c7d8-e9f0-a1b2-c3d4-e5f6a7b8c9d0",
+      "name": "File Share Backup",
+      "description": "Critical file shares backup",
+      "type": "FileBackup",
+      "isDisabled": false,
+      "isHighPriority": false,
+      "schedule": {
+        "type": "Daily",
+        "time": "23:30:00",
+        "daysOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+      },
+      "retentionPolicy": {
+        "type": "Simple",
+        "count": 30
+      },
+      "sourceObjects": [
+        {
+          "name": "\\\\fileserver\\shared",
+          "type": "FileShare"
+        },
+        {
+          "name": "\\\\fileserver\\finance",
+          "type": "FileShare"
+        }
+      ],
+      "storageId": "c5d6e7f8-a9b0-c1d2-e3f4-a5b6c7d8e9f0"
+    },
+    {
+      "id": "b6c7d8e9-f0a1-b2c3-d4e5-f6a7b8c9d0e1",
+      "name": "Disaster Recovery Copy",
+      "description": "DR site replication",
+      "type": "ReplicationJob",
+      "isDisabled": true,
+      "isHighPriority": true,
+      "schedule": {
+        "type": "Continuous"
+      },
+      "retentionPolicy": {
+        "type": "Simple",
+        "count": 7
+      },
+      "sourceObjects": [
+        {
+          "name": "web-server-01",
+          "type": "VM"
+        },
+        {
+          "name": "app-server-01",
+          "type": "VM"
+        }
+      ],
+      "targetLocation": "DR-Site"
+    }
+  ]
+}

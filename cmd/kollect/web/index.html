@@ -10,6 +10,7 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
         <script src="https://unpkg.com/htmx.org@1.7.0"></script>
         <script src="https://unpkg.com/hyperscript.org@0.9.7"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </head>
 <body>
     <div class="container">
@@ -37,6 +38,18 @@
         <div id="content" class="table-container">
             <!-- Tables will be added here by JavaScript -->
         </div>
+        <!-- Add this right before the closing div for "content" -->
+        <div id="charts-container" class="charts-container" style="display: none;">
+            <div class="chart-wrapper">
+                <canvas id="backupJobsChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="scaleOutReposChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <canvas id="credentialsChart"></canvas>
+            </div>
+        </div>
         <div id="loading-indicator" class="loading-indicator">
             <div class="spinner"></div>
         </div>
@@ -59,6 +72,7 @@
     <script src="scripts/azure.js"></script>
     <script src="scripts/gcp.js"></script>
     <script src="scripts/veeam.js"></script>
+    // Update the theme toggle script section:
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('theme-toggle').addEventListener('click', () => {
@@ -69,6 +83,26 @@
                 document.getElementById('theme-toggle').innerHTML = `<i class="fas ${icon}"></i>`;
                 const logo = newTheme === 'dark' ? 'dark_Kollect.png' : 'Kollect.png';
                 document.getElementById('logo').src = logo;
+                
+                // Regenerate charts with new theme colors if Veeam data is loaded
+                const chartsContainer = document.getElementById('charts-container');
+                if (chartsContainer && chartsContainer.style.display !== 'none') {
+                    // Get the current data from the hidden content
+                    try {
+                        const data = JSON.parse(document.getElementById('hidden-content').textContent);
+                        if (data) {
+                            // Destroy current charts
+                            Chart.helpers.each(Chart.instances, (instance) => {
+                                instance.destroy();
+                            });
+                            
+                            // Regenerate with new theme
+                            generateCharts(data);
+                        }
+                    } catch (e) {
+                        console.error('Error updating charts after theme change:', e);
+                    }
+                }
             });
         });
     </script>

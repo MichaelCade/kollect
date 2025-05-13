@@ -1,0 +1,205 @@
+{
+  "ComputeInstances": [
+    {
+      "Name": "instance-1",
+      "Zone": "us-central1-a",
+      "MachineType": "e2-standard-2",
+      "Status": "RUNNING",
+      "Project": "demo-project"
+    },
+    {
+      "Name": "instance-2",
+      "Zone": "us-central1-b",
+      "MachineType": "n2-standard-4",
+      "Status": "RUNNING",
+      "Project": "demo-project"
+    },
+    {
+      "Name": "bastion-host",
+      "Zone": "europe-west4-a",
+      "MachineType": "e2-micro",
+      "Status": "RUNNING",
+      "Project": "demo-project"
+    },
+    {
+      "Name": "frontend-server",
+      "Zone": "us-west1-b",
+      "MachineType": "e2-standard-8",
+      "Status": "STOPPED",
+      "Project": "demo-project"
+    },
+    {
+      "Name": "db-replica",
+      "Zone": "asia-northeast1-a",
+      "MachineType": "n2-standard-16",
+      "Status": "RUNNING",
+      "Project": "demo-project"
+    }
+  ],
+  "GCSBuckets": [
+    {
+      "Name": "demo-project-assets",
+      "Location": "US",
+      "StorageClass": "STANDARD",
+      "RetentionPolicy": true,
+      "RetentionDuration": 2592000,
+      "Project": "demo-project"
+    },
+    {
+      "Name": "demo-project-backups",
+      "Location": "US-WEST1",
+      "StorageClass": "NEARLINE",
+      "RetentionPolicy": true,
+      "RetentionDuration": 7776000,
+      "Project": "demo-project"
+    },
+    {
+      "Name": "demo-project-logs",
+      "Location": "US-CENTRAL1",
+      "StorageClass": "STANDARD",
+      "RetentionPolicy": false,
+      "RetentionDuration": 0,
+      "Project": "demo-project"
+    },
+    {
+      "Name": "demo-project-archives",
+      "Location": "EU",
+      "StorageClass": "COLDLINE",
+      "RetentionPolicy": true,
+      "RetentionDuration": 15552000,
+      "Project": "demo-project"
+    },
+    {
+      "Name": "terraform-state",
+      "Location": "US-CENTRAL1",
+      "StorageClass": "STANDARD",
+      "RetentionPolicy": false,
+      "RetentionDuration": 0,
+      "Project": "demo-project"
+    }
+  ],
+  "CloudSQLInstances": [
+    {
+      "Name": "production-db",
+      "DatabaseVersion": "POSTGRES_13",
+      "Region": "us-central1",
+      "Tier": "db-custom-4-15360",
+      "Status": "RUNNABLE",
+      "Project": "demo-project"
+    },
+    {
+      "Name": "staging-db",
+      "DatabaseVersion": "MYSQL_8_0",
+      "Region": "us-west1",
+      "Tier": "db-n1-standard-2",
+      "Status": "RUNNABLE",
+      "Project": "demo-project"
+    },
+    {
+      "Name": "analytics-db",
+      "DatabaseVersion": "POSTGRES_14",
+      "Region": "europe-west4",
+      "Tier": "db-custom-8-30720",
+      "Status": "RUNNABLE",
+      "Project": "demo-project"
+    },
+    {
+      "Name": "dev-db",
+      "DatabaseVersion": "MYSQL_5_7",
+      "Region": "us-central1",
+      "Tier": "db-f1-micro",
+      "Status": "STOPPED",
+      "Project": "demo-project"
+    }
+  ],
+  "CloudRunServices": [
+    {
+      "Name": "api-gateway",
+      "Region": "us-central1",
+      "URL": "https://api-gateway-abcdef-uc.a.run.app",
+      "Project": "demo-project",
+      "Replicas": 100,
+      "Container": "gcr.io/demo-project/api-gateway:v1.2.3"
+    },
+    {
+      "Name": "auth-service",
+      "Region": "us-central1",
+      "URL": "https://auth-service-abcdef-uc.a.run.app",
+      "Project": "demo-project",
+      "Replicas": 50,
+      "Container": "gcr.io/demo-project/auth-service:v2.1.0"
+    },
+    {
+      "Name": "image-processor",
+      "Region": "us-west1",
+      "URL": "https://image-processor-abcdef-uw.a.run.app",
+      "Project": "demo-project",
+      "Replicas": 25,
+      "Container": "gcr.io/demo-project/image-processor:latest"
+    },
+    {
+      "Name": "webhook-handler",
+      "Region": "europe-west4",
+      "URL": "https://webhook-handler-abcdef-ew.a.run.app",
+      "Project": "demo-project",
+      "Replicas": 10,
+      "Container": "gcr.io/demo-project/webhook-handler:v1.0.5"
+    }
+  ],
+  "CloudFunctions": [
+    {
+      "Name": "process-uploads",
+      "Region": "us-central1",
+      "Runtime": "nodejs16",
+      "Status": "ACTIVE",
+      "EntryPoint": "processUpload",
+      "AvailableMemory": "256MB",
+      "Project": "demo-project"
+    },
+    {
+      "Name": "generate-thumbnails",
+      "Region": "us-central1",
+      "Runtime": "python39",
+      "Status": "ACTIVE",
+      "EntryPoint": "generate_thumbnail",
+      "AvailableMemory": "512MB",
+      "Project": "demo-project"
+    },
+    {
+      "Name": "data-transform",
+      "Region": "us-west1",
+      "Runtime": "go116",
+      "Status": "ACTIVE",
+      "EntryPoint": "TransformData",
+      "AvailableMemory": "1024MB",
+      "Project": "demo-project"
+    },
+    {
+      "Name": "cleanup-temp-files",
+      "Region": "europe-west4",
+      "Runtime": "nodejs14",
+      "Status": "ACTIVE",
+      "EntryPoint": "cleanupFiles",
+      "AvailableMemory": "128MB",
+      "Project": "demo-project"
+    },
+    {
+      "Name": "log-analyzer",
+      "Region": "us-central1",
+      "Runtime": "python310",
+      "Status": "ACTIVE",
+      "EntryPoint": "analyze_logs",
+      "AvailableMemory": "2048MB",
+      "Project": "demo-project"
+    },
+    {
+      "Name": "backup-scheduler",
+      "Region": "us-central1",
+      "Runtime": "nodejs18",
+      "Status": "ACTIVE",
+      "EntryPoint": "scheduleBackup",
+      "AvailableMemory": "256MB",
+      "Project": "demo-project"
+    }
+  ]
+}

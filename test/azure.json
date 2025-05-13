@@ -1,0 +1,466 @@
+{
+  "AzureVMs": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Compute/virtualMachines/web-server-1",
+      "name": "web-server-1",
+      "location": "eastus",
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_D2s_v3"
+        },
+        "storageProfile": {
+          "osDisk": {
+            "osType": "Linux",
+            "name": "web-server-1_OsDisk",
+            "createOption": "FromImage",
+            "diskSizeGB": 30
+          },
+          "imageReference": {
+            "publisher": "Canonical",
+            "offer": "UbuntuServer",
+            "sku": "18.04-LTS",
+            "version": "latest"
+          }
+        },
+        "provisioningState": "Succeeded"
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Compute/virtualMachines/app-server-1",
+      "name": "app-server-1",
+      "location": "eastus",
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_D4s_v3"
+        },
+        "storageProfile": {
+          "osDisk": {
+            "osType": "Linux",
+            "name": "app-server-1_OsDisk",
+            "createOption": "FromImage",
+            "diskSizeGB": 50
+          },
+          "imageReference": {
+            "publisher": "Canonical",
+            "offer": "UbuntuServer",
+            "sku": "20.04-LTS",
+            "version": "latest"
+          }
+        },
+        "provisioningState": "Succeeded"
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Compute/virtualMachines/db-server-1",
+      "name": "db-server-1",
+      "location": "eastus",
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_E8s_v3"
+        },
+        "storageProfile": {
+          "osDisk": {
+            "osType": "Linux",
+            "name": "db-server-1_OsDisk",
+            "createOption": "FromImage",
+            "diskSizeGB": 100
+          },
+          "imageReference": {
+            "publisher": "Canonical",
+            "offer": "UbuntuServer",
+            "sku": "20.04-LTS",
+            "version": "latest"
+          }
+        },
+        "provisioningState": "Succeeded"
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/dev-rg/providers/Microsoft.Compute/virtualMachines/test-vm",
+      "name": "test-vm",
+      "location": "westus",
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "Standard_B2s"
+        },
+        "storageProfile": {
+          "osDisk": {
+            "osType": "Windows",
+            "name": "test-vm_OsDisk",
+            "createOption": "FromImage",
+            "diskSizeGB": 128
+          },
+          "imageReference": {
+            "publisher": "MicrosoftWindowsServer",
+            "offer": "WindowsServer",
+            "sku": "2019-Datacenter",
+            "version": "latest"
+          }
+        },
+        "provisioningState": "Succeeded"
+      }
+    }
+  ],
+  "AzureVMSS": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Compute/virtualMachineScaleSets/web-vmss",
+      "name": "web-vmss",
+      "location": "eastus",
+      "sku": {
+        "name": "Standard_D2s_v3",
+        "tier": "Standard",
+        "capacity": 3
+      },
+      "properties": {
+        "upgradePolicy": {
+          "mode": "Rolling"
+        },
+        "virtualMachineProfile": {
+          "storageProfile": {
+            "osDisk": {
+              "createOption": "FromImage"
+            },
+            "imageReference": {
+              "publisher": "Canonical",
+              "offer": "UbuntuServer",
+              "sku": "18.04-LTS",
+              "version": "latest"
+            }
+          }
+        },
+        "provisioningState": "Succeeded"
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Compute/virtualMachineScaleSets/app-vmss",
+      "name": "app-vmss",
+      "location": "eastus",
+      "sku": {
+        "name": "Standard_D4s_v3",
+        "tier": "Standard",
+        "capacity": 5
+      },
+      "properties": {
+        "upgradePolicy": {
+          "mode": "Rolling"
+        },
+        "virtualMachineProfile": {
+          "storageProfile": {
+            "osDisk": {
+              "createOption": "FromImage"
+            },
+            "imageReference": {
+              "publisher": "Canonical",
+              "offer": "UbuntuServer",
+              "sku": "20.04-LTS",
+              "version": "latest"
+            }
+          }
+        },
+        "provisioningState": "Succeeded"
+      }
+    }
+  ],
+  "AzureAKSClusters": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.ContainerService/managedClusters/production-cluster",
+      "name": "production-cluster",
+      "location": "eastus",
+      "properties": {
+        "kubernetesVersion": "1.25.6",
+        "dnsPrefix": "production-cluster-dns",
+        "agentPoolProfiles": [
+          {
+            "name": "agentpool",
+            "count": 3,
+            "vmSize": "Standard_DS2_v2",
+            "osType": "Linux"
+          }
+        ],
+        "provisioningState": "Succeeded"
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/dev-rg/providers/Microsoft.ContainerService/managedClusters/dev-cluster",
+      "name": "dev-cluster",
+      "location": "westus",
+      "properties": {
+        "kubernetesVersion": "1.26.3",
+        "dnsPrefix": "dev-cluster-dns",
+        "agentPoolProfiles": [
+          {
+            "name": "agentpool",
+            "count": 1,
+            "vmSize": "Standard_B2s",
+            "osType": "Linux"
+          }
+        ],
+        "provisioningState": "Succeeded"
+      }
+    }
+  ],
+  "AzureStorageAccounts": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Storage/storageAccounts/prodstorageaccount",
+      "name": "prodstorageaccount",
+      "location": "eastus",
+      "sku": {
+        "name": "Standard_LRS",
+        "tier": "Standard"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "accessTier": "Hot",
+        "supportsHttpsTrafficOnly": true
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Storage/storageAccounts/backupstorage",
+      "name": "backupstorage",
+      "location": "eastus",
+      "sku": {
+        "name": "Standard_GRS",
+        "tier": "Standard"
+      },
+      "kind": "BlobStorage",
+      "properties": {
+        "accessTier": "Cool",
+        "supportsHttpsTrafficOnly": true
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/dev-rg/providers/Microsoft.Storage/storageAccounts/devstorageaccount",
+      "name": "devstorageaccount",
+      "location": "westus",
+      "sku": {
+        "name": "Standard_LRS",
+        "tier": "Standard"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "accessTier": "Hot",
+        "supportsHttpsTrafficOnly": true
+      }
+    }
+  ],
+  "AzureBlobContainers": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Storage/storageAccounts/prodstorageaccount/blobServices/default/containers/images",
+      "name": "images",
+      "properties": {
+        "publicAccess": "None",
+        "immutableStorageWithVersioning": {
+          "enabled": false
+        }
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Storage/storageAccounts/prodstorageaccount/blobServices/default/containers/documents",
+      "name": "documents",
+      "properties": {
+        "publicAccess": "None",
+        "immutableStorageWithVersioning": {
+          "enabled": false
+        }
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Storage/storageAccounts/backupstorage/blobServices/default/containers/daily-backups",
+      "name": "daily-backups",
+      "properties": {
+        "publicAccess": "None",
+        "immutableStorageWithVersioning": {
+          "enabled": true,
+          "immutabilityPolicy": {
+            "immutabilityPeriodSinceCreationInDays": 30,
+            "allowProtectedAppendWrites": false
+          }
+        }
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Storage/storageAccounts/backupstorage/blobServices/default/containers/weekly-backups",
+      "name": "weekly-backups",
+      "properties": {
+        "publicAccess": "None",
+        "immutableStorageWithVersioning": {
+          "enabled": true,
+          "immutabilityPolicy": {
+            "immutabilityPeriodSinceCreationInDays": 90,
+            "allowProtectedAppendWrites": false
+          }
+        }
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/dev-rg/providers/Microsoft.Storage/storageAccounts/devstorageaccount/blobServices/default/containers/test-data",
+      "name": "test-data",
+      "properties": {
+        "publicAccess": "Blob",
+        "immutableStorageWithVersioning": {
+          "enabled": false
+        }
+      }
+    }
+  ],
+  "AzureVirtualNetworks": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Network/virtualNetworks/prod-vnet",
+      "name": "prod-vnet",
+      "location": "eastus",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "web-subnet",
+            "properties": {
+              "addressPrefix": "10.0.1.0/24"
+            }
+          },
+          {
+            "name": "app-subnet",
+            "properties": {
+              "addressPrefix": "10.0.2.0/24"
+            }
+          },
+          {
+            "name": "db-subnet",
+            "properties": {
+              "addressPrefix": "10.0.3.0/24"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/dev-rg/providers/Microsoft.Network/virtualNetworks/dev-vnet",
+      "name": "dev-vnet",
+      "location": "westus",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "172.16.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "default-subnet",
+            "properties": {
+              "addressPrefix": "172.16.1.0/24"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "AzureSQLDatabases": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Sql/servers/prod-sql-server/databases/customers-db",
+      "name": "customers-db",
+      "location": "eastus",
+      "sku": {
+        "name": "S3",
+        "tier": "Standard"
+      },
+      "properties": {
+        "collation": "SQL_Latin1_General_CP1_CI_AS",
+        "maxSizeBytes": 268435456000,
+        "status": "Online"
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Sql/servers/prod-sql-server/databases/orders-db",
+      "name": "orders-db",
+      "location": "eastus",
+      "sku": {
+        "name": "P2",
+        "tier": "Premium"
+      },
+      "properties": {
+        "collation": "SQL_Latin1_General_CP1_CI_AS",
+        "maxSizeBytes": 536870912000,
+        "status": "Online"
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Sql/servers/prod-sql-server/databases/analytics-db",
+      "name": "analytics-db",
+      "location": "eastus",
+      "sku": {
+        "name": "HS_Gen5_2",
+        "tier": "Hyperscale"
+      },
+      "properties": {
+        "collation": "SQL_Latin1_General_CP1_CI_AS",
+        "maxSizeBytes": 1099511627776,
+        "status": "Online"
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/dev-rg/providers/Microsoft.Sql/servers/dev-sql-server/databases/dev-db",
+      "name": "dev-db",
+      "location": "westus",
+      "sku": {
+        "name": "Basic",
+        "tier": "Basic"
+      },
+      "properties": {
+        "collation": "SQL_Latin1_General_CP1_CI_AS",
+        "maxSizeBytes": 2147483648,
+        "status": "Online"
+      }
+    }
+  ],
+  "AzureCosmosDBs": [
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.DocumentDB/databaseAccounts/prod-cosmos-account",
+      "name": "prod-cosmos-account",
+      "location": "eastus",
+      "kind": "MongoDB",
+      "properties": {
+        "provisioningState": "Succeeded",
+        "databaseAccountOfferType": "Standard",
+        "consistencyPolicy": {
+          "defaultConsistencyLevel": "Session"
+        },
+        "enableMultipleWriteLocations": true,
+        "enableAutomaticFailover": true,
+        "locations": [
+          {
+            "locationName": "East US",
+            "failoverPriority": 0
+          },
+          {
+            "locationName": "West US",
+            "failoverPriority": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/dev-rg/providers/Microsoft.DocumentDB/databaseAccounts/dev-cosmos-account",
+      "name": "dev-cosmos-account",
+      "location": "westus",
+      "kind": "GlobalDocumentDB",
+      "properties": {
+        "provisioningState": "Succeeded",
+        "databaseAccountOfferType": "Standard",
+        "consistencyPolicy": {
+          "defaultConsistencyLevel": "Eventual"
+        },
+        "enableMultipleWriteLocations": false,
+        "enableAutomaticFailover": false,
+        "locations": [
+          {
+            "locationName": "West US",
+            "failoverPriority": 0
+          }
+        ]
+      }
+    }
+  ]
+}

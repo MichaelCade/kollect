@@ -1,0 +1,604 @@
+{
+  "Nodes": [
+    {
+      "Name": "k8s-control-plane-1",
+      "Roles": "control-plane",
+      "Age": "120d5h23m",
+      "Version": "v1.27.3",
+      "OSImage": "Ubuntu 22.04.2 LTS"
+    },
+    {
+      "Name": "k8s-worker-1",
+      "Roles": "worker",
+      "Age": "120d5h20m",
+      "Version": "v1.27.3",
+      "OSImage": "Ubuntu 22.04.2 LTS"
+    },
+    {
+      "Name": "k8s-worker-2",
+      "Roles": "worker",
+      "Age": "120d5h18m",
+      "Version": "v1.27.3",
+      "OSImage": "Ubuntu 22.04.2 LTS"
+    },
+    {
+      "Name": "k8s-worker-3",
+      "Roles": "worker",
+      "Age": "45d8h12m",
+      "Version": "v1.27.3",
+      "OSImage": "Ubuntu 22.04.2 LTS"
+    }
+  ],
+  "Namespaces": [
+    "default",
+    "kube-system",
+    "kube-public",
+    "kube-node-lease",
+    "monitoring",
+    "ingress-nginx",
+    "cert-manager",
+    "app-production",
+    "app-staging",
+    "rook-ceph",
+    "velero"
+  ],
+  "Pods": [
+    {
+      "Name": "nginx-deployment-78cd6bd88f-x5vbn",
+      "Namespace": "default",
+      "Status": "Running"
+    },
+    {
+      "Name": "nginx-deployment-78cd6bd88f-mv67j",
+      "Namespace": "default",
+      "Status": "Running"
+    },
+    {
+      "Name": "mysql-0",
+      "Namespace": "default",
+      "Status": "Running"
+    },
+    {
+      "Name": "prometheus-server-5c8ffdf495-mzfnp",
+      "Namespace": "monitoring",
+      "Status": "Running"
+    },
+    {
+      "Name": "alertmanager-68b5dbc886-nch5q",
+      "Namespace": "monitoring",
+      "Status": "Running"
+    },
+    {
+      "Name": "grafana-deployment-55c5466d88-njsv4",
+      "Namespace": "monitoring",
+      "Status": "Running"
+    },
+    {
+      "Name": "coredns-5d78c9869d-pz95l",
+      "Namespace": "kube-system",
+      "Status": "Running"
+    },
+    {
+      "Name": "coredns-5d78c9869d-k8xhp",
+      "Namespace": "kube-system",
+      "Status": "Running"
+    },
+    {
+      "Name": "etcd-k8s-master",
+      "Namespace": "kube-system",
+      "Status": "Running"
+    },
+    {
+      "Name": "kube-apiserver-k8s-master",
+      "Namespace": "kube-system",
+      "Status": "Running"
+    },
+    {
+      "Name": "kube-controller-manager-k8s-master",
+      "Namespace": "kube-system",
+      "Status": "Running"
+    },
+    {
+      "Name": "kube-scheduler-k8s-master",
+      "Namespace": "kube-system",
+      "Status": "Running"
+    },
+    {
+      "Name": "kube-proxy-mjr2s",
+      "Namespace": "kube-system",
+      "Status": "Running"
+    },
+    {
+      "Name": "calico-node-lh5z8",
+      "Namespace": "kube-system",
+      "Status": "Running"
+    },
+    {
+      "Name": "ingress-nginx-controller-5959f988fd-tknzj",
+      "Namespace": "ingress-nginx",
+      "Status": "Running"
+    },
+    {
+      "Name": "cert-manager-76578c9687-848kp",
+      "Namespace": "cert-manager",
+      "Status": "Running"
+    },
+    {
+      "Name": "cert-manager-cainjector-749bc89f97-8cfnk",
+      "Namespace": "cert-manager",
+      "Status": "Running"
+    },
+    {
+      "Name": "cert-manager-webhook-64444cffd9-jx8v2",
+      "Namespace": "cert-manager",
+      "Status": "Running"
+    },
+    {
+      "Name": "frontend-deployment-6d5bc79c85-b2xdg",
+      "Namespace": "app-production",
+      "Status": "Running"
+    },
+    {
+      "Name": "backend-deployment-75675f5897-c8p7t",
+      "Namespace": "app-production",
+      "Status": "Running"
+    },
+    {
+      "Name": "rook-ceph-operator-6dcb5d4d7f-m7hdl",
+      "Namespace": "rook-ceph",
+      "Status": "Running"
+    },
+    {
+      "Name": "rook-discover-rgbt9",
+      "Namespace": "rook-ceph",
+      "Status": "Running"
+    },
+    {
+      "Name": "csi-rbdplugin-provisioner-0",
+      "Namespace": "rook-ceph",
+      "Status": "Running"
+    },
+    {
+      "Name": "velero-deployment-67c7c4fb57-sjdcb",
+      "Namespace": "velero",
+      "Status": "Running"
+    },
+    {
+      "Name": "database-backup-job-b2n7z",
+      "Namespace": "app-production",
+      "Status": "Completed"
+    }
+  ],
+  "Deployments": [
+    {
+      "Name": "nginx-deployment",
+      "Namespace": "default",
+      "Containers": [
+        "nginx"
+      ],
+      "Images": [
+        "nginx:1.21"
+      ]
+    },
+    {
+      "Name": "prometheus-server",
+      "Namespace": "monitoring",
+      "Containers": [
+        "prometheus"
+      ],
+      "Images": [
+        "prom/prometheus:v2.40.1"
+      ]
+    },
+    {
+      "Name": "alertmanager",
+      "Namespace": "monitoring",
+      "Containers": [
+        "alertmanager"
+      ],
+      "Images": [
+        "prom/alertmanager:v0.24.0"
+      ]
+    },
+    {
+      "Name": "grafana-deployment",
+      "Namespace": "monitoring",
+      "Containers": [
+        "grafana"
+      ],
+      "Images": [
+        "grafana/grafana:9.3.1"
+      ]
+    },
+    {
+      "Name": "coredns",
+      "Namespace": "kube-system",
+      "Containers": [
+        "coredns"
+      ],
+      "Images": [
+        "k8s.gcr.io/coredns/coredns:v1.8.6"
+      ]
+    },
+    {
+      "Name": "ingress-nginx-controller",
+      "Namespace": "ingress-nginx",
+      "Containers": [
+        "controller"
+      ],
+      "Images": [
+        "k8s.io/ingress-nginx/controller:v1.5.1"
+      ]
+    },
+    {
+      "Name": "cert-manager",
+      "Namespace": "cert-manager",
+      "Containers": [
+        "cert-manager"
+      ],
+      "Images": [
+        "quay.io/jetstack/cert-manager-controller:v1.10.1"
+      ]
+    },
+    {
+      "Name": "cert-manager-cainjector",
+      "Namespace": "cert-manager",
+      "Containers": [
+        "cert-manager-cainjector"
+      ],
+      "Images": [
+        "quay.io/jetstack/cert-manager-cainjector:v1.10.1"
+      ]
+    },
+    {
+      "Name": "cert-manager-webhook",
+      "Namespace": "cert-manager",
+      "Containers": [
+        "cert-manager-webhook"
+      ],
+      "Images": [
+        "quay.io/jetstack/cert-manager-webhook:v1.10.1"
+      ]
+    },
+    {
+      "Name": "frontend-deployment",
+      "Namespace": "app-production",
+      "Containers": [
+        "frontend"
+      ],
+      "Images": [
+        "my-registry.com/frontend:v1.2.3"
+      ]
+    },
+    {
+      "Name": "backend-deployment",
+      "Namespace": "app-production",
+      "Containers": [
+        "backend"
+      ],
+      "Images": [
+        "my-registry.com/backend:v2.1.0"
+      ]
+    },
+    {
+      "Name": "rook-ceph-operator",
+      "Namespace": "rook-ceph",
+      "Containers": [
+        "rook-ceph-operator"
+      ],
+      "Images": [
+        "rook/ceph:v1.10.3"
+      ]
+    },
+    {
+      "Name": "velero-deployment",
+      "Namespace": "velero",
+      "Containers": [
+        "velero"
+      ],
+      "Images": [
+        "velero/velero:v1.9.2"
+      ]
+    }
+  ],
+  "StatefulSets": [
+    {
+      "Name": "mysql",
+      "Namespace": "default",
+      "ReadyReplicas": 1,
+      "Image": "mysql:8.0"
+    },
+    {
+      "Name": "elasticsearch",
+      "Namespace": "monitoring",
+      "ReadyReplicas": 3,
+      "Image": "docker.elastic.co/elasticsearch/elasticsearch:8.5.3"
+    },
+    {
+      "Name": "kafka",
+      "Namespace": "app-production",
+      "ReadyReplicas": 3,
+      "Image": "confluentinc/cp-kafka:7.3.0"
+    },
+    {
+      "Name": "redis-cluster",
+      "Namespace": "app-production",
+      "ReadyReplicas": 6,
+      "Image": "redis:7.0-alpine"
+    },
+    {
+      "Name": "csi-rbdplugin-provisioner",
+      "Namespace": "rook-ceph",
+      "ReadyReplicas": 1,
+      "Image": "quay.io/cephcsi/cephcsi:v3.8.0"
+    }
+  ],
+  "Services": [
+    {
+      "Name": "kubernetes",
+      "Namespace": "default",
+      "Type": "ClusterIP",
+      "ClusterIP": "10.96.0.1",
+      "Ports": "443/TCP"
+    },
+    {
+      "Name": "nginx-service",
+      "Namespace": "default",
+      "Type": "ClusterIP",
+      "ClusterIP": "10.96.45.187",
+      "Ports": "80/TCP"
+    },
+    {
+      "Name": "mysql",
+      "Namespace": "default",
+      "Type": "ClusterIP",
+      "ClusterIP": "10.96.12.34",
+      "Ports": "3306/TCP"
+    },
+    {
+      "Name": "prometheus-server",
+      "Namespace": "monitoring",
+      "Type": "ClusterIP",
+      "ClusterIP": "10.96.78.45",
+      "Ports": "9090/TCP"
+    },
+    {
+      "Name": "alertmanager",
+      "Namespace": "monitoring",
+      "Type": "ClusterIP",
+      "ClusterIP": "10.96.101.89",
+      "Ports": "9093/TCP"
+    },
+    {
+      "Name": "grafana",
+      "Namespace": "monitoring",
+      "Type": "ClusterIP",
+      "ClusterIP": "10.96.234.67",
+      "Ports": "3000/TCP"
+    },
+    {
+      "Name": "kube-dns",
+      "Namespace": "kube-system",
+      "Type": "ClusterIP",
+      "ClusterIP": "10.96.0.10",
+      "Ports": "53/UDP,53/TCP,9153/TCP"
+    },
+    {
+      "Name": "ingress-nginx-controller",
+      "Namespace": "ingress-nginx",
+      "Type": "LoadBalancer",
+      "ClusterIP": "10.96.178.23",
+      "Ports": "80/TCP,443/TCP"
+    },
+    {
+      "Name": "frontend-service",
+      "Namespace": "app-production",
+      "Type": "ClusterIP",
+      "ClusterIP": "10.96.145.67",
+      "Ports": "80/TCP"
+    },
+    {
+      "Name": "backend-service",
+      "Namespace": "app-production",
+      "Type": "ClusterIP",
+      "ClusterIP": "10.96.178.90",
+      "Ports": "8080/TCP"
+    }
+  ],
+  "PersistentVolumes": [
+    {
+      "Name": "pvc-3f7aa578-b1c5-4d72-9f4a-de7980e39998",
+      "Capacity": "10Gi",
+      "AccessModes": "ReadWriteOnce",
+      "Status": "Bound",
+      "AssociatedClaim": "mysql-data-mysql-0",
+      "StorageClass": "ceph-block",
+      "VolumeMode": "Filesystem"
+    },
+    {
+      "Name": "pvc-9875b432-e8f1-4a23-8654-e1234abc5678",
+      "Capacity": "20Gi",
+      "AccessModes": "ReadWriteOnce",
+      "Status": "Bound",
+      "AssociatedClaim": "elasticsearch-data-elasticsearch-0",
+      "StorageClass": "ceph-block",
+      "VolumeMode": "Filesystem"
+    },
+    {
+      "Name": "pvc-ac3456fe-d890-1234-5678-9012defabc34",
+      "Capacity": "20Gi",
+      "AccessModes": "ReadWriteOnce",
+      "Status": "Bound",
+      "AssociatedClaim": "elasticsearch-data-elasticsearch-1",
+      "StorageClass": "ceph-block",
+      "VolumeMode": "Filesystem"
+    },
+    {
+      "Name": "pvc-f12345a6-7890-1234-5c78-90abcdef1234",
+      "Capacity": "20Gi",
+      "AccessModes": "ReadWriteOnce",
+      "Status": "Bound",
+      "AssociatedClaim": "elasticsearch-data-elasticsearch-2",
+      "StorageClass": "ceph-block",
+      "VolumeMode": "Filesystem"
+    },
+    {
+      "Name": "pvc-3a91bc23-45de-67f8-9012-3456abcdef78",
+      "Capacity": "5Gi",
+      "AccessModes": "ReadWriteOnce",
+      "Status": "Bound",
+      "AssociatedClaim": "grafana-pvc",
+      "StorageClass": "ceph-block",
+      "VolumeMode": "Filesystem"
+    },
+    {
+      "Name": "pvc-ab12cd34-56ef-78ab-90cd-ef1234567890",
+      "Capacity": "50Gi",
+      "AccessModes": "ReadWriteMany",
+      "Status": "Bound",
+      "AssociatedClaim": "shared-data",
+      "StorageClass": "ceph-filesystem",
+      "VolumeMode": "Filesystem"
+    },
+    {
+      "Name": "backup-volume",
+      "Capacity": "100Gi",
+      "AccessModes": "ReadWriteMany",
+      "Status": "Bound",
+      "AssociatedClaim": "backup-claim",
+      "StorageClass": "",
+      "VolumeMode": "Filesystem"
+    }
+  ],
+  "PersistentVolumeClaims": [
+    {
+      "Name": "mysql-data-mysql-0",
+      "Namespace": "default",
+      "Status": "Bound",
+      "Volume": "pvc-3f7aa578-b1c5-4d72-9f4a-de7980e39998",
+      "Capacity": "10Gi",
+      "AccessMode": "ReadWriteOnce",
+      "StorageClass": "ceph-block"
+    },
+    {
+      "Name": "elasticsearch-data-elasticsearch-0",
+      "Namespace": "monitoring",
+      "Status": "Bound",
+      "Volume": "pvc-9875b432-e8f1-4a23-8654-e1234abc5678",
+      "Capacity": "20Gi",
+      "AccessMode": "ReadWriteOnce",
+      "StorageClass": "ceph-block"
+    },
+    {
+      "Name": "elasticsearch-data-elasticsearch-1",
+      "Namespace": "monitoring",
+      "Status": "Bound",
+      "Volume": "pvc-ac3456fe-d890-1234-5678-9012defabc34",
+      "Capacity": "20Gi",
+      "AccessMode": "ReadWriteOnce",
+      "StorageClass": "ceph-block"
+    },
+    {
+      "Name": "elasticsearch-data-elasticsearch-2",
+      "Namespace": "monitoring",
+      "Status": "Bound",
+      "Volume": "pvc-f12345a6-7890-1234-5c78-90abcdef1234",
+      "Capacity": "20Gi",
+      "AccessMode": "ReadWriteOnce",
+      "StorageClass": "ceph-block"
+    },
+    {
+      "Name": "grafana-pvc",
+      "Namespace": "monitoring",
+      "Status": "Bound",
+      "Volume": "pvc-3a91bc23-45de-67f8-9012-3456abcdef78",
+      "Capacity": "5Gi",
+      "AccessMode": "ReadWriteOnce",
+      "StorageClass": "ceph-block"
+    },
+    {
+      "Name": "shared-data",
+      "Namespace": "app-production",
+      "Status": "Bound",
+      "Volume": "pvc-ab12cd34-56ef-78ab-90cd-ef1234567890",
+      "Capacity": "50Gi",
+      "AccessMode": "ReadWriteMany",
+      "StorageClass": "ceph-filesystem"
+    },
+    {
+      "Name": "backup-claim",
+      "Namespace": "velero",
+      "Status": "Bound",
+      "Volume": "backup-volume",
+      "Capacity": "100Gi",
+      "AccessMode": "ReadWriteMany",
+      "StorageClass": ""
+    }
+  ],
+  "StorageClasses": [
+    {
+      "Name": "ceph-block",
+      "Provisioner": "rook-ceph.rbd.csi.ceph.com",
+      "VolumeExpansion": "true"
+    },
+    {
+      "Name": "ceph-filesystem",
+      "Provisioner": "rook-ceph.cephfs.csi.ceph.com",
+      "VolumeExpansion": "true"
+    },
+    {
+      "Name": "standard",
+      "Provisioner": "kubernetes.io/no-provisioner",
+      "VolumeExpansion": "false"
+    },
+    {
+      "Name": "local-storage",
+      "Provisioner": "kubernetes.io/no-provisioner",
+      "VolumeExpansion": "false"
+    }
+  ],
+  "VolumeSnapshotClasses": [
+    {
+      "Name": "ceph-block-snapclass",
+      "Driver": "rook-ceph.rbd.csi.ceph.com"
+    },
+    {
+      "Name": "ceph-filesystem-snapclass",
+      "Driver": "rook-ceph.cephfs.csi.ceph.com"
+    }
+  ],
+  "VolumeSnapshots": [
+    {
+      "Name": "mysql-data-snapshot",
+      "Namespace": "default",
+      "Volume": "mysql-data-mysql-0",
+      "CreationTimestamp": "2023-05-15T10:30:45Z",
+      "RestoreSize": "10Gi",
+      "Status": true
+    },
+    {
+      "Name": "elasticsearch-snapshot-daily",
+      "Namespace": "monitoring",
+      "Volume": "elasticsearch-data-elasticsearch-0",
+      "CreationTimestamp": "2023-05-15T01:00:00Z",
+      "RestoreSize": "20Gi",
+      "Status": true
+    },
+    {
+      "Name": "production-backup",
+      "Namespace": "app-production",
+      "Volume": "shared-data",
+      "CreationTimestamp": "2023-05-14T23:00:00Z",
+      "RestoreSize": "50Gi",
+      "Status": true
+    },
+    {
+      "Name": "pre-upgrade-backup",
+      "Namespace": "app-production",
+      "Volume": "shared-data",
+      "CreationTimestamp": "2023-05-10T18:45:30Z",
+      "RestoreSize": "50Gi",
+      "Status": true
+    }
+  ]
+}

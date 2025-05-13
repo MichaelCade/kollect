@@ -38,7 +38,7 @@ func main() {
 	kubeconfig := flag.String("kubeconfig", filepath.Join(os.Getenv("HOME"), ".kube", "config"), "Path to the kubeconfig file")
 	browser := flag.Bool("browser", false, "Open the web interface in a browser")
 	output := flag.String("output", "", "Output file to save the collected data")
-	inventoryType := flag.String("inventory", "kubernetes", "Type of inventory to collect (kubernetes/aws/azure/veeam)")
+	inventoryType := flag.String("inventory", "kubernetes", "Type of inventory to collect (kubernetes/aws/azure/gcp/veeam)")
 	baseURL := flag.String("veeam-url", "", "Veeam server URL")
 	username := flag.String("veeam-username", "", "Veeam username")
 	password := flag.String("veeam-password", "", "Veeam password")
@@ -222,9 +222,8 @@ func startWebServer(data interface{}, openBrowser bool, baseURL, username, passw
 			data, err = azure.CollectAzureData(ctx)
 		case "kubernetes":
 			data, err = collectData(ctx, false, filepath.Join(os.Getenv("HOME"), ".kube", "config"))
-		case "google":
-			// Placeholder for Google Cloud data collection
-			data = map[string]string{"message": "Google Cloud data collection not implemented yet"}
+		case "gcp":
+			data, err = gcp.CollectGCPData(ctx)
 		case "veeam":
 			if baseURL == "" || username == "" || password == "" {
 				http.Error(w, "Veeam URL, username, and password must be provided", http.StatusBadRequest)
