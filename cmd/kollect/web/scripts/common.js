@@ -8,21 +8,14 @@ function hideLoadingIndicator() {
     document.getElementById('loading-indicator').style.display = 'none';
 }
 
-// Function to create collapsible tables
 function createTable(headerText, data, rowTemplate, headers) {
     if (!data || data.length === 0) return;
-    
-    // Create a unique ID for the table based on the header text
     const tableId = headerText.replace(/\s+/g, '-').toLowerCase();
-    
-    // Create the table container
     const tableContainer = document.createElement('div');
     tableContainer.className = 'collapsible-table';
     tableContainer.id = `table-container-${tableId}`;
-    
-    // Create the table header with collapse functionality
     const tableHeader = document.createElement('div');
-    tableHeader.className = 'table-header collapsed'; // Start collapsed
+    tableHeader.className = 'table-header collapsed';
     tableHeader.innerHTML = `
         <span>${headerText}</span>
         <div>
@@ -30,15 +23,11 @@ function createTable(headerText, data, rowTemplate, headers) {
             <span class="icon">▼</span>
         </div>
     `;
-    
-    // Create the table content area
+
     const tableContent = document.createElement('div');
-    tableContent.className = 'table-content collapsed'; // Start collapsed
+    tableContent.className = 'table-content collapsed';
     
-    // Create table
     const table = document.createElement('table');
-    
-    // Create header
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     
@@ -50,8 +39,7 @@ function createTable(headerText, data, rowTemplate, headers) {
     
     thead.appendChild(headerRow);
     table.appendChild(thead);
-    
-    // Create body
+
     const tbody = document.createElement('tbody');
     data.forEach(item => {
         const row = document.createElement('tr');
@@ -60,7 +48,6 @@ function createTable(headerText, data, rowTemplate, headers) {
     });
     table.appendChild(tbody);
     
-    // Add click handler for toggling
     tableHeader.addEventListener('click', function() {
         const isCollapsed = tableHeader.classList.contains('collapsed');
         if (isCollapsed) {
@@ -81,7 +68,6 @@ function createTable(headerText, data, rowTemplate, headers) {
     return tableContainer;
 }
 
-// Function to toggle all tables
 function toggleAllTables(collapse) {
     console.log("Toggling all tables:", collapse ? "Collapse" : "Expand");
     const tables = document.querySelectorAll('.collapsible-table');
@@ -101,17 +87,14 @@ function toggleAllTables(collapse) {
     });
 }
 
-// Function to update the resource navigation panel
 function updateResourceNav() {
     const resourceNav = document.getElementById('resource-nav');
     if (!resourceNav) return;
     
     resourceNav.innerHTML = '';
     
-    // Get all collapsible tables
     const tables = document.querySelectorAll('.collapsible-table');
     
-    // Only show the navigation panel if we have tables
     if (tables.length === 0) {
         resourceNav.style.display = 'none';
         const navToggle = document.getElementById('resource-nav-toggle');
@@ -121,8 +104,7 @@ function updateResourceNav() {
         const navToggle = document.getElementById('resource-nav-toggle');
         if (navToggle) navToggle.style.display = 'block';
     }
-    
-    // Add a heading
+
     const heading = document.createElement('h4');
     heading.textContent = 'Resources';
     heading.style.margin = '0 0 10px 0';
@@ -130,7 +112,6 @@ function updateResourceNav() {
     heading.style.textAlign = 'center';
     resourceNav.appendChild(heading);
     
-    // Add a link for each table
     tables.forEach(table => {
         const headerEl = table.querySelector('.table-header span');
         if (!headerEl) return;
@@ -145,7 +126,6 @@ function updateResourceNav() {
             e.preventDefault();
             table.scrollIntoView({ behavior: 'smooth' });
             
-            // Expand the clicked table
             const content = table.querySelector('.table-content');
             const headerElement = table.querySelector('.table-header');
             headerElement.classList.remove('collapsed');
@@ -158,9 +138,6 @@ function updateResourceNav() {
     console.log("Navigation updated");
 }
 
-// Then improve the toggle button functionality in the DOMContentLoaded event:
-
-// Setup event listener for resource navigation toggle
 const navToggle = document.getElementById('resource-nav-toggle');
 if (navToggle) {
     console.log("Found nav toggle button");
@@ -176,32 +153,25 @@ if (navToggle) {
     });
 }
 
-// Create a global map to register data handlers
 window.dataHandlers = {};
 
-// Register a handler for a specific data format
 function registerDataHandler(identifier, testFn, handlerFn) {
     window.dataHandlers[identifier] = {
-        test: testFn,     // Function that tests if data matches this handler
-        handler: handlerFn // Function that processes the data
+        test: testFn,     
+        handler: handlerFn 
     };
 }
 
-// Process data with the appropriate handler
+
 function processWithHandler(data) {
-    // First clear previous content
     document.getElementById('content').innerHTML = '';
-    
-    // Hide charts container by default
     const chartsContainer = document.getElementById('charts-container');
     if (chartsContainer) {
         chartsContainer.style.display = 'none';
     }
     
-    // Find a handler that recognizes this data
     let handlerFound = false;
-    
-    // Try each registered handler
+
     for (const [id, handler] of Object.entries(window.dataHandlers)) {
         if (handler.test(data)) {
             console.log(`Processing data with ${id} handler`);
@@ -216,7 +186,6 @@ function processWithHandler(data) {
         displayUnknownDataFormat(data);
     }
     
-    // Update navigation regardless of which handler was used
     setTimeout(() => {
         const tables = document.querySelectorAll('.collapsible-table');
         console.log(`Found ${tables.length} tables`);
@@ -224,23 +193,20 @@ function processWithHandler(data) {
     }, 200);
 }
 
-// Display a message for unknown data formats
 function displayUnknownDataFormat(data) {
     const content = document.getElementById('content');
     content.innerHTML = `
         <div class="unknown-data">
-            <h2>Unknown Data Format</h2>
-            <p>The imported data doesn't match any known platform format.</p>
-            <p>Available data keys: ${Object.keys(data).join(', ')}</p>
+            <h2>No Platform Selected</h2>
+            <p>Select available platforms, or import your JSON</p>
+            <p>Available data keys, if any: ${Object.keys(data).join(', ')}</p>
         </div>
     `;
 }
 
-// Function to load JSON test data for development purposes
 function loadTestJson(platform) {
     showLoadingIndicator();
     
-    // Map platform names to file prefixes
     const fileMap = {
         'kubernetes': 'k8s',
         'aws': 'aws',
@@ -276,7 +242,6 @@ function loadTestJson(platform) {
         });
 }
 
-// Update HTMX event listener to use the handler system
 document.addEventListener('htmx:afterSwap', (event) => {
     if (event.detail.target.id === 'hidden-content') {
         try {
@@ -291,11 +256,9 @@ document.addEventListener('htmx:afterSwap', (event) => {
     }
 });
 
-// Add this to the DOMContentLoaded event
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM Loaded - Setting up event listeners");
     
-    // Setup event listeners for expand/collapse all buttons
     const expandAllButton = document.getElementById('expand-all');
     if (expandAllButton) {
         console.log("Found expand-all button");
@@ -314,7 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Setup event listener for resource navigation toggle
     const navToggle = document.getElementById('resource-nav-toggle');
     if (navToggle) {
         console.log("Found nav toggle button");
@@ -326,7 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Setup event listeners for platform buttons to call the API endpoints
     document.getElementById('aws-button')?.addEventListener('click', () => {
         showLoadingIndicator();
         fetch('/api/switch?type=aws')
@@ -383,7 +344,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Handle import/export
 document.getElementById('export-button')?.addEventListener('click', () => {
     showLoadingIndicator();
     fetch('/api/data')

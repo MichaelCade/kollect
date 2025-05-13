@@ -1,13 +1,10 @@
 // aws.js
 
-// Register AWS handler
 registerDataHandler('aws', 
-    // Test function: check if data has AWS characteristics
     function(data) {
         return data.EC2Instances || data.S3Buckets || data.RDSInstances || 
                data.DynamoDBTables || data.VPCs;
     },
-    // Handler function: create AWS tables
     function(data) {
         console.log("Processing AWS data");
         
@@ -42,7 +39,6 @@ registerDataHandler('aws',
     }
 );
 
-// Row template functions - unchanged from your original code
 function ec2InstanceRowTemplate(item) {
     return `<td>${item.Name}</td><td>${item.InstanceID}</td><td>${item.Type}</td><td>${item.State}</td><td>${item.Region}</td>`;
 }

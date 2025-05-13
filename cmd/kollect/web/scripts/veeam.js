@@ -1,17 +1,13 @@
 // veeam.js
 
-// Register Veeam handler
 registerDataHandler('veeam', 
-    // Test function
     function(data) {
         return data.ServerInfo || data.BackupJobs || data.Repositories || 
                data.Credentials || data.CloudCredentials;
     },
-    // Handler function
     function(data) {
         console.log("Processing Veeam data");
         
-        // Show charts container for Veeam data
         const chartsContainer = document.getElementById('charts-container');
         if (chartsContainer) {
             chartsContainer.style.display = 'grid';
@@ -48,7 +44,6 @@ registerDataHandler('veeam',
         }
         
         if (data.ScaleOutRepositories) {
-            // Special case code for ScaleOutRepositories...
             const tableId = 'Scale-Out-Repositories'.replace(/\s+/g, '-').toLowerCase();
             
             const tableContainer = document.createElement('div');
@@ -114,7 +109,6 @@ registerDataHandler('veeam',
                 ['Job Name', 'ID', 'Description', 'Type', 'Is Disabled', 'Is High Priority', 'Job Details']);
         }
         
-        // Generate charts after creating tables
         setTimeout(() => {
             console.log(`Created Veeam tables`);
             generateCharts(data);
@@ -122,7 +116,6 @@ registerDataHandler('veeam',
     }
 );
 
-// Rest of your functions remain unchanged
 
 function serverInfoRowTemplate(item) {
     return `<td>${item.name}</td><td>${item.buildVersion}</td><td>${item.databaseVendor}</td><td>${item.sqlServerVersion}</td><td>${item.vbrId}</td>`;
@@ -199,7 +192,6 @@ function scaleOutRepositoriesRowTemplate(item, repositories) {
         console.warn("Repositories data is undefined or not an array");
     }
 
-    // Make properties safe to access with fallbacks
     const performanceTier = (item.performanceTier && 
                             (item.performanceTier.performanceExtents || 
                              item.performanceTier.type)) ? 'Enabled' : 'Disabled';
@@ -219,7 +211,6 @@ function scaleOutRepositoriesRowTemplate(item, repositories) {
     const archivePeriodDays = item.archiveTier && item.archiveTier.archivePeriodDays ? 
                               item.archiveTier.archivePeriodDays : 'N/A';
 
-    // Safely handle different possible data structures
     let performanceExtents = 'N/A';
     if (item.performanceTier && Array.isArray(item.performanceTier.performanceExtents)) {
         performanceExtents = item.performanceTier.performanceExtents.map(extent => {
@@ -287,7 +278,6 @@ function proxiesRowTemplate(item) {
 
 function backupJobsRowTemplate(item) {
     let vms = '';
-    // Check for VMs in various possible locations in the data
     if (item.virtualMachines && Array.isArray(item.virtualMachines.includes)) {
         vms = item.virtualMachines.includes.map(vm => 
             `<li>Name: ${vm.name || 'Unknown'}, Host: ${vm.hostName || 'Unknown'}, Size: ${vm.size || 'Unknown'}</li>`
@@ -298,7 +288,6 @@ function backupJobsRowTemplate(item) {
         ).join('');
     }
     
-    // Extract retention policy from different possible structures
     let retentionPolicy = 'N/A';
     if (item.storage && item.storage.retentionPolicy) {
         retentionPolicy = `${item.storage.retentionPolicy.type} for ${item.storage.retentionPolicy.quantity} days`;
@@ -310,7 +299,6 @@ function backupJobsRowTemplate(item) {
         }
     }
     
-    // Extract schedule information from different possible structures
     let dailySchedule = 'N/A';
     if (item.schedule && item.schedule.daily) {
         dailySchedule = `${item.schedule.daily.dailyKind} at ${item.schedule.daily.localTime}`;
@@ -342,11 +330,8 @@ function backupJobsRowTemplate(item) {
 function generateCharts(data) {
     try {
         console.log("Data for charts:", data);
-
-        // Get the current theme
         const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
         
-        // Get the current text color and font properties from CSS variables
         const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-color').trim() || 
                          (currentTheme === 'dark' ? '#ffffff' : '#333333');
         
@@ -354,15 +339,12 @@ function generateCharts(data) {
         const fontSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--chart-font-size').trim(), 10) || 12;
         const titleFontSize = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--chart-title-font-size').trim(), 10) || 16;
 
-        // Set Chart.js defaults for this page - explicitly handle dark/light mode
         Chart.defaults.color = textColor;
         Chart.defaults.font.family = fontFamily;
         Chart.defaults.font.size = fontSize;
         
-        // Override default legend behavior for better theme compatibility
         Chart.defaults.plugins.legend.labels.color = textColor;
 
-        // Check for Backup Jobs data
         if (data.BackupJobs && data.BackupJobs.length) {
             const backupJobsCtx = document.getElementById('backupJobsChart');
             if (!backupJobsCtx) {
@@ -376,13 +358,12 @@ function generateCharts(data) {
                 datasets: [{
                     label: 'Number of Protected VMs',
                     data: data.BackupJobs.map(job => {
-                        // Check all possible paths for VM count data
                         if (job.virtualMachines && job.virtualMachines.includes) {
                             return job.virtualMachines.includes.length;
                         } else if (job.sourceObjects) {
                             return job.sourceObjects.length;
                         } else {
-                            return 0; // Default to 0 if no data found
+                            return 0; 
                         }
                     }),
                     backgroundColor: data.BackupJobs.map(job => 
@@ -398,7 +379,7 @@ function generateCharts(data) {
                 type: 'bar',
                 data: backupJobsData,
                 options: {
-                    indexAxis: 'y', // Use horizontal bar chart
+                    indexAxis: 'y', 
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
@@ -410,11 +391,11 @@ function generateCharts(data) {
                                     family: fontFamily,
                                     size: fontSize
                                 },
-                                autoSkip: false // Ensure all labels are shown
+                                autoSkip: false 
                             }
                         },
                         x: {
-                            display: false // Remove the numbers on the bottom axis
+                            display: false
                         }
                     },
                     plugins: {
@@ -442,7 +423,6 @@ function generateCharts(data) {
                                             fillStyle: '#36A2EB',
                                             hidden: false,
                                             index: 0,
-                                            // Force the text color to match the theme
                                             fontColor: textColor
                                         },
                                         {
@@ -450,7 +430,6 @@ function generateCharts(data) {
                                             fillStyle: '#FF6384',
                                             hidden: false,
                                             index: 1,
-                                            // Force the text color to match the theme
                                             fontColor: textColor
                                         }
                                     ];
@@ -466,7 +445,6 @@ function generateCharts(data) {
             console.warn("No Backup Jobs data available");
         }
 
-        // Check for Scale-Out Repositories data
         if (data.ScaleOutRepositories && data.ScaleOutRepositories.length) {
             const scaleOutReposCtx = document.getElementById('scaleOutReposChart');
             if (!scaleOutReposCtx) {
@@ -482,7 +460,6 @@ function generateCharts(data) {
                         if (repo.performanceTier && Array.isArray(repo.performanceTier.performanceExtents)) {
                             return repo.performanceTier.performanceExtents.length;
                         } else if (repo.extentIds) {
-                            // Fallback for test data
                             return Array.isArray(repo.extentIds) ? repo.extentIds.length : 0;
                         }
                         return 0;
@@ -516,7 +493,6 @@ function generateCharts(data) {
             };
             console.log("Scale-Out Repositories Data:", scaleOutReposData);
 
-            // Calculate the maximum value for the x-axis
             const maxValue = Math.max(
                 ...scaleOutReposData.datasets.map(dataset => Math.max(...dataset.data))
             );
@@ -525,7 +501,7 @@ function generateCharts(data) {
                 type: 'bar',
                 data: scaleOutReposData,
                 options: {
-                    indexAxis: 'y', // Use horizontal bar chart
+                    indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
@@ -537,17 +513,17 @@ function generateCharts(data) {
                                     family: fontFamily,
                                     size: fontSize
                                 },
-                                autoSkip: false // Ensure all labels are shown
+                                autoSkip: false 
                             }
                         },
                         x: {
-                            display: false, // Remove the numbers on the bottom axis
-                            max: maxValue + 0.1 // Set the maximum value for the x-axis dynamically with a buffer
+                            display: false,
+                            max: maxValue + 0.1 
                         }
                     },
                     layout: {
                         padding: {
-                            right: 20 // Add padding to the right side of the chart
+                            right: 20 
                         }
                     },
                     plugins: {
@@ -573,11 +549,11 @@ function generateCharts(data) {
                             }
                         },
                         tooltip: {
-                            displayColors: false, // Remove color box
+                            displayColors: false, 
                             callbacks: {
                                 label: function(context) {
                                     const repo = data.ScaleOutRepositories[context.dataIndex];
-                                    const repositories = data.Repositories; // Assuming repositories data is available in data.Repositories
+                                    const repositories = data.Repositories; 
 
                                     const performanceTier = repo.performanceTier && repo.performanceTier.performanceExtents ? 'Enabled' : 'Disabled';
                                     const capacityTier = repo.capacityTier && repo.capacityTier.isEnabled ? 'Enabled' : 'Disabled';
@@ -610,14 +586,14 @@ function generateCharts(data) {
                                     } else if (context.dataset.label === 'Archive Tier') {
                                         label += `Archive Tier: ${archiveTier}\nArchive Extents: ${archiveExtents}\nArchive Period Days: ${archivePeriodDays}`;
                                     }
-                                    return label.split('\n'); // Add line breaks
+                                    return label.split('\n'); 
                                 }
                             },
                             bodyFont: {
                                 family: fontFamily,
                                 size: fontSize
                             },
-                            boxWidth: 0 // Remove the box width to allow more space for text
+                            boxWidth: 0 
                         }
                     }
                 }
@@ -626,7 +602,6 @@ function generateCharts(data) {
             console.warn("No Scale-Out Repositories data available");
         }
 
-        // Create a polar chart for Credential Types
         if (data.Credentials || data.CloudCredentials) {
             const credentialsCtx = document.getElementById('credentialsChart');
             if (!credentialsCtx) {
@@ -634,11 +609,8 @@ function generateCharts(data) {
                 return;
             }
             const credentialsCtx2d = credentialsCtx.getContext('2d');
-        
-            // Initialize credential types object
             const credentialTypes = {};
             
-            // Safely add credentials if they exist
             if (Array.isArray(data.Credentials)) {
                 data.Credentials.forEach(cred => {
                     if (cred && cred.type && cred.type !== 'Standard') {
@@ -647,7 +619,6 @@ function generateCharts(data) {
                 });
             }
             
-            // Safely add cloud credentials if they exist
             if (Array.isArray(data.CloudCredentials)) {
                 data.CloudCredentials.forEach(cred => {
                     if (cred && cred.type && cred.type !== 'Standard') {
@@ -656,10 +627,8 @@ function generateCharts(data) {
                 });
             }
 
-            // Create the data structure for the chart
             const credentialLabels = Object.keys(credentialTypes);
             const credentialData = Object.values(credentialTypes);
-
             const credentialsData = {
                 labels: credentialLabels,
                 datasets: [{

@@ -1,14 +1,12 @@
 // azure.js
 
-// Register Azure handler
+
 registerDataHandler('azure', 
-    // Test function: check if data has Azure characteristics
     function(data) {
         return data.AzureVMs || data.AzureResourceGroups || data.AzureStorageAccounts ||
                data.AzureBlobContainers || data.AzureVirtualNetworks || 
                data.AzureSQLDatabases || data.AzureCosmosDBs;
     },
-    // Handler function: create Azure tables
     function(data) {
         console.log("Processing Azure data");
         
@@ -17,7 +15,6 @@ registerDataHandler('azure',
                 ['Name', 'Location', 'Tags', 'Provisioning State']);
         }
         
-        // Rest of your Azure table creation code...
         
         if (data.AzureVMs) {
             createTable('Azure VMs', data.AzureVMs, azureVMRowTemplate, 
@@ -64,8 +61,6 @@ registerDataHandler('azure',
         }, 100);
     }
 );
-
-// Row template functions remain unchanged
 
 function azureResourceGroupRowTemplate(item) {
     const tags = item.tags ? Object.entries(item.tags).map(([key, value]) => 

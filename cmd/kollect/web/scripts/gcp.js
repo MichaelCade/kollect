@@ -1,13 +1,10 @@
 // gcp.js
 
-// Register GCP handler
 registerDataHandler('gcp', 
-    // Test function: check if data has GCP characteristics
     function(data) {
         return data.ComputeInstances || data.GCSBuckets || data.CloudSQLInstances ||
                data.CloudRunServices || data.CloudFunctions;
     },
-    // Handler function: create GCP tables
     function(data) {
         console.log("Processing GCP data");
         
@@ -41,8 +38,6 @@ registerDataHandler('gcp',
         }, 100);
     }
 );
-
-// Row template functions remain unchanged
 
 function computeInstanceRowTemplate(item) {
     return `<td>${item.Name}</td><td>${item.Zone}</td><td>${item.MachineType}</td><td>${item.Status}</td><td>${item.Project}</td>`;

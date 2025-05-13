@@ -81,7 +81,6 @@
     <script src="scripts/veeam.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Theme toggle functionality
             document.getElementById('theme-toggle').addEventListener('click', () => {
                 const currentTheme = document.documentElement.getAttribute('data-theme');
                 const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -90,20 +89,14 @@
                 document.getElementById('theme-toggle').innerHTML = `<i class="fas ${icon}"></i>`;
                 const logo = newTheme === 'dark' ? 'dark_Kollect.png' : 'Kollect.png';
                 document.getElementById('logo').src = logo;
-                
-                // Regenerate charts with new theme colors if Veeam data is loaded
                 const chartsContainer = document.getElementById('charts-container');
                 if (chartsContainer && chartsContainer.style.display !== 'none') {
-                    // Get the current data from the hidden content
                     try {
                         const data = JSON.parse(document.getElementById('hidden-content').textContent);
                         if (data) {
-                            // Destroy current charts
                             Chart.helpers.each(Chart.instances, (instance) => {
                                 instance.destroy();
                             });
-                            
-                            // Regenerate with new theme
                             generateCharts(data);
                         }
                     } catch (e) {
@@ -111,8 +104,6 @@
                     }
                 }
             });
-            
-            // Navigation controls
             document.getElementById('expand-all').addEventListener('click', () => {
                 toggleAllTables(false);
             });
@@ -120,8 +111,6 @@
             document.getElementById('collapse-all').addEventListener('click', () => {
                 toggleAllTables(true);
             });
-            
-            // Resource navigation toggle
             document.getElementById('resource-nav-toggle').addEventListener('click', () => {
                 const nav = document.getElementById('resource-nav');
                 nav.style.display = nav.style.display === 'none' ? 'block' : 'none';

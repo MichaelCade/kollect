@@ -1,13 +1,10 @@
 // kubernetes.js
 
-// Register Kubernetes handler
 registerDataHandler('kubernetes', 
-    // Test function: check if data has Kubernetes characteristics
     function(data) {
         return data.Nodes || data.Pods || data.Deployments || data.Services ||
                data.PersistentVolumes || data.StorageClasses;
     },
-    // Handler function: create Kubernetes tables
     function(data) {
         console.log("Processing Kubernetes data");
         
@@ -86,8 +83,6 @@ registerDataHandler('kubernetes',
         }, 100);
     }
 );
-
-// Row template functions remain unchanged
 
 function nodeRowTemplate(item) {
     return `<td>${item.Name}</td><td>${item.Roles}</td><td>${item.Age}</td><td>${item.Version}</td><td>${item.OSImage}</td>`;
