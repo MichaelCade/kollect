@@ -1,4 +1,54 @@
 {
+  "AzureResourceGroups": [
+    {
+      "name": "networking-rg",
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/networking-rg",
+      "location": "eastus",
+      "tags": {
+        "Environment": "Production",
+        "Department": "IT Infrastructure"
+      },
+      "properties": {
+        "provisioningState": "Succeeded"
+      }
+    },
+    {
+      "name": "app-services-rg",
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/app-services-rg",
+      "location": "eastus2",
+      "tags": {
+        "Environment": "Development",
+        "Department": "Engineering"
+      },
+      "properties": {
+        "provisioningState": "Succeeded"
+      }
+    },
+    {
+      "name": "storage-rg",
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/storage-rg",
+      "location": "westus",
+      "tags": {
+        "Environment": "Production",
+        "Department": "Data Management"
+      },
+      "properties": {
+        "provisioningState": "Succeeded"
+      }
+    },
+    {
+      "name": "security-rg",
+      "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/security-rg",
+      "location": "centralus",
+      "tags": {
+        "Environment": "Production",
+        "Department": "Security"
+      },
+      "properties": {
+        "provisioningState": "Succeeded"
+      }
+    }
+  ],
   "AzureVMs": [
     {
       "id": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/production-rg/providers/Microsoft.Compute/virtualMachines/web-server-1",

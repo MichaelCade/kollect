@@ -13,6 +13,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/cosmos/armcosmos"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/resources/armresources"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/sql/armsql"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/storage/armstorage"
 )
@@ -26,6 +27,7 @@ type AzureData struct {
 	AzureVirtualNetworks []armnetwork.VirtualNetwork
 	AzureSQLDatabases    []armsql.Database
 	AzureCosmosDBs       []armcosmos.DatabaseAccountGetResults
+	AzureResourceGroups  []armresources.ResourceGroup
 }
 
 func CollectAzureData(ctx context.Context) (AzureData, error) {
@@ -38,7 +40,21 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 	if err != nil {
 		return data, err
 	}
-
+	rgClient, err := armresources.NewResourceGroupsClient(subscriptionID, cred, nil)
+	if err != nil {
+		return data, err
+	}
+	rgPager := rgClient.NewListPager(nil)
+	for rgPager.More() {
+		page, err := rgPager.NextPage(ctx)
+		if err != nil {
+			log.Printf("Warning: Failed to get Resource Groups: %v", err)
+			break
+		}
+		for _, rg := range page.Value {
+			data.AzureResourceGroups = append(data.AzureResourceGroups, *rg)
+		}
+	}
 	// Collect VMs
 	vmClient, err := armcompute.NewVirtualMachinesClient(subscriptionID, cred, nil)
 	if err != nil {

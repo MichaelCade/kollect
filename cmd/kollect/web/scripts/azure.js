@@ -38,6 +38,10 @@ document.addEventListener('htmx:afterSwap', (event) => {
                 });
                 content.appendChild(table);
             }
+            if (data.AzureResourceGroups) {
+                createTable('Azure Resource Groups', data.AzureResourceGroups, azureResourceGroupRowTemplate, 
+                    ['Name', 'Location', 'Tags', 'Provisioning State']);
+            }
             if (data.AzureVMs) {
                 createTable('Azure VMs', data.AzureVMs, azureVMRowTemplate, ['Name', 'Location', 'VM Size']);
             }
@@ -84,4 +88,16 @@ function azureSQLDatabaseRowTemplate(item) {
 
 function azureCosmosDBRowTemplate(item) {
     return `<td>${item.name}</td><td>${item.location}</td>`;
+}
+
+function azureResourceGroupRowTemplate(item) {
+    const tags = item.tags ? Object.entries(item.tags).map(([key, value]) => 
+        `${key}: ${value}`).join(', ') : 'No tags';
+        
+    return `
+        <td>${item.name}</td>
+        <td>${item.location}</td>
+        <td>${tags}</td>
+        <td>${item.properties.provisioningState}</td>
+    `;
 }
