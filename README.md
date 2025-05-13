@@ -11,6 +11,18 @@ Kollect is a tool for collecting and displaying data from Kubernetes clusters, A
 - Displays data in a web interface
 - Supports exporting data as a JSON file
 
+## Diagram 
+![](diagram.png)
+
+[GitDiagram provided the ability to create the above diagram](https://gitdiagram.com/michaelcade/kollect)
+
+## Resources 
+- [Kollect - The Cloud Inventory Project](https://youtu.be/dfuQFjl1Tnw)
+- [Kollect - Veeam Inventory](https://youtu.be/yQ1vlndXTQY)
+- [Kollect - A Cloud & Kubernetes Inventory tool](https://community.veeam.com/kubernetes%2Dkorner%2D90/kollect%2Da%2Dcloud%2Dkubernetes%2Dinventory%2Dtool%2D8885)
+- [Kollect: A Modern Take on RVTools for Cloud Environments](https://community.veeam.com/kubernetes-korner-90/kollect-a-modern-take-on-rvtools-for-cloud-environments-9472?tid=9472&fid=90)
+
+
 ## Installation
 
 To install Kollect, clone the repository and build the binary:
@@ -143,18 +155,3 @@ We welcome contributions to Kollect! Please open an issue or submit a pull reque
 
 Kollect is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
 ```
-
-### Summary of Changes
-
-1. **Features**: Updated to include AWS and Azure resource collection.
-2. **Usage**: Added examples for collecting data from AWS and Azure resources.
-3. **Project Structure**: Included the current project structure.
-4. **Development**: Added sections for building the project and running tests.
-5. **Contributing**: Added a section for contributing.
-6. **License**: Included a note about the license.
-
-By following these steps, your 
-
-README.md
-
- file should now accurately reflect the current capabilities and structure of your tool.
