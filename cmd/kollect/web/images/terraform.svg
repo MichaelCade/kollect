@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="574"
+   height="436"
+   fill="none"
+   version="1.1"
+   id="svg25"
+   sodipodi:docname="terraform.svg"
+   inkscape:version="1.1.1 (3bf5ae0d25, 2021-09-20)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview27"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     showgrid="false"
+     inkscape:zoom="1"
+     inkscape:cx="181.5"
+     inkscape:cy="260.5"
+     inkscape:window-width="1920"
+     inkscape:window-height="951"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg25" />
+  <defs
+     id="defs23">
+    <clipPath
+       id="a">
+      <path
+         fill="#fff"
+         transform="translate(.635 .946)"
+         d="M0 0h572.73v434.108H0z"
+         id="path20" />
+    </clipPath>
+  </defs>
+  <path
+     d="m 241.1482,103.95163 81.36347,80.67005 -29.31906,109.42021 -81.361,-80.67927 z m 98.4204,85.2503 110.78434,-29.20405 -29.31661,109.4111 -110.78857,29.18335 29.31172,-109.39284 z M 144.09292,10.052519 225.44698,90.720233 196.13039,200.13122 114.77632,119.46353 Z m 62.16112,224.125891 81.47883,80.23952 -29.43445,109.85085 -81.36346,-80.67009 29.31666,-109.41126 z"
+     fill="#ffffff"
+     id="path2"
+     style="fill:#e9e9ef;fill-opacity:1;stroke-width:9.48501" />
+</svg>
