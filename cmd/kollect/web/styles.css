@@ -1,52 +1,70 @@
+/* ===== Theme Variables ===== */
 :root {
+    /* Base colors */
     --background-color: #f5f5f5;
     --text-color: #333333;
+    --card-bg: #ffffff;
+    --border-color: #ddd;
+    --secondary-bg-color: #f0f0f0;
+    
+    /* Accent colors */
+    --accent-color: #4a90e2;
+    --accent-hover: #3a7bcc;
+    
+    /* Table styles */
     --table-header-bg: #ABD9F4;
     --table-header-color: #333333;
+    
+    /* Button styles */
     --button-bg: #ABD9F4;
     --button-hover-bg: #9cc2e0;
+    --button-bg-color: #f5f5f5;
+    --button-text-color: #333333;
+    --platform-button-bg: #e0e0e0;
+    --button-shadow-color: rgba(0, 0, 0, 0.15);
+    
+    /* Input styles */
+    --input-bg-color: #f5f5f5;
+    
+    /* Connection status */
+    --connected-glow: rgba(46, 213, 115, 0.5);
+    --connected-bg: rgba(46, 213, 115, 0.1);
+    --connected-border: rgba(46, 213, 115, 0.6);
+    
+    /* Chart styles */
     --spinner-border-color: #ABD9F4;
     --chart-font-family: 'Arial, sans-serif';
     --chart-font-size: 12px;
     --chart-title-font-size: 16px;
-    --card-bg: #ffffff;
-    --accent-color: #4a90e2;
-    --accent-hover: #3a7bcc;
-    --border-color: #ddd;
-    --input-bg-color: #f5f5f5;
-    --button-bg-color: #f5f5f5;
-    --button-text-color: #333333;
-    --secondary-bg-color: #f0f0f0;
-    --connected-glow: rgba(46, 213, 115, 0.5);
-    --connected-bg: rgba(46, 213, 115, 0.1);
-    --connected-border: rgba(46, 213, 115, 0.6);
-    --button-shadow-color: rgba(0, 0, 0, 0.15);
-    --platform-button-bg: #e0e0e0; /* Lighter background for better contrast in light mode */
 }
 
+/* Dark theme */
 [data-theme="dark"] {
     --background-color: #121212;
     --text-color: #ffffff;
-    --table-header-bg: #333;
-    --table-header-color: #ffffff;
-    --button-bg: #333;
-    --button-hover-bg: #444;
-    --spinner-border-color: #333;
     --card-bg: #1e1e1e;
+    --border-color: #444;
+    --secondary-bg-color: #2a2a2a;
+    
     --accent-color: #5fa3e6;
     --accent-hover: #4a90e2;
-    --border-color: #444;
-    --input-bg-color: #2a2a2a;
+    
+    --table-header-bg: #333;
+    --table-header-color: #ffffff;
+    
+    --button-bg: #333;
+    --button-hover-bg: #444;
     --button-bg-color: #333;
     --button-text-color: #ffffff;
-    --secondary-bg-color: #2a2a2a;
-    --connected-glow: rgba(46, 213, 115, 0.5);
-    --connected-bg: rgba(46, 213, 115, 0.1);
-    --connected-border: rgba(46, 213, 115, 0.6);
+    --platform-button-bg: #333333;
     --button-shadow-color: rgba(0, 0, 0, 0.3);
-    --platform-button-bg: #333333; /* Darker background for dark mode */
+    
+    --input-bg-color: #2a2a2a;
+    
+    --spinner-border-color: #333;
 }
 
+/* ===== Basic Layout ===== */
 body {
     font-family: 'Roboto', sans-serif;
     background-color: var(--background-color);
@@ -57,7 +75,7 @@ body {
 
 .container {
     padding: 20px;
-    text-align: center; /* Center the content */
+    text-align: center;
 }
 
 .logo {
@@ -71,32 +89,103 @@ body {
     margin-top: 20px;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    box-shadow: 0px 0px 20px rgba(0,0,0,0.15);
-    margin: 0; /* Remove margin to fix nested table issues */
-}
-
-th, td {
+/* ===== Button Styles ===== */
+/* Base button style */
+button {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: var(--button-bg-color);
+    color: var(--button-text-color);
     border: 1px solid var(--border-color);
-    padding: 8px;
-    text-align: left;
+    box-shadow: 0 2px 5px var(--button-shadow-color);
+    font-family: 'Roboto', sans-serif;
 }
 
-th {
-    background-color: var(--table-header-bg);
-    color: var(--table-header-color);
+/* Platform buttons (AWS, Azure, K8s, etc.) */
+.inventory-buttons button, 
+.platform-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: visible; /* Allow badges to overflow */
 }
 
+/* Utility buttons (Expand/Collapse, Theme, Import/Export) */
+#theme-toggle, 
+.control-button, 
+.export-button button, 
+.import-button button {
+    width: 55px;
+    height: 55px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 5px;
+    padding: 0;
+}
+
+#theme-toggle {
+    margin: 15px auto; /* Center horizontally with auto margins */
+    display: flex;     /* Ensure proper centering of icon */
+}
+
+/* Action buttons (in forms, etc.) */
+.details-button, 
+.btn {
+    padding: 8px 15px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.btn-primary {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+/* Hover effects for all buttons */
+button:hover,
+.inventory-buttons button:hover,
+.platform-button:hover,
+.control-button:hover,
+#theme-toggle:hover,
+.export-button button:hover,
+.import-button button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--button-shadow-color);
+    background-color: var(--button-hover-bg);
+}
+
+/* Platform button styles */
+.inventory-buttons button img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+/* Make SVG icons dark in light mode */
+[data-theme="light"] .inventory-buttons button img {
+    filter: brightness(0.2) contrast(1.2);
+}
+
+/* Keep SVGs light in dark mode */
+[data-theme="dark"] .inventory-buttons button img {
+    filter: brightness(1) contrast(1);
+}
+
+/* Button container layout */
 .button-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 20px;
+    margin-top: 10px;
 }
 
-/* Inventory buttons and controls */
 .inventory-buttons {
     display: flex;
     justify-content: center;
@@ -105,75 +194,27 @@ th {
     flex-wrap: wrap;
 }
 
-/* Reset platform button styles to ensure consistency */
-.inventory-buttons button, .platform-button {
-    width: 60px;
-    height: 60px;
-    padding: 12px;
-    background-color: var(--platform-button-bg); /* Use specific variable */
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease !important; /* Force transition */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: visible; /* Allow badges to overflow */
-    box-shadow: 0 2px 5px var(--button-shadow-color);
-}
-
-.inventory-buttons button img {
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
-    transition: filter 0.3s ease;
-}
-
-/* Make SVG icons dark in light mode */
-[data-theme="light"] .inventory-buttons button img {
-    filter: brightness(0.2) contrast(1.2); /* This will make white SVGs appear very dark (almost black) */
-}
-
-/* Keep SVGs light in dark mode */
-[data-theme="dark"] .inventory-buttons button img {
-    filter: brightness(1) contrast(1); /* This keeps white SVGs white */
-}
-
 .import-export-buttons {
     display: flex;
     justify-content: center;
+    gap: 15px;
     margin: 10px 0;
 }
 
-.export-button button, .import-button button, #theme-toggle, .details-button {
-    margin-right: 10px;
-    padding: 10px 20px;
-    font-size: 16px;
-    color: var(--text-color);
-    background-color: var(--button-bg);
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.utility-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 10px 0;
 }
 
-.export-button button:hover, .import-button button:hover, #theme-toggle:hover, .details-button:hover {
-    background-color: var(--button-hover-bg);
-    transform: scale(1.05);
-    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+.nav-controls {
+    margin: 10px 0;
+    display: flex;
+    justify-content: center; /* Ensure center alignment */
 }
 
-.inventory-buttons button i, .export-button button i, .import-button button i, #theme-toggle i {
-    color: var(--text-color); 
-}
-
-/* Hover effects for platform buttons - simplified for reliability */
-.inventory-buttons button:hover, .platform-button:hover {
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 8px 15px var(--button-shadow-color);
-}
-
+/* ===== Connection Status ===== */
 /* Connected state */
 .platform-button.connected {
     box-shadow: 0 0 10px 1px var(--connected-glow);
@@ -185,15 +226,6 @@ th {
 .platform-button.not-connected {
     opacity: 0.85;
     filter: grayscale(20%);
-    border: 1px solid var(--border-color);
-}
-
-/* Explicit hover styles for connected buttons */
-.platform-button.connected:hover {
-    transform: translateY(-3px) scale(1.08);
-    box-shadow: 0 0 15px 3px var(--connected-glow);
-    opacity: 1;
-    filter: none;
 }
 
 /* Connection status badge */
@@ -217,57 +249,26 @@ th {
     background-color: #ff4757;
 }
 
-.loading-indicator {
-    display: none;
-    justify-content: center;
-    align-items: center;
-    margin-top: 20px;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1000;
+/* ===== Table Styles ===== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    box-shadow: 0px 0px 20px rgba(0,0,0,0.15);
+    margin: 0;
 }
 
-.loading-indicator .spinner {
-    border: 4px solid rgba(0, 0, 0, 0.1);
-    border-left-color: var(--spinner-border-color);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
+th, td {
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    text-align: left;
 }
 
-.charts-container {
-    margin-top: 30px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
-    gap: 20px;
+th {
+    background-color: var(--table-header-bg);
+    color: var(--table-header-color);
 }
 
-.chart-wrapper {
-    height: 400px;
-    background-color: var(--card-bg);
-    border-radius: 8px;
-    padding: 15px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.details-button {
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 5px 10px;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.details-button:hover {
-    background-color: var(--accent-hover);
-}
-
-/* Improved Collapsible Table Styles */
+/* ===== Collapsible Tables ===== */
 .collapsible-table {
     margin-bottom: 20px;
     border-radius: 8px;
@@ -307,7 +308,7 @@ th {
     max-height: 800px;
     overflow-y: auto;
     transition: all 0.3s ease-out;
-    position: relative; /* Important for z-index */
+    position: relative;
     background-color: var(--card-bg);
 }
 
@@ -329,7 +330,45 @@ th {
     margin-left: 10px;
 }
 
-/* Resource type navigation */
+/* ===== Loading Indicator ===== */
+.loading-indicator {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+}
+
+.loading-indicator .spinner {
+    border: 4px solid rgba(0, 0, 0, 0.1);
+    border-left-color: var(--spinner-border-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+/* ===== Chart Styles ===== */
+.charts-container {
+    margin-top: 30px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+    gap: 20px;
+}
+
+.chart-wrapper {
+    height: 400px;
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Resource Navigation ===== */
 .resource-nav {
     position: fixed;
     right: 20px;
@@ -379,27 +418,7 @@ th {
     background-color: var(--accent-hover);
 }
 
-.control-button {
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 8px 12px;
-    margin-left: 8px;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.control-button:hover {
-    background-color: var(--accent-hover);
-}
-
-.nav-controls {
-    margin: 10px 0;
-    text-align: right;
-}
-
-/* For the details panel in VM storage */
+/* ===== Details Panels ===== */
 .details-panel {
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -428,7 +447,48 @@ th {
     opacity: 0.8;
 }
 
-/* Terraform-specific styles */
+/* ===== Form Elements ===== */
+.form-group {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 5px;
+}
+
+.form-group input[type="text"] {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* ===== Modal Styling ===== */
+.modal {
+    background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+.modal-content::after {
+    content: "";
+    clear: both;
+    display: table;
+}
+
+.modal-content input[type="text"] {
+    background-color: var(--input-bg-color) !important;
+}
+
+/* ===== Terraform Specific Styles ===== */
 .terraform-details-panel {
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -460,7 +520,70 @@ th {
     opacity: 0.8;
 }
 
-/* Attributes tables and values */
+/* Terraform modal styles */
+.terraform-modal .source-option:hover {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.source-option {
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.source-form {
+    margin-top: 10px;
+    margin-left: 25px;
+}
+
+/* ===== Badge Styles ===== */
+.provider-badge, .module-badge, .root-badge {
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.8em;
+    color: white;
+}
+
+.provider-badge {
+    background: var(--accent-color);
+}
+
+.module-badge {
+    background: #6c5ce7;
+}
+
+.root-badge {
+    background: #636e72;
+}
+
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.status-created {
+    background: #00b894;
+    color: white;
+}
+
+.status-pending {
+    background: #fdcb6e;
+    color: #333;
+}
+
+.status-tainted {
+    background: #d63031;
+    color: white;
+}
+
+.status-other {
+    background: #636e72;
+    color: white;
+}
+
+/* ===== Attribute Styles ===== */
 .attributes-table {
     width: 100%;
     border-collapse: collapse;
@@ -532,57 +655,6 @@ th {
     border-radius: 3px;
 }
 
-.provider-badge {
-    background: var(--accent-color);
-    color: white;
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: 0.8em;
-}
-
-.module-badge {
-    background: #6c5ce7;
-    color: white;
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: 0.8em;
-}
-
-.root-badge {
-    background: #636e72;
-    color: white;
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: 0.8em;
-}
-
-.status-badge {
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 0.8em;
-    font-weight: bold;
-}
-
-.status-created {
-    background: #00b894;
-    color: white;
-}
-
-.status-pending {
-    background: #fdcb6e;
-    color: #333;
-}
-
-.status-tainted {
-    background: #d63031;
-    color: white;
-}
-
-.status-other {
-    background: #636e72;
-    color: white;
-}
-
 .dependency-list {
     margin: 0;
     padding-left: 20px;
@@ -594,84 +666,7 @@ th {
     margin-bottom: 5px;
 }
 
-/* Terraform modal styles */
-.terraform-modal .source-option:hover {
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.source-option {
-    margin-bottom: 15px;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 10px;
-}
-
-.source-form {
-    margin-top: 10px;
-    margin-left: 25px;
-}
-
-.form-group {
-    margin-bottom: 10px;
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group label {
-    margin-bottom: 5px;
-}
-
-.form-group input[type="text"] {
-    padding: 8px;
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
-    background-color: var(--input-bg-color);
-    color: var(--text-color);
-}
-
-.modal-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.btn {
-    padding: 8px 15px;
-    border-radius: 4px;
-    border: none;
-    cursor: pointer;
-    background-color: var(--button-bg-color);
-    color: var(--button-text-color);
-}
-
-.btn-primary {
-    background-color: var(--accent-color);
-    color: white;
-}
-
-#selected-file-name {
-    margin-left: 10px;
-    font-style: italic;
-}
-
-/* Add clearfix to the modal content */
-.modal-content::after {
-    content: "";
-    clear: both;
-    display: table;
-}
-
-/* Override background for inputs specifically in modals */
-.modal-content input[type="text"] {
-    background-color: var(--input-bg-color) !important;
-}
-
-/* Modal background styling */
-.modal {
-    background-color: rgba(0, 0, 0, 0.7) !important;
-}
-
-/* Animations */
+/* ===== Animations ===== */
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -687,7 +682,7 @@ th {
     to { box-shadow: 0 0 20px 4px var(--connected-glow); }
 }
 
-/* Media queries for responsiveness */
+/* ===== Media Queries ===== */
 @media (max-width: 768px) {
     .inventory-buttons {
         flex-wrap: wrap;

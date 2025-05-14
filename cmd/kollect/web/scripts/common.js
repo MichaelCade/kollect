@@ -68,6 +68,7 @@ function createTable(headerText, data, rowTemplate, headers) {
     return tableContainer;
 }
 
+// Update this part in the toggleAllTables function:
 function toggleAllTables(collapse) {
     console.log("Toggling all tables:", collapse ? "Collapse" : "Expand");
     const tables = document.querySelectorAll('.collapsible-table');
@@ -86,15 +87,17 @@ function toggleAllTables(collapse) {
         }
     });
     
-    // Update the toggle button state
+    // Update the toggle button state with icon only
     const toggleButton = document.getElementById('toggle-tables');
     if (toggleButton) {
         if (collapse) {
-            toggleButton.innerHTML = '<i class="fas fa-expand-alt"></i> Expand All';
+            toggleButton.innerHTML = '<i class="fas fa-expand-alt"></i>';
             toggleButton.setAttribute('data-collapsed', 'true');
+            toggleButton.title = 'Expand All Tables';
         } else {
-            toggleButton.innerHTML = '<i class="fas fa-compress-alt"></i> Collapse All';
+            toggleButton.innerHTML = '<i class="fas fa-compress-alt"></i>';
             toggleButton.setAttribute('data-collapsed', 'false');
+            toggleButton.title = 'Collapse All Tables';
         }
     }
 }

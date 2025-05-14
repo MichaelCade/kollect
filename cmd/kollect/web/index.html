@@ -12,8 +12,8 @@
         <script src="https://unpkg.com/hyperscript.org@0.9.7"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     </head>
-<body>
-    <div class="container">
+    <body>
+        <div class="container">
         <img src="dark_Kollect.png" alt="Logo" class="logo" id="logo">
         <button id="theme-toggle"><i class="fas fa-sun"></i></button>
         <div class="button-container">
@@ -25,18 +25,22 @@
                 <button id="terraform-button"><img src="images/terraform.svg" alt="Terraform"></button>
                 <button id="veeam-button"><img src="images/veeam-black.png" alt="Veeam"></button>
             </div>
-            <div class="nav-controls" style="text-align: right; margin-top: 10px;">
-                <button id="toggle-tables" class="control-button" data-collapsed="true">
-                    <i class="fas fa-expand-alt"></i> Expand All
-                </button>
-            </div>
-            <div class="import-export-buttons">
-                <div class="export-button">
-                    <button id="export-button"><i class="fas fa-download"></i></button>
+            
+            <div class="utility-buttons">
+                <div class="nav-controls">
+                    <button id="toggle-tables" class="control-button" data-collapsed="true" title="Expand All Tables">
+                        <i class="fas fa-expand-alt"></i>
+                    </button>
                 </div>
-                <div class="import-button">
-                    <input type="file" id="import-file" style="display: none;" />
-                    <button id="import-button"><i class="fas fa-upload"></i></button>
+                
+                <div class="import-export-buttons">
+                    <div class="export-button">
+                        <button id="export-button" title="Export Data"><i class="fas fa-download"></i></button>
+                    </div>
+                    <div class="import-button">
+                        <input type="file" id="import-file" style="display: none;" />
+                        <button id="import-button" title="Import Data"><i class="fas fa-upload"></i></button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -121,41 +125,70 @@
             .then(data => {
                 console.log('Connection status:', data);
                 
-                // Update UI for each platform
                 for (const [platform, isConnected] of Object.entries(data)) {
-                    const buttonId = platform === 'gcp' ? 'google-button' : `${platform}-button`;
-                    const button = document.getElementById(buttonId);
+                const buttonId = platform === 'gcp' ? 'google-button' : `${platform}-button`;
+                const button = document.getElementById(buttonId);
+                
+                if (button) {
+                    // Remove any existing badges first to prevent duplicates
+                    const existingBadges = button.querySelectorAll('.connection-badge');
+                    existingBadges.forEach(badge => badge.remove());
                     
-                    if (button) {
-                        // Remove any existing badges first to prevent duplicates
-                        const existingBadges = button.querySelectorAll('.connection-badge');
-                        existingBadges.forEach(badge => badge.remove());
+                    if (isConnected) {
+                        button.classList.add('connected');
+                        button.classList.remove('not-connected');
                         
-                        if (isConnected) {
-                            button.classList.add('connected');
-                            button.classList.remove('not-connected');
-                            
-                            // Add a badge
-                            const badge = document.createElement('span');
-                            badge.className = 'connection-badge connected';
-                            button.appendChild(badge);
-                            
-                            // Add tooltip
-                            button.title = `${platform.charAt(0).toUpperCase() + platform.slice(1)} (Connected)`;
+                        // Add a badge
+                        const badge = document.createElement('span');
+                        badge.className = 'connection-badge connected';
+                        button.appendChild(badge);
+                        
+                        if (platform === 'terraform') {
+                            button.title = 'Terraform CLI detected - Click to load state';
                         } else {
-                            button.classList.add('not-connected');
-                            button.classList.remove('connected');
-                            
-                            // Add a badge
-                            const badge = document.createElement('span');
-                            badge.className = 'connection-badge not-connected';
-                            button.appendChild(badge);
-                            
-                            // Add tooltip
-                            button.title = `${platform.charAt(0).toUpperCase() + platform.slice(1)} (Not Connected)`;
+                            // Handle special cases for acronyms
+                            let displayName;
+                            switch(platform) {
+                                case 'aws':
+                                    displayName = 'AWS';
+                                    break;
+                                case 'gcp':
+                                    displayName = 'GCP';
+                                    break;
+                                default:
+                                    displayName = platform.charAt(0).toUpperCase() + platform.slice(1);
+                            }
+                            button.title = `${displayName} (Connected)`;
                         }
+                    } else {
+                        button.classList.add('not-connected');
+                        button.classList.remove('connected');
+                        
+                        // Add a badge
+                        const badge = document.createElement('span');
+                        badge.className = 'connection-badge not-connected';
+                        button.appendChild(badge);
+                        
+                        if (platform === 'terraform') {
+                          button.title = 'Terraform CLI not found';
+                      } else {
+                          // Handle special cases for acronyms
+                          let displayName;
+                          switch(platform) {
+                              case 'aws':
+                                  displayName = 'AWS';
+                                  break;
+                              case 'gcp':
+                                  displayName = 'GCP';
+                                  break;
+                              default:
+                                  displayName = platform.charAt(0).toUpperCase() + platform.slice(1);
+                          }
+                          button.title = `${displayName} (Not Connected)`;
+                      }
                     }
                 }
+            }
             })
             .catch(error => {
                 console.error('Error checking platform connections:', error);
