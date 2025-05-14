@@ -1,4 +1,3 @@
-
 # Kollect
 
 Kollect is a tool for collecting and displaying data from Kubernetes clusters, AWS, Azure, Google Cloud, and Veeam resources. It provides a web interface to visualize various resources and allows exporting the collected data as a JSON file.
@@ -10,6 +9,7 @@ Kollect is a tool for collecting and displaying data from Kubernetes clusters, A
 - Collects data from Azure resources (VMs, Storage Accounts, Blob Storage, Virtual Networks, SQL Databases, File Shares, CosmosDB)
 - Collects data from Google Cloud resources (Compute Instances, Storage Buckets, SQL Instances, VPCs)
 - Collects data from Veeam Backup & Replication servers (Backup Jobs, Repositories, Proxies, Scale-out Repositories)
+- Inventory data from a Terraform state file (.tfstate / .json) (Local, AWS S3, Azure Blob, Google Cloud Storage)
 - Displays data in a web interface
 - Supports exporting data as a JSON file
 
@@ -36,7 +36,6 @@ All collected data is stored locally and only visualized in your browser on your
 - [Kollect - A Cloud & Kubernetes Inventory tool](https://community.veeam.com/kubernetes%2Dkorner%2D90/kollect%2Da%2Dcloud%2Dkubernetes%2Dinventory%2Dtool%2D8885)
 - [Kollect: A Modern Take on RVTools for Cloud Environments](https://community.veeam.com/kubernetes-korner-90/kollect-a-modern-take-on-rvtools-for-cloud-environments-9472?tid=9472&fid=90)
 
-
 ## Installation
 
 To install Kollect, clone the repository and build the binary:
@@ -57,12 +56,18 @@ Run the Kollect binary with the desired flags:
 
 ### Flags
 
-- `--inventory`: Type of inventory to collect (kubernetes/aws/azure/gcp/azure)
-- `--storage`: Collect only storage-related objects (default: false)
-- `--kubeconfig`: Path to the kubeconfig file (default: $HOME/.kube/config)
-- `--browser`: Open the web interface in a browser (default: false)
-- `--output`: Output file to save the collected data
-- `--help`: Show help message
+- `--inventory=<source>`: Specifies the inventory source. Valid values are `kubernetes`, `aws`, `azure`, `gcp`, `terraform`, and `veeam`.
+- `--kubeconfig=<file>`: Specifies a custom kubeconfig file for Kubernetes.
+- `--output=<file>`: Specifies an output file to save the collected data as JSON.
+- `--browser`: Opens the collected data in a web browser.
+- `--terraform-state=<file>`: Specifies a local Terraform state file to read.
+- `--terraform-s3=<bucket/key>`: Specifies an AWS S3 bucket and key for Terraform state.
+- `--terraform-s3-region=<region>`: Specifies the AWS region for the S3 bucket.
+- `--terraform-azure=<storage-account/container/blob>`: Specifies an Azure Blob Storage location for Terraform state.
+- `--terraform-gcs=<bucket/object>`: Specifies a Google Cloud Storage location for Terraform state.
+- `--base-url=<url>`: Specifies the base URL for Veeam connections.
+- `--username=<username>`: Specifies the username for Veeam connections.
+- `--password=<password>`: Specifies the password for Veeam connections.
 
 ### Examples
 
@@ -93,16 +98,14 @@ Collect data from Google Cloud resources and display it in the terminal:
 Collect data from Veeam Backup & Replication resources and display it in the terminal: 
 
 ```sh
-./kollect --inventory veeam ("add flags or have env variables")
+./kollect --inventory veeam --base-url https://vbr-server.example.com:9419 --username admin --password password
 ```
-We also have the ability to use the browser so you can import JSON format data. 
 
-Collect data from Google Cloud resources and display it in the terminal: 
+We also have the ability to use the browser so you can import JSON format data:
 
 ```sh
 ./kollect --browser
 ```
-
 
 Collect data from a Kubernetes cluster and open the web interface:
 
@@ -131,17 +134,18 @@ To run the tests, use the following command:
 ```sh
 go test ./...
 ```
+
 ## Outputs 
 
 You are able to export to JSON your data from the browser function or of course you will get an output in JSON format to the terminal on each run and each inventory of your desired platform. 
 
-```
+```sh
 go run cmd/kollect/main.go --inventory kubernetes --storage | jq
 ```
 
-With an example of this as 
+With an example of this as:
 
-```
+```json
 {
   "Nodes": null,
   "Namespaces": null,
@@ -176,8 +180,8 @@ With an example of this as
       "AssociatedClaim": "ollama-volume-ollama-0",
       "StorageClass": "ceph-block",
       "VolumeMode": "Filesystem"
-    },
- ],
+    }
+  ],
   "StorageClasses": [
     {
       "Name": "ceph-block",
@@ -215,5 +219,4 @@ We welcome contributions to Kollect! Please open an issue or submit a pull reque
 
 ## License
 
-Kollect is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
-```
+Kollect is licensed under the MIT License. See the LICENSE file for more information.
