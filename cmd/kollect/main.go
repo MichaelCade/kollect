@@ -667,6 +667,377 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			"status":  "success",
 			"message": "Successfully connected to Kubernetes cluster",
 		})
+
+	})
+
+	// AWS endpoints
+	http.HandleFunc("/api/aws/profiles", func(w http.ResponseWriter, r *http.Request) {
+		// Get AWS profiles from ~/.aws/credentials and ~/.aws/config
+		profiles := []string{"default"}
+
+		// Try to read profiles from AWS credentials/config files
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			awsDir := filepath.Join(homeDir, ".aws")
+
+			// Check credentials file
+			credPath := filepath.Join(awsDir, "credentials")
+			if _, err := os.Stat(credPath); err == nil {
+				data, err := os.ReadFile(credPath)
+				if err == nil {
+					// Extract profile names from credentials file
+					lines := strings.Split(string(data), "\n")
+					for _, line := range lines {
+						if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+							profile := line[1 : len(line)-1]
+							if profile != "default" && !contains(profiles, profile) {
+								profiles = append(profiles, profile)
+							}
+						}
+					}
+				}
+			}
+
+			// Check config file
+			configPath := filepath.Join(awsDir, "config")
+			if _, err := os.Stat(configPath); err == nil {
+				data, err := os.ReadFile(configPath)
+				if err == nil {
+					// Extract profile names from config file
+					lines := strings.Split(string(data), "\n")
+					for _, line := range lines {
+						if strings.HasPrefix(line, "[profile ") && strings.HasSuffix(line, "]") {
+							profile := line[9 : len(line)-1]
+							if profile != "default" && !contains(profiles, profile) {
+								profiles = append(profiles, profile)
+							}
+						}
+					}
+				}
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"profiles": profiles,
+		})
+	})
+
+	http.HandleFunc("/api/aws/connect", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var params struct {
+			Type      string `json:"type"`
+			Profile   string `json:"profile"`
+			AccessKey string `json:"accessKey"`
+			SecretKey string `json:"secretKey"`
+			Region    string `json:"region"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		// Store credentials temporarily in environment variables
+		if params.Type == "credentials" {
+			os.Setenv("AWS_ACCESS_KEY_ID", params.AccessKey)
+			os.Setenv("AWS_SECRET_ACCESS_KEY", params.SecretKey)
+			if params.Region != "" {
+				os.Setenv("AWS_REGION", params.Region)
+			}
+		} else if params.Type == "profile" && params.Profile != "" {
+			os.Setenv("AWS_PROFILE", params.Profile)
+		}
+
+		// Test the credentials
+		ctx := r.Context()
+		hasCredentials, err := aws.CheckCredentials(ctx)
+		if err != nil || !hasCredentials {
+			http.Error(w, fmt.Sprintf("Error connecting to AWS: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		// Collect AWS data
+		awsData, err := aws.CollectAWSData(ctx)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error collecting AWS data: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Update the global data with the new AWS data
+		dataMutex.Lock()
+		data = awsData
+		dataMutex.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "Successfully connected to AWS",
+		})
+	})
+
+	http.HandleFunc("/api/azure/subscriptions", func(w http.ResponseWriter, r *http.Request) {
+		// Try to get Azure subscriptions using the Azure CLI
+		subscriptions := []map[string]string{}
+		defaultSub := ""
+		subscriptionsCount := 0
+
+		// Run the 'az account list' command
+		cmd := exec.Command("az", "account", "list", "--query", "[].{name:name, id:id, isDefault:isDefault}", "--output", "json")
+		output, err := cmd.Output()
+
+		if err == nil {
+			var azSubs []map[string]interface{}
+			if err := json.Unmarshal(output, &azSubs); err == nil {
+				subscriptionsCount = len(azSubs)
+
+				log.Printf("Found %d subscriptions in Azure CLI output", subscriptionsCount)
+
+				for _, sub := range azSubs {
+					// Only process subscriptions that have all required fields
+					if name, ok := sub["name"].(string); ok {
+						if id, ok := sub["id"].(string); ok {
+							subscription := map[string]string{
+								"name":      name,
+								"id":        id,
+								"isDefault": "false",
+							}
+
+							if isDefault, ok := sub["isDefault"].(bool); ok && isDefault {
+								subscription["isDefault"] = "true"
+								defaultSub = id
+							}
+
+							subscriptions = append(subscriptions, subscription)
+						}
+					}
+				}
+
+				log.Printf("Processed %d Azure subscriptions", len(subscriptions))
+			} else {
+				log.Printf("Error parsing Azure CLI output: %v", err)
+			}
+		} else {
+			log.Printf("Error running Azure CLI command: %v", err)
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"subscriptions":      subscriptions,
+			"default":            defaultSub,
+			"subscriptionsCount": subscriptionsCount,
+		})
+	})
+
+	http.HandleFunc("/api/azure/connect", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var params struct {
+			Type           string `json:"type"`
+			Subscription   string `json:"subscription"`
+			TenantId       string `json:"tenantId"`
+			ClientId       string `json:"clientId"`
+			ClientSecret   string `json:"clientSecret"`
+			SubscriptionId string `json:"subscriptionId"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		// Store credentials temporarily in environment variables
+		if params.Type == "service_principal" {
+			os.Setenv("AZURE_TENANT_ID", params.TenantId)
+			os.Setenv("AZURE_CLIENT_ID", params.ClientId)
+			os.Setenv("AZURE_CLIENT_SECRET", params.ClientSecret)
+			os.Setenv("AZURE_SUBSCRIPTION_ID", params.SubscriptionId)
+		} else if params.Type == "cli" && params.Subscription != "" {
+			// Set the subscription in the Azure CLI
+			cmd := exec.Command("az", "account", "set", "--subscription", params.Subscription)
+			if err := cmd.Run(); err != nil {
+				http.Error(w, fmt.Sprintf("Error setting Azure subscription: %v", err), http.StatusBadRequest)
+				return
+			}
+		}
+
+		// Test the credentials
+		ctx := r.Context()
+		hasCredentials, err := azure.CheckCredentials(ctx)
+		if err != nil || !hasCredentials {
+			http.Error(w, fmt.Sprintf("Error connecting to Azure: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		// Collect Azure data
+		azureData, err := azure.CollectAzureData(ctx)
+		if err != nil {
+			// Check if it's a permissions error
+			if strings.Contains(err.Error(), "Authorization") ||
+				strings.Contains(err.Error(), "authorization") ||
+				strings.Contains(err.Error(), "permission") ||
+				strings.Contains(err.Error(), "access") {
+				// Send more specific error message for permission issues
+				http.Error(w, "Permission denied: You don't have sufficient permissions for some Azure resources", http.StatusForbidden)
+				return
+			}
+
+			http.Error(w, fmt.Sprintf("Error collecting Azure data: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Update the global data with the new Azure data
+		dataMutex.Lock()
+		data = azureData
+		dataMutex.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "Successfully connected to Azure",
+		})
+	})
+
+	// GCP endpoints
+	http.HandleFunc("/api/gcp/projects", func(w http.ResponseWriter, r *http.Request) {
+		// Try to get GCP projects using the gcloud CLI
+		projects := []map[string]string{}
+
+		cmd := exec.Command("gcloud", "projects", "list", "--format=json")
+		output, err := cmd.CombinedOutput()
+		if err == nil {
+			var gcpProjects []map[string]interface{}
+			if err := json.Unmarshal(output, &gcpProjects); err == nil {
+				for _, project := range gcpProjects {
+					projectInfo := map[string]string{
+						"name":      fmt.Sprintf("%v", project["name"]),
+						"id":        fmt.Sprintf("%v", project["projectId"]),
+						"isDefault": "false",
+					}
+
+					projects = append(projects, projectInfo)
+				}
+			}
+		}
+
+		// Try to get the default project
+		cmd = exec.Command("gcloud", "config", "get-value", "project")
+		output, err = cmd.CombinedOutput()
+		if err == nil {
+			defaultProject := strings.TrimSpace(string(output))
+			for i, project := range projects {
+				if project["id"] == defaultProject {
+					projects[i]["isDefault"] = "true"
+					break
+				}
+			}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"projects": projects,
+		})
+	})
+
+	http.HandleFunc("/api/gcp/connect", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var params struct {
+			Type    string                 `json:"type"`
+			Project string                 `json:"project"`
+			KeyData map[string]interface{} `json:"keyData"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		tempKeyFile := ""
+
+		// Store service account key temporarily in a file
+		if params.Type == "service_account" && params.KeyData != nil {
+			keyBytes, err := json.Marshal(params.KeyData)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Error parsing service account key: %v", err), http.StatusBadRequest)
+				return
+			}
+
+			// Create a temporary file for the key
+			tempFile, err := os.CreateTemp("", "gcp-key-*.json")
+			if err != nil {
+				http.Error(w, fmt.Sprintf("Error creating temporary key file: %v", err), http.StatusInternalServerError)
+				return
+			}
+			defer tempFile.Close()
+
+			if _, err := tempFile.Write(keyBytes); err != nil {
+				http.Error(w, fmt.Sprintf("Error writing key data: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			tempKeyFile = tempFile.Name()
+			os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", tempKeyFile)
+		} else if params.Type == "gcloud" && params.Project != "" {
+			// Set the project in gcloud CLI
+			cmd := exec.Command("gcloud", "config", "set", "project", params.Project)
+			if err := cmd.Run(); err != nil {
+				http.Error(w, fmt.Sprintf("Error setting GCP project: %v", err), http.StatusBadRequest)
+				return
+			}
+		}
+
+		// Test the credentials
+		ctx := r.Context()
+		hasCredentials, err := gcp.CheckCredentials(ctx)
+		if err != nil || !hasCredentials {
+			// Clean up the temporary key file if needed
+			if tempKeyFile != "" {
+				os.Remove(tempKeyFile)
+				os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+			}
+			http.Error(w, fmt.Sprintf("Error connecting to GCP: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		// Collect GCP data
+		gcpData, err := gcp.CollectGCPData(ctx)
+		if err != nil {
+			// Clean up the temporary key file if needed
+			if tempKeyFile != "" {
+				os.Remove(tempKeyFile)
+				os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+			}
+			http.Error(w, fmt.Sprintf("Error collecting GCP data: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Update the global data with the new GCP data
+		dataMutex.Lock()
+		data = gcpData
+		dataMutex.Unlock()
+
+		// Clean up the temporary key file if needed
+		if tempKeyFile != "" {
+			os.Remove(tempKeyFile)
+			os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "Successfully connected to GCP",
+		})
 	})
 
 	log.Println("Server starting on port http://localhost:8080")
@@ -691,4 +1062,13 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 	if err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }

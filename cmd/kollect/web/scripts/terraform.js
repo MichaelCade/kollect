@@ -372,7 +372,6 @@ document.getElementById('terraform-button')?.addEventListener('click', () => {
     });
 });
 
-// Helper function to show errors
 function showError(message) {
     document.getElementById('content').innerHTML = `
         <div class="error-message">
@@ -382,22 +381,21 @@ function showError(message) {
     `;
 }
 
-// Helper function to process the terraform state directly
 function processTerraformState(stateData) {
+    showLoadingIndicator();
     try {
-        // Basic validation that this is a Terraform state file
         if (!stateData.version) {
             throw new Error("The selected file does not appear to be a valid Terraform state file");
         }
-        
-        // Parse the state file into the format expected by our handler
         const parsedData = parseTerraformState(stateData);
         processWithHandler(parsedData);
     } catch (error) {
         showError(`Failed to process state file: ${error.message}`);
+    } finally {
+        hideLoadingIndicator();
     }
 }
-// Parse a Terraform state file into the format expected by our handler
+
 function parseTerraformState(stateData) {
     const result = {
         Resources: [],

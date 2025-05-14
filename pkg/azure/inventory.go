@@ -64,6 +64,7 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 			data.AzureResourceGroups = append(data.AzureResourceGroups, *rg)
 		}
 	}
+
 	// Collect VMs
 	vmClient, err := armcompute.NewVirtualMachinesClient(subscriptionID, cred, nil)
 	if err != nil {
@@ -73,7 +74,8 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 	for vmPager.More() {
 		page, err := vmPager.NextPage(ctx)
 		if err != nil {
-			log.Fatalf("Failed to get VMs: %v", err)
+			log.Printf("Warning: Failed to get VMs: %v", err)
+			break
 		}
 		for _, vm := range page.Value {
 			data.AzureVMs = append(data.AzureVMs, *vm)
@@ -83,48 +85,54 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 	// Collect VMSS
 	vmssClient, err := armcompute.NewVirtualMachineScaleSetsClient(subscriptionID, cred, nil)
 	if err != nil {
-		return data, err
-	}
-	vmssPager := vmssClient.NewListAllPager(nil)
-	for vmssPager.More() {
-		page, err := vmssPager.NextPage(ctx)
-		if err != nil {
-			log.Fatalf("Failed to get VMSS: %v", err)
-		}
-		for _, vmss := range page.Value {
-			data.AzureVMSS = append(data.AzureVMSS, *vmss)
+		log.Printf("Warning: Failed to create VMSS client: %v", err)
+	} else {
+		vmssPager := vmssClient.NewListAllPager(nil)
+		for vmssPager.More() {
+			page, err := vmssPager.NextPage(ctx)
+			if err != nil {
+				log.Printf("Warning: Failed to get VMSS: %v", err)
+				break
+			}
+			for _, vmss := range page.Value {
+				data.AzureVMSS = append(data.AzureVMSS, *vmss)
+			}
 		}
 	}
 
 	// Collect AKS Clusters
 	aksClient, err := armcontainerservice.NewManagedClustersClient(subscriptionID, cred, nil)
 	if err != nil {
-		return data, err
-	}
-	aksPager := aksClient.NewListPager(nil)
-	for aksPager.More() {
-		page, err := aksPager.NextPage(ctx)
-		if err != nil {
-			log.Fatalf("Failed to get AKS Clusters: %v", err)
-		}
-		for _, aks := range page.Value {
-			data.AzureAKSClusters = append(data.AzureAKSClusters, *aks)
+		log.Printf("Warning: Failed to create AKS client: %v", err)
+	} else {
+		aksPager := aksClient.NewListPager(nil)
+		for aksPager.More() {
+			page, err := aksPager.NextPage(ctx)
+			if err != nil {
+				log.Printf("Warning: Failed to get AKS Clusters: %v", err)
+				break
+			}
+			for _, aks := range page.Value {
+				data.AzureAKSClusters = append(data.AzureAKSClusters, *aks)
+			}
 		}
 	}
 
 	// Collect Storage Accounts
 	storageClient, err := armstorage.NewAccountsClient(subscriptionID, cred, nil)
 	if err != nil {
-		return data, err
-	}
-	storagePager := storageClient.NewListPager(nil)
-	for storagePager.More() {
-		page, err := storagePager.NextPage(ctx)
-		if err != nil {
-			log.Fatalf("Failed to get Storage Accounts: %v", err)
-		}
-		for _, account := range page.Value {
-			data.AzureStorageAccounts = append(data.AzureStorageAccounts, *account)
+		log.Printf("Warning: Failed to create Storage client: %v", err)
+	} else {
+		storagePager := storageClient.NewListPager(nil)
+		for storagePager.More() {
+			page, err := storagePager.NextPage(ctx)
+			if err != nil {
+				log.Printf("Warning: Failed to get Storage Accounts: %v", err)
+				break
+			}
+			for _, account := range page.Value {
+				data.AzureStorageAccounts = append(data.AzureStorageAccounts, *account)
+			}
 		}
 	}
 
@@ -133,13 +141,15 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 		resourceGroup := getResourceGroupFromID(*account.ID)
 		blobClient, err := armstorage.NewBlobContainersClient(subscriptionID, cred, nil)
 		if err != nil {
-			return data, err
+			log.Printf("Warning: Failed to create Blob client: %v", err)
+			continue
 		}
 		blobPager := blobClient.NewListPager(resourceGroup, *account.Name, nil)
 		for blobPager.More() {
 			page, err := blobPager.NextPage(ctx)
 			if err != nil {
-				log.Fatalf("Failed to get Blob Containers: %v", err)
+				log.Printf("Warning: Failed to get Blob Containers: %v", err)
+				break
 			}
 			for _, container := range page.Value {
 				data.AzureBlobContainers = append(data.AzureBlobContainers, *container)
@@ -150,45 +160,51 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 	// Collect Virtual Networks
 	vnetClient, err := armnetwork.NewVirtualNetworksClient(subscriptionID, cred, nil)
 	if err != nil {
-		return data, err
-	}
-	vnetPager := vnetClient.NewListAllPager(nil)
-	for vnetPager.More() {
-		page, err := vnetPager.NextPage(ctx)
-		if err != nil {
-			log.Fatalf("Failed to get Virtual Networks: %v", err)
-		}
-		for _, vnet := range page.Value {
-			data.AzureVirtualNetworks = append(data.AzureVirtualNetworks, *vnet)
+		log.Printf("Warning: Failed to create VNet client: %v", err)
+	} else {
+		vnetPager := vnetClient.NewListAllPager(nil)
+		for vnetPager.More() {
+			page, err := vnetPager.NextPage(ctx)
+			if err != nil {
+				log.Printf("Warning: Failed to get Virtual Networks: %v", err)
+				break
+			}
+			for _, vnet := range page.Value {
+				data.AzureVirtualNetworks = append(data.AzureVirtualNetworks, *vnet)
+			}
 		}
 	}
 
 	// Collect SQL Databases
 	sqlClient, err := armsql.NewDatabasesClient(subscriptionID, cred, nil)
 	if err != nil {
-		return data, err
-	}
-	// List SQL servers first to get the server names
-	sqlServerClient, err := armsql.NewServersClient(subscriptionID, cred, nil)
-	if err != nil {
-		return data, err
-	}
-	sqlServerPager := sqlServerClient.NewListPager(nil)
-	for sqlServerPager.More() {
-		page, err := sqlServerPager.NextPage(ctx)
+		log.Printf("Warning: Failed to create SQL client: %v", err)
+	} else {
+		// List SQL servers first to get the server names
+		sqlServerClient, err := armsql.NewServersClient(subscriptionID, cred, nil)
 		if err != nil {
-			log.Fatalf("Failed to get SQL Servers: %v", err)
-		}
-		for _, server := range page.Value {
-			resourceGroup := getResourceGroupFromID(*server.ID)
-			dbPager := sqlClient.NewListByServerPager(resourceGroup, *server.Name, nil)
-			for dbPager.More() {
-				dbPage, err := dbPager.NextPage(ctx)
+			log.Printf("Warning: Failed to create SQL server client: %v", err)
+		} else {
+			sqlServerPager := sqlServerClient.NewListPager(nil)
+			for sqlServerPager.More() {
+				page, err := sqlServerPager.NextPage(ctx)
 				if err != nil {
-					log.Fatalf("Failed to get SQL Databases: %v", err)
+					log.Printf("Warning: Failed to get SQL Servers: %v", err)
+					break
 				}
-				for _, db := range dbPage.Value {
-					data.AzureSQLDatabases = append(data.AzureSQLDatabases, *db)
+				for _, server := range page.Value {
+					resourceGroup := getResourceGroupFromID(*server.ID)
+					dbPager := sqlClient.NewListByServerPager(resourceGroup, *server.Name, nil)
+					for dbPager.More() {
+						dbPage, err := dbPager.NextPage(ctx)
+						if err != nil {
+							log.Printf("Warning: Failed to get SQL Databases: %v", err)
+							break
+						}
+						for _, db := range dbPage.Value {
+							data.AzureSQLDatabases = append(data.AzureSQLDatabases, *db)
+						}
+					}
 				}
 			}
 		}
@@ -197,16 +213,18 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 	// Collect CosmosDB Accounts
 	cosmosClient, err := armcosmos.NewDatabaseAccountsClient(subscriptionID, cred, nil)
 	if err != nil {
-		return data, err
-	}
-	cosmosPager := cosmosClient.NewListPager(nil)
-	for cosmosPager.More() {
-		page, err := cosmosPager.NextPage(ctx)
-		if err != nil {
-			log.Fatalf("Failed to get CosmosDB Accounts: %v", err)
-		}
-		for _, db := range page.Value {
-			data.AzureCosmosDBs = append(data.AzureCosmosDBs, *db)
+		log.Printf("Warning: Failed to create CosmosDB client: %v", err)
+	} else {
+		cosmosPager := cosmosClient.NewListPager(nil)
+		for cosmosPager.More() {
+			page, err := cosmosPager.NextPage(ctx)
+			if err != nil {
+				log.Printf("Warning: Failed to get CosmosDB Accounts: %v", err)
+				break
+			}
+			for _, db := range page.Value {
+				data.AzureCosmosDBs = append(data.AzureCosmosDBs, *db)
+			}
 		}
 	}
 
