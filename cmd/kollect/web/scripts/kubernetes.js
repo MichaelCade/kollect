@@ -412,66 +412,64 @@ function showKubernetesConnectionModal() {
         }
     });
 
-    // Helper function to connect to Kubernetes
     function connectToKubernetes(kubeconfigPath, context) {
-        console.log(`Connecting to Kubernetes with path: ${kubeconfigPath || 'default'} and context: ${context || 'default'}`);
-        showLoadingIndicator();
-        
-        fetch('/api/kubernetes/connect', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                kubeconfigPath: kubeconfigPath,
-                context: context
-            })
+    console.log(`Connecting to Kubernetes with config path: ${kubeconfigPath} and context: ${context}`);
+    showLoadingIndicator();
+    
+    fetch('/api/kubernetes/connect', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            kubeconfigPath: kubeconfigPath,
+            context: context
         })
-        .then(response => {
-            if (!response.ok) {
-                return response.text().then(text => {
-                    throw new Error(`HTTP error ${response.status}: ${text}`);
-                });
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Connection response:", data);
-            if (data.status === 'success') {
-                // Update the button status
-                const button = document.getElementById('kubernetes-button');
-                if (button) {
-                    button.classList.add('connected');
-                    button.classList.remove('not-connected');
-                    
-                    const existingBadges = button.querySelectorAll('.connection-badge');
-                    existingBadges.forEach(badge => badge.remove());
-                    
-                    const badge = document.createElement('span');
-                    badge.className = 'connection-badge connected';
-                    button.appendChild(badge);
-                    
-                    button.title = 'Kubernetes (Connected)';
-                    console.log("Button updated to connected state");
-                }
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`HTTP error ${response.status}: ${text}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Connection response:", data);
+        if (data.status === 'success') {
+            const button = document.getElementById('kubernetes-button');
+            if (button) {
+                button.classList.add('connected');
+                button.classList.remove('not-connected');
                 
-                modal.remove();
-                console.log("Modal removed, reloading page");
-                setTimeout(() => {
-                    location.reload();
-                }, 300);
-            } else {
-                throw new Error(data.message || 'Failed to connect to Kubernetes');
+                const existingBadges = button.querySelectorAll('.connection-badge');
+                existingBadges.forEach(badge => badge.remove());
+                
+                const badge = document.createElement('span');
+                badge.className = 'connection-badge connected';
+                button.appendChild(badge);
+                
+                button.title = 'Kubernetes (Connected)';
+                console.log("Button updated to connected state");
             }
-        })
-        .catch(error => {
-            console.error('Kubernetes connection error:', error);
-            alert(`Error connecting to Kubernetes cluster: ${error.message}`);
-        })
-        .finally(() => {
-            hideLoadingIndicator();
-        });
-    }
+            
+            modal.remove();
+            console.log("Modal removed, reloading page");
+            setTimeout(() => {
+                location.reload();
+            }, 300);
+        } else {
+            throw new Error(data.message || 'Failed to connect to Kubernetes');
+        }
+    })
+    .catch(error => {
+        console.error('Kubernetes connection error:', error);
+        alert(`Error connecting to Kubernetes cluster: ${error.message}`);
+    })
+    .finally(() => {
+        hideLoadingIndicator();
+    });
+}
 
     // Function to load kubeconfig contexts from server
     function loadKubeContexts(kubeconfigPath, selectId) {

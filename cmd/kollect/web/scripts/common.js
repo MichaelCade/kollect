@@ -177,7 +177,6 @@ function registerDataHandler(identifier, testFn, handlerFn) {
     };
 }
 
-
 function processWithHandler(data) {
     document.getElementById('content').innerHTML = '';
     const chartsContainer = document.getElementById('charts-container');
@@ -292,6 +291,71 @@ function loadTerraformState(source) {
     // Add more backend types as needed
 }
 
+// Add this function to enhance all cloud connection buttons with loading indicators
+function enhanceConnectionButtons() {
+    console.log("Enhancing connection buttons with loading indicators");
+    
+    // AWS connection button
+    const awsConnectBtn = document.getElementById('aws-connect-btn');
+    if (awsConnectBtn) {
+        const originalClickHandler = awsConnectBtn.onclick;
+        awsConnectBtn.onclick = function(event) {
+            showLoadingIndicator();
+            if (originalClickHandler) {
+                originalClickHandler.call(this, event);
+            }
+        };
+    }
+    
+    // Azure connection button
+    const azureConnectBtn = document.getElementById('azure-connect-btn');
+    if (azureConnectBtn) {
+        const originalClickHandler = azureConnectBtn.onclick;
+        azureConnectBtn.onclick = function(event) {
+            showLoadingIndicator();
+            if (originalClickHandler) {
+                originalClickHandler.call(this, event);
+            }
+        };
+    }
+    
+    // GCP connection button
+    const gcpConnectBtn = document.getElementById('gcp-connect-btn');
+    if (gcpConnectBtn) {
+        const originalClickHandler = gcpConnectBtn.onclick;
+        gcpConnectBtn.onclick = function(event) {
+            showLoadingIndicator();
+            if (originalClickHandler) {
+                originalClickHandler.call(this, event);
+            }
+        };
+    }
+    
+    // Kubernetes connection button
+    const k8sConnectBtn = document.getElementById('kubernetes-connect-btn');
+    if (k8sConnectBtn) {
+        const originalClickHandler = k8sConnectBtn.onclick;
+        k8sConnectBtn.onclick = function(event) {
+            showLoadingIndicator();
+            if (originalClickHandler) {
+                originalClickHandler.call(this, event);
+            }
+        };
+    }
+    
+    // Terraform connection buttons
+    const tfConnectBtns = document.querySelectorAll('[id$="-terraform-connect-btn"]');
+    tfConnectBtns.forEach(btn => {
+        const originalClickHandler = btn.onclick;
+        btn.onclick = function(event) {
+            showLoadingIndicator();
+            if (originalClickHandler) {
+                originalClickHandler.call(this, event);
+            }
+        };
+    });
+}
+
 document.addEventListener('htmx:afterSwap', (event) => {
     if (event.detail.target.id === 'hidden-content') {
         try {
@@ -337,39 +401,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    document.getElementById('aws-button')?.addEventListener('click', () => {
-        showLoadingIndicator();
-        fetch('/api/switch?type=aws')
-            .then(response => response.json())
-            .then(data => {
-                location.reload();
-            })
-            .catch(error => console.error('Error switching to AWS:', error))
-            .finally(() => hideLoadingIndicator());
-    });
-    
-    document.getElementById('azure-button')?.addEventListener('click', () => {
-        showLoadingIndicator();
-        fetch('/api/switch?type=azure')
-            .then(response => response.json())
-            .then(data => {
-                location.reload();
-            })
-            .catch(error => console.error('Error switching to Azure:', error))
-            .finally(() => hideLoadingIndicator());
-    });
-    
-    document.getElementById('google-button')?.addEventListener('click', () => {
-        showLoadingIndicator();
-        fetch('/api/switch?type=gcp')
-            .then(response => response.json())
-            .then(data => {
-                location.reload();
-            })
-            .catch(error => console.error('Error switching to GCP:', error))
-            .finally(() => hideLoadingIndicator());
-    });
-    
     document.getElementById('veeam-button')?.addEventListener('click', () => {
         showLoadingIndicator();
         fetch('/api/switch?type=veeam')
@@ -380,6 +411,31 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(error => console.error('Error switching to Veeam:', error))
             .finally(() => hideLoadingIndicator());
     });
+    
+    // Observer for dynamically added elements (for modals that open later)
+    const bodyObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.addedNodes && mutation.addedNodes.length > 0) {
+                for (let i = 0; i < mutation.addedNodes.length; i++) {
+                    const node = mutation.addedNodes[i];
+                    if (node.id && node.id.endsWith('-connect-btn')) {
+                        console.log(`Detected new connection button: ${node.id}`);
+                        enhanceConnectionButtons();
+                        break;
+                    }
+                }
+            }
+        });
+    });
+    
+    // Configure the observer to watch for changes to the body
+    bodyObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    // Initial enhancement
+    enhanceConnectionButtons();
 });
 
 document.getElementById('export-button')?.addEventListener('click', () => {
