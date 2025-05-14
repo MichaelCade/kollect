@@ -26,8 +26,9 @@
                 <button id="veeam-button"><img src="images/veeam-black.png" alt="Veeam"></button>
             </div>
             <div class="nav-controls" style="text-align: right; margin-top: 10px;">
-                <button id="expand-all" class="control-button"><i class="fas fa-expand-alt"></i> Expand All</button>
-                <button id="collapse-all" class="control-button"><i class="fas fa-compress-alt"></i> Collapse All</button>
+                <button id="toggle-tables" class="control-button" data-collapsed="true">
+                    <i class="fas fa-expand-alt"></i> Expand All
+                </button>
             </div>
             <div class="import-export-buttons">
                 <div class="export-button">
@@ -105,13 +106,6 @@
                         console.error('Error updating charts after theme change:', e);
                     }
                 }
-            });
-            document.getElementById('expand-all').addEventListener('click', () => {
-                toggleAllTables(false);
-            });
-            
-            document.getElementById('collapse-all').addEventListener('click', () => {
-                toggleAllTables(true);
             });
             document.getElementById('resource-nav-toggle').addEventListener('click', () => {
                 const nav = document.getElementById('resource-nav');

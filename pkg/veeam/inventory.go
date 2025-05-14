@@ -23,55 +23,78 @@ type VeeamData struct {
 	BackupJobs           []map[string]interface{}
 }
 
-func CollectVeeamData(ctx context.Context, baseURL, username, password string) (VeeamData, error) {
+// CheckCredentials is a placeholder function to match other providers
+func CheckCredentials(ctx context.Context) (bool, error) {
+	// Veeam requires explicit credentials, so can't auto-detect
+	return false, nil
+}
+
+// CollectVeeamData gathers data from Veeam Backup & Replication
+// Accepts optional ignoreSSL parameter that defaults to true if not provided
+func CollectVeeamData(ctx context.Context, baseURL, username, password string, ignoreSSL ...bool) (VeeamData, error) {
 	var data VeeamData
 
-	token, err := authenticate(baseURL, username, password)
+	// Default to true for ignoreSSL for backward compatibility
+	skipSSLVerify := true
+	if len(ignoreSSL) > 0 {
+		skipSSLVerify = ignoreSSL[0]
+	}
+
+	// Pass the ignoreSSL parameter to authenticate
+	token, err := authenticate(baseURL, username, password, skipSSLVerify)
 	if err != nil {
 		return data, fmt.Errorf("authentication failed: %v", err)
 	}
 
-	data.ServerInfo, err = getServerInfo(baseURL, token)
+	// Create an HTTP client with the proper SSL verification setting
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: skipSSLVerify},
+		},
+	}
+
+	// Get server info using the client
+	data.ServerInfo, err = getServerInfo(baseURL, token, client)
 	if err != nil {
 		return data, fmt.Errorf("failed to get server info: %v", err)
 	}
 
-	data.Credentials, err = getCredentials(baseURL, token)
+	data.Credentials, err = getCredentials(baseURL, token, client)
 	if err != nil {
 		return data, fmt.Errorf("failed to get credentials: %v", err)
 	}
 
-	data.CloudCredentials, err = getCloudCredentials(baseURL, token)
+	data.CloudCredentials, err = getCloudCredentials(baseURL, token, client)
 	if err != nil {
 		return data, fmt.Errorf("failed to get cloud credentials: %v", err)
 	}
 
-	data.KMSServers, err = getKMSServers(baseURL, token)
+	data.KMSServers, err = getKMSServers(baseURL, token, client)
 	if err != nil {
 		return data, fmt.Errorf("failed to get KMS servers: %v", err)
 	}
 
-	data.ManagedServers, err = getManagedServers(baseURL, token)
+	data.ManagedServers, err = getManagedServers(baseURL, token, client)
 	if err != nil {
 		return data, fmt.Errorf("failed to get managed servers: %v", err)
 	}
 
-	data.Repositories, err = getRepositories(baseURL, token)
+	data.Repositories, err = getRepositories(baseURL, token, client)
 	if err != nil {
 		return data, fmt.Errorf("failed to get repositories: %v", err)
 	}
 
-	data.ScaleOutRepositories, err = getScaleOutRepositories(baseURL, token)
+	data.ScaleOutRepositories, err = getScaleOutRepositories(baseURL, token, client)
 	if err != nil {
 		return data, fmt.Errorf("failed to get scale-out repositories: %v", err)
 	}
 
-	data.Proxies, err = getProxies(baseURL, token)
+	data.Proxies, err = getProxies(baseURL, token, client)
 	if err != nil {
 		return data, fmt.Errorf("failed to get proxies: %v", err)
 	}
 
-	data.BackupJobs, err = listBackupJobs(baseURL, token)
+	data.BackupJobs, err = listBackupJobs(baseURL, token, client)
 	if err != nil {
 		return data, fmt.Errorf("failed to list backup jobs: %v", err)
 	}
@@ -79,7 +102,7 @@ func CollectVeeamData(ctx context.Context, baseURL, username, password string) (
 	return data, nil
 }
 
-func authenticate(baseURL, username, password string) (string, error) {
+func authenticate(baseURL, username, password string, ignoreSSL bool) (string, error) {
 	authURL := fmt.Sprintf("%s/api/oauth2/token", baseURL)
 
 	data := url.Values{}
@@ -89,7 +112,7 @@ func authenticate(baseURL, username, password string) (string, error) {
 
 	client := &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: ignoreSSL},
 		},
 	}
 
@@ -125,46 +148,40 @@ func authenticate(baseURL, username, password string) (string, error) {
 	return token, nil
 }
 
-func getServerInfo(baseURL, token string) (map[string]interface{}, error) {
-	return getAPIData(fmt.Sprintf("%s/api/v1/serverInfo", baseURL), token)
+func getServerInfo(baseURL, token string, client *http.Client) (map[string]interface{}, error) {
+	return getAPIData(fmt.Sprintf("%s/api/v1/serverInfo", baseURL), token, client)
 }
 
-func getCredentials(baseURL, token string) ([]interface{}, error) {
-	return getAPIList(fmt.Sprintf("%s/api/v1/credentials", baseURL), token)
+func getCredentials(baseURL, token string, client *http.Client) ([]interface{}, error) {
+	return getAPIList(fmt.Sprintf("%s/api/v1/credentials", baseURL), token, client)
 }
 
-func getCloudCredentials(baseURL, token string) ([]interface{}, error) {
-	return getAPIList(fmt.Sprintf("%s/api/v1/cloudCredentials", baseURL), token)
+func getCloudCredentials(baseURL, token string, client *http.Client) ([]interface{}, error) {
+	return getAPIList(fmt.Sprintf("%s/api/v1/cloudCredentials", baseURL), token, client)
 }
 
-func getKMSServers(baseURL, token string) ([]interface{}, error) {
-	return getAPIList(fmt.Sprintf("%s/api/v1/kmsServers", baseURL), token)
+func getKMSServers(baseURL, token string, client *http.Client) ([]interface{}, error) {
+	return getAPIList(fmt.Sprintf("%s/api/v1/kmsServers", baseURL), token, client)
 }
 
-func getManagedServers(baseURL, token string) ([]interface{}, error) {
-	return getAPIList(fmt.Sprintf("%s/api/v1/backupInfrastructure/managedServers", baseURL), token)
+func getManagedServers(baseURL, token string, client *http.Client) ([]interface{}, error) {
+	return getAPIList(fmt.Sprintf("%s/api/v1/backupInfrastructure/managedServers", baseURL), token, client)
 }
 
-func getRepositories(baseURL, token string) ([]interface{}, error) {
-	return getAPIList(fmt.Sprintf("%s/api/v1/backupInfrastructure/repositories", baseURL), token)
+func getRepositories(baseURL, token string, client *http.Client) ([]interface{}, error) {
+	return getAPIList(fmt.Sprintf("%s/api/v1/backupInfrastructure/repositories", baseURL), token, client)
 }
 
-func getScaleOutRepositories(baseURL, token string) ([]interface{}, error) {
-	return getAPIList(fmt.Sprintf("%s/api/v1/backupInfrastructure/scaleOutRepositories", baseURL), token)
+func getScaleOutRepositories(baseURL, token string, client *http.Client) ([]interface{}, error) {
+	return getAPIList(fmt.Sprintf("%s/api/v1/backupInfrastructure/scaleOutRepositories", baseURL), token, client)
 }
 
-func getProxies(baseURL, token string) ([]interface{}, error) {
-	return getAPIList(fmt.Sprintf("%s/api/v1/backupInfrastructure/proxies", baseURL), token)
+func getProxies(baseURL, token string, client *http.Client) ([]interface{}, error) {
+	return getAPIList(fmt.Sprintf("%s/api/v1/backupInfrastructure/proxies", baseURL), token, client)
 }
 
-func listBackupJobs(baseURL, token string) ([]map[string]interface{}, error) {
+func listBackupJobs(baseURL, token string, client *http.Client) ([]map[string]interface{}, error) {
 	jobsURL := fmt.Sprintf("%s/api/v1/jobs", baseURL)
-
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
 
 	req, err := http.NewRequest("GET", jobsURL, nil)
 	if err != nil {
@@ -205,13 +222,7 @@ func listBackupJobs(baseURL, token string) ([]map[string]interface{}, error) {
 	return jobList, nil
 }
 
-func getAPIData(url, token string) (map[string]interface{}, error) {
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
+func getAPIData(url, token string, client *http.Client) (map[string]interface{}, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -239,13 +250,7 @@ func getAPIData(url, token string) (map[string]interface{}, error) {
 	return result, nil
 }
 
-func getAPIList(url, token string) ([]interface{}, error) {
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
+func getAPIList(url, token string, client *http.Client) ([]interface{}, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err

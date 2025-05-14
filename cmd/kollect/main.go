@@ -145,7 +145,7 @@ func main() {
 			*baseURL = "http://" + *baseURL
 		}
 
-		data, err = veeam.CollectVeeamData(ctx, *baseURL, *username, *password)
+		data, err = veeam.CollectVeeamData(ctx, *baseURL, *username, *password, true)
 	default:
 		log.Fatalf("Invalid inventory type: %s", *inventoryType)
 	}
@@ -253,6 +253,14 @@ func checkCredentials(ctx context.Context) map[string]bool {
 	// Veeam would typically require explicit credentials, so we'll default to false
 	results["veeam"] = false
 
+	dataMutex.Lock()
+	veeamConnected := false
+	if d, ok := data.(veeam.VeeamData); ok {
+		veeamConnected = d.ServerInfo != nil && len(d.ServerInfo) > 0
+	}
+	dataMutex.Unlock()
+	results["veeam"] = veeamConnected
+
 	// For Terraform, we'll just check if the terraform command is available
 	_, err = exec.LookPath("terraform")
 	results["terraform"] = err == nil
@@ -333,7 +341,7 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 				http.Error(w, "Veeam URL, username, and password must be provided", http.StatusBadRequest)
 				return
 			}
-			data, err = veeam.CollectVeeamData(ctx, baseURL, username, password)
+			data, err = veeam.CollectVeeamData(ctx, baseURL, username, password, true)
 		default:
 			http.Error(w, "Invalid inventory type", http.StatusBadRequest)
 			return
@@ -456,7 +464,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		json.NewEncoder(w).Encode(tfData)
 	})
 
-	// Add this endpoint in the startWebServer function
 	http.HandleFunc("/api/veeam/connect", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -482,9 +489,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 
 		ctx := r.Context()
 
-		// Collect Veeam data using the provided credentials
-		veeamData, err := veeam.CollectVeeamData(ctx, params.BaseUrl, params.Username, params.Password)
+		veeamData, err := veeam.CollectVeeamData(ctx, params.BaseUrl, params.Username, params.Password, params.IgnoreSSL)
 		if err != nil {
+			log.Printf("Error connecting to Veeam server %s: %v", params.BaseUrl, err)
 			http.Error(w, fmt.Sprintf("Error connecting to Veeam: %v", err), http.StatusInternalServerError)
 			return
 		}

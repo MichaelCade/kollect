@@ -789,58 +789,95 @@ function showVeeamConnectionModal() {
         modal.remove();
     });
     
-    // Handle connect button
-    document.getElementById('veeam-connect-btn').addEventListener('click', () => {
-        const server = document.getElementById('veeam-server').value.trim();
-        const username = document.getElementById('veeam-username').value.trim();
-        const password = document.getElementById('veeam-password').value;
-        const ignoreSSL = document.getElementById('veeam-ignore-ssl').checked;
-        
-        if (!server || !username || !password) {
-            alert('Please provide all required fields');
-            return;
+    // Verify this part is properly implemented at the end of showVeeamConnectionModal function:
+document.getElementById('veeam-connect-btn').addEventListener('click', () => {
+    const server = document.getElementById('veeam-server').value.trim();
+    const username = document.getElementById('veeam-username').value.trim();
+    const password = document.getElementById('veeam-password').value;
+    const ignoreSSL = document.getElementById('veeam-ignore-ssl').checked;
+    
+    if (!server || !username || !password) {
+        alert('Please provide all required fields');
+        return;
+    }
+    
+    showLoadingIndicator();
+    
+    // Format the URL with https:// and port if not included
+    let serverUrl = server;  // Just use the server value directly
+
+    // Only add https:// if not already present
+    if (!serverUrl.startsWith('http')) {
+        serverUrl = `https://${serverUrl}`;
+    }
+    
+    // Only add port if not already included in the URL
+    if (!serverUrl.includes(':9419') && !server.includes(':')) {
+        serverUrl += ':9419';
+    }
+    
+    console.log("Connecting to Veeam server:", serverUrl);
+    
+    // Send request to connect to Veeam
+    fetch('/api/veeam/connect', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            baseUrl: serverUrl,
+            username: username,
+            password: password,
+            ignoreSSL: ignoreSSL
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`HTTP error ${response.status}: ${text}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+    if (data.status === 'success') {
+        // Update the button status before reloading
+        const button = document.getElementById('veeam-button');
+        if (button) {
+            // Remove any existing badges
+            const existingBadges = button.querySelectorAll('.connection-badge');
+            existingBadges.forEach(badge => badge.remove());
+            
+            // Add connected class and badge
+            button.classList.add('connected');
+            button.classList.remove('not-connected');
+            
+            // Add a green badge
+            const badge = document.createElement('span');
+            badge.className = 'connection-badge connected';
+            button.appendChild(badge);
+            
+            // Add tooltip
+            button.title = 'Veeam (Connected)';
         }
         
-        showLoadingIndicator();
+        // Remove modal
+        modal.remove();
         
-        // Format the URL with https:// and port if not included
-        let serverUrl = `https://${server}`;
-        if (!serverUrl.includes(':') && !server.includes(':')) {
-            serverUrl += ':9419';
-        }
-        
-        // Send request to connect to Veeam
-        fetch('/api/veeam/connect', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                baseUrl: serverUrl,
-                username: username,
-                password: password,
-                ignoreSSL: ignoreSSL
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status === 'success') {
-                modal.remove();
-                location.reload(); // Reload to show Veeam data
-            } else {
-                throw new Error(data.message || 'Failed to connect to Veeam server');
-            }
-        })
-        .catch(error => {
-            alert(`Error connecting to Veeam server: ${error.message}`);
-        })
-        .finally(() => {
-            hideLoadingIndicator();
-        });
+        // Reload after a short delay to allow UI update
+        setTimeout(() => {
+            location.reload();
+        }, 300);
+    } else {
+        throw new Error(data.message || 'Failed to connect to Veeam server');
+    }
+})
+    .catch(error => {
+        console.error("Veeam connection error:", error);
+        alert(`Error connecting to Veeam server: ${error.message}`);
+    })
+    .finally(() => {
+        hideLoadingIndicator();
     });
+});
 }

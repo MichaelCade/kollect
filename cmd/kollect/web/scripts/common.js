@@ -85,6 +85,18 @@ function toggleAllTables(collapse) {
             content.classList.remove('collapsed');
         }
     });
+    
+    // Update the toggle button state
+    const toggleButton = document.getElementById('toggle-tables');
+    if (toggleButton) {
+        if (collapse) {
+            toggleButton.innerHTML = '<i class="fas fa-expand-alt"></i> Expand All';
+            toggleButton.setAttribute('data-collapsed', 'true');
+        } else {
+            toggleButton.innerHTML = '<i class="fas fa-compress-alt"></i> Collapse All';
+            toggleButton.setAttribute('data-collapsed', 'false');
+        }
+    }
 }
 
 function updateResourceNav() {
@@ -294,21 +306,20 @@ document.addEventListener('htmx:afterSwap', (event) => {
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM Loaded - Setting up event listeners");
     
-    const expandAllButton = document.getElementById('expand-all');
-    if (expandAllButton) {
-        console.log("Found expand-all button");
-        expandAllButton.addEventListener('click', () => {
-            console.log("Expand all clicked");
-            toggleAllTables(false);
-        });
-    }
-    
-    const collapseAllButton = document.getElementById('collapse-all');
-    if (collapseAllButton) {
-        console.log("Found collapse-all button");
-        collapseAllButton.addEventListener('click', () => {
-            console.log("Collapse all clicked");
-            toggleAllTables(true);
+    const toggleTablesButton = document.getElementById('toggle-tables');
+    if (toggleTablesButton) {
+        console.log("Found toggle-tables button");
+        toggleTablesButton.addEventListener('click', () => {
+            const isCollapsed = toggleTablesButton.getAttribute('data-collapsed') === 'true';
+            console.log(`Toggle tables clicked, current state: ${isCollapsed ? 'Collapsed' : 'Expanded'}`);
+            
+            if (isCollapsed) {
+                // Currently collapsed, so expand
+                toggleAllTables(false);
+            } else {
+                // Currently expanded, so collapse  
+                toggleAllTables(true);
+            }
         });
     }
     
