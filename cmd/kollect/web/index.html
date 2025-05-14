@@ -23,7 +23,7 @@
                 <button id="azure-button"><img src="images/azure.svg" alt="Azure"></button>
                 <button id="google-button"><img src="images/gcp.svg" alt="Google"></button>
                 <button id="terraform-button"><img src="images/terraform.svg" alt="Terraform"></button>
-                <button id="veeam-button"><img src="images/veeam.svg" alt="Veeam"></button>
+                <button id="veeam-button"><img src="images/veeam-black.png" alt="Veeam"></button>
             </div>
             <div class="nav-controls" style="text-align: right; margin-top: 10px;">
                 <button id="expand-all" class="control-button"><i class="fas fa-expand-alt"></i> Expand All</button>
@@ -119,5 +119,62 @@
             });
         });
     </script>
+    <script>
+    // Check platform connections and update UI
+    function checkPlatformConnections() {
+        fetch('/api/check-credentials')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Connection status:', data);
+                
+                // Update UI for each platform
+                for (const [platform, isConnected] of Object.entries(data)) {
+                    const buttonId = platform === 'gcp' ? 'google-button' : `${platform}-button`;
+                    const button = document.getElementById(buttonId);
+                    
+                    if (button) {
+                        // Remove any existing badges first to prevent duplicates
+                        const existingBadges = button.querySelectorAll('.connection-badge');
+                        existingBadges.forEach(badge => badge.remove());
+                        
+                        if (isConnected) {
+                            button.classList.add('connected');
+                            button.classList.remove('not-connected');
+                            
+                            // Add a badge
+                            const badge = document.createElement('span');
+                            badge.className = 'connection-badge connected';
+                            button.appendChild(badge);
+                            
+                            // Add tooltip
+                            button.title = `${platform.charAt(0).toUpperCase() + platform.slice(1)} (Connected)`;
+                        } else {
+                            button.classList.add('not-connected');
+                            button.classList.remove('connected');
+                            
+                            // Add a badge
+                            const badge = document.createElement('span');
+                            badge.className = 'connection-badge not-connected';
+                            button.appendChild(badge);
+                            
+                            // Add tooltip
+                            button.title = `${platform.charAt(0).toUpperCase() + platform.slice(1)} (Not Connected)`;
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking platform connections:', error);
+            });
+    }
+    
+    // Call this function when the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        // Existing event listeners
+        
+        // Check platform connections
+        checkPlatformConnections();
+    });
+</script>
 </body>
 </html>

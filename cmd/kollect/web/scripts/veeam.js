@@ -691,3 +691,156 @@ function generateCharts(data) {
         console.error("Error generating charts:", error);
     }
 }
+
+// Update the Veeam button click handler to show the connection modal
+document.getElementById('veeam-button')?.addEventListener('click', () => {
+    // Check if we're already connected to Veeam
+    const button = document.getElementById('veeam-button');
+    if (button && button.classList.contains('connected')) {
+        // If connected, just switch to Veeam data
+        showLoadingIndicator();
+        fetch('/api/switch?type=veeam')
+            .then(response => response.json())
+            .then(data => {
+                location.reload();
+            })
+            .catch(error => console.error('Error switching to Veeam:', error))
+            .finally(() => hideLoadingIndicator());
+    } else {
+        // If not connected, show the connection modal
+        showVeeamConnectionModal();
+    }
+});
+
+// Function to show the Veeam connection modal
+function showVeeamConnectionModal() {
+    // Create a modal dialog for Veeam connection
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    modal.style.position = 'fixed';
+    modal.style.zIndex = 1000;
+    modal.style.left = 0;
+    modal.style.top = 0;
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.7)'; // Darker overlay for better contrast
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content veeam-modal';
+    modalContent.style.backgroundColor = 'var(--card-bg)';
+    modalContent.style.color = 'var(--text-color)';
+    modalContent.style.padding = '25px';
+    modalContent.style.borderRadius = '8px';
+    modalContent.style.maxWidth = '450px';
+    modalContent.style.width = '90%';
+    modalContent.style.boxShadow = '0 5px 20px rgba(0,0,0,0.4)';
+    modalContent.style.border = '1px solid var(--border-color)';
+    
+    modalContent.innerHTML = `
+        <h3 style="margin-top: 0; color: var(--accent-color); font-size: 1.5em; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <i class="fas fa-server"></i> Connect to Veeam Backup & Replication
+        </h3>
+        
+        <div class="veeam-connection-form" style="margin-top: 20px;">
+            <div class="form-group">
+                <label for="veeam-server" style="font-weight: bold; margin-bottom: 5px;">Server IP/Hostname:</label>
+                <div style="display: flex; align-items: center;">
+                    <span style="background: var(--secondary-bg-color); padding: 8px; border-radius: 4px 0 0 4px; border: 1px solid var(--border-color); border-right: none;">https://</span>
+                    <input type="text" id="veeam-server" placeholder="vbr-server.example.com" style="flex-grow: 1; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 0;">
+                    <span style="background: var(--secondary-bg-color); padding: 8px; border-radius: 0 4px 4px 0; border: 1px solid var(--border-color); border-left: none;">:9419</span>
+                </div>
+                <small style="color: var(--text-color); opacity: 0.7; font-size: 0.8em; margin-top: 3px;">Default port is 9419 for Veeam REST API</small>
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="veeam-username" style="font-weight: bold; margin-bottom: 5px;">Username:</label>
+                <input type="text" id="veeam-username" placeholder="Username with admin rights" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+            </div>
+            
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="veeam-password" style="font-weight: bold; margin-bottom: 5px;">Password:</label>
+                <input type="password" id="veeam-password" placeholder="Enter password" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+            </div>
+            
+            <div class="form-group" style="margin-top: 10px;">
+                <div style="display: flex; align-items: center;">
+                    <input type="checkbox" id="veeam-ignore-ssl" checked style="margin-right: 8px;">
+                    <label for="veeam-ignore-ssl">Ignore SSL certificate errors</label>
+                </div>
+            </div>
+            
+            <div class="modal-buttons" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                <button id="veeam-cancel-btn" class="btn" style="padding: 10px 20px; background-color: var(--button-bg-color); color: var(--button-text-color); border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+                <button id="veeam-connect-btn" class="btn btn-primary" style="padding: 10px 20px; background-color: var(--accent-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                    <i class="fas fa-plug"></i> Connect
+                </button>
+            </div>
+        </div>
+    `;
+    
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // Handle cancel button
+    document.getElementById('veeam-cancel-btn').addEventListener('click', () => {
+        modal.remove();
+    });
+    
+    // Handle connect button
+    document.getElementById('veeam-connect-btn').addEventListener('click', () => {
+        const server = document.getElementById('veeam-server').value.trim();
+        const username = document.getElementById('veeam-username').value.trim();
+        const password = document.getElementById('veeam-password').value;
+        const ignoreSSL = document.getElementById('veeam-ignore-ssl').checked;
+        
+        if (!server || !username || !password) {
+            alert('Please provide all required fields');
+            return;
+        }
+        
+        showLoadingIndicator();
+        
+        // Format the URL with https:// and port if not included
+        let serverUrl = `https://${server}`;
+        if (!serverUrl.includes(':') && !server.includes(':')) {
+            serverUrl += ':9419';
+        }
+        
+        // Send request to connect to Veeam
+        fetch('/api/veeam/connect', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                baseUrl: serverUrl,
+                username: username,
+                password: password,
+                ignoreSSL: ignoreSSL
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                modal.remove();
+                location.reload(); // Reload to show Veeam data
+            } else {
+                throw new Error(data.message || 'Failed to connect to Veeam server');
+            }
+        })
+        .catch(error => {
+            alert(`Error connecting to Veeam server: ${error.message}`);
+        })
+        .finally(() => {
+            hideLoadingIndicator();
+        });
+    });
+}
