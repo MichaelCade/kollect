@@ -456,6 +456,52 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		json.NewEncoder(w).Encode(tfData)
 	})
 
+	// Add this endpoint in the startWebServer function
+	http.HandleFunc("/api/veeam/connect", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var params struct {
+			BaseUrl   string `json:"baseUrl"`
+			Username  string `json:"username"`
+			Password  string `json:"password"`
+			IgnoreSSL bool   `json:"ignoreSSL"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if params.BaseUrl == "" || params.Username == "" || params.Password == "" {
+			http.Error(w, "URL, username, and password are required", http.StatusBadRequest)
+			return
+		}
+
+		ctx := r.Context()
+
+		// Collect Veeam data using the provided credentials
+		veeamData, err := veeam.CollectVeeamData(ctx, params.BaseUrl, params.Username, params.Password)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error connecting to Veeam: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Update the global data with the new Veeam data
+		dataMutex.Lock()
+		data = veeamData
+		dataMutex.Unlock()
+
+		// Return success response
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "Successfully connected to Veeam server",
+		})
+	})
+
 	log.Println("Server starting on port http://localhost:8080")
 	if openBrowser {
 		// Open the browser
