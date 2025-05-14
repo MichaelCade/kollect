@@ -13,6 +13,15 @@
     --accent-color: #4a90e2;
     --accent-hover: #3a7bcc;
     --border-color: #ddd;
+    --input-bg-color: #f5f5f5;
+    --button-bg-color: #f5f5f5;
+    --button-text-color: #333333;
+    --secondary-bg-color: #f0f0f0;
+    --connected-glow: rgba(46, 213, 115, 0.5);
+    --connected-bg: rgba(46, 213, 115, 0.1);
+    --connected-border: rgba(46, 213, 115, 0.6);
+    --button-shadow-color: rgba(0, 0, 0, 0.15);
+    --platform-button-bg: #e0e0e0; /* Lighter background for better contrast in light mode */
 }
 
 [data-theme="dark"] {
@@ -27,6 +36,15 @@
     --accent-color: #5fa3e6;
     --accent-hover: #4a90e2;
     --border-color: #444;
+    --input-bg-color: #2a2a2a;
+    --button-bg-color: #333;
+    --button-text-color: #ffffff;
+    --secondary-bg-color: #2a2a2a;
+    --connected-glow: rgba(46, 213, 115, 0.5);
+    --connected-bg: rgba(46, 213, 115, 0.1);
+    --connected-border: rgba(46, 213, 115, 0.6);
+    --button-shadow-color: rgba(0, 0, 0, 0.3);
+    --platform-button-bg: #333333; /* Darker background for dark mode */
 }
 
 body {
@@ -78,13 +96,57 @@ th {
     margin-top: 20px;
 }
 
-.inventory-buttons, .import-export-buttons {
+/* Inventory buttons and controls */
+.inventory-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+/* Reset platform button styles to ensure consistency */
+.inventory-buttons button, .platform-button {
+    width: 60px;
+    height: 60px;
+    padding: 12px;
+    background-color: var(--platform-button-bg); /* Use specific variable */
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease !important; /* Force transition */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: visible; /* Allow badges to overflow */
+    box-shadow: 0 2px 5px var(--button-shadow-color);
+}
+
+.inventory-buttons button img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    transition: filter 0.3s ease;
+}
+
+/* Make SVG icons dark in light mode */
+[data-theme="light"] .inventory-buttons button img {
+    filter: brightness(0.2) contrast(1.2); /* This will make white SVGs appear very dark (almost black) */
+}
+
+/* Keep SVGs light in dark mode */
+[data-theme="dark"] .inventory-buttons button img {
+    filter: brightness(1) contrast(1); /* This keeps white SVGs white */
+}
+
+.import-export-buttons {
     display: flex;
     justify-content: center;
     margin: 10px 0;
 }
 
-.inventory-buttons button, .export-button button, .import-button button, #theme-toggle, .details-button {
+.export-button button, .import-button button, #theme-toggle, .details-button {
     margin-right: 10px;
     padding: 10px 20px;
     font-size: 16px;
@@ -93,15 +155,10 @@ th {
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    transition: all 0.3s ease;
 }
 
-.inventory-buttons button img {
-    width: 24px;
-    height: 24px;
-}
-
-.inventory-buttons button:hover, .export-button button:hover, .import-button button:hover, #theme-toggle:hover, .details-button:hover {
+.export-button button:hover, .import-button button:hover, #theme-toggle:hover, .details-button:hover {
     background-color: var(--button-hover-bg);
     transform: scale(1.05);
     box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
@@ -109,6 +166,55 @@ th {
 
 .inventory-buttons button i, .export-button button i, .import-button button i, #theme-toggle i {
     color: var(--text-color); 
+}
+
+/* Hover effects for platform buttons - simplified for reliability */
+.inventory-buttons button:hover, .platform-button:hover {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 8px 15px var(--button-shadow-color);
+}
+
+/* Connected state */
+.platform-button.connected {
+    box-shadow: 0 0 10px 1px var(--connected-glow);
+    background-color: var(--connected-bg);
+    border-color: var(--connected-border);
+}
+
+/* Not connected state - improved contrast */
+.platform-button.not-connected {
+    opacity: 0.85;
+    filter: grayscale(20%);
+    border: 1px solid var(--border-color);
+}
+
+/* Explicit hover styles for connected buttons */
+.platform-button.connected:hover {
+    transform: translateY(-3px) scale(1.08);
+    box-shadow: 0 0 15px 3px var(--connected-glow);
+    opacity: 1;
+    filter: none;
+}
+
+/* Connection status badge */
+.connection-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--card-bg);
+    z-index: 10;
+}
+
+.connection-badge.connected {
+    background-color: #2ed573;
+    box-shadow: 0 0 5px rgba(46, 213, 115, 0.7);
+}
+
+.connection-badge.not-connected {
+    background-color: #ff4757;
 }
 
 .loading-indicator {
@@ -322,7 +428,39 @@ th {
     opacity: 0.8;
 }
 
-/* Add these styles to your existing stylesheet */
+/* Terraform-specific styles */
+.terraform-details-panel {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 15px;
+    margin-top: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+}
+
+.tf-details-header {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.tf-details-header h4 {
+    margin: 0;
+    color: var(--accent-color);
+}
+
+.tf-details-section {
+    margin-bottom: 15px;
+}
+
+.tf-details-section h5 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    color: var(--text-color);
+    opacity: 0.8;
+}
+
+/* Attributes tables and values */
 .attributes-table {
     width: 100%;
     border-collapse: collapse;
@@ -344,7 +482,123 @@ th {
     overflow-wrap: break-word;
 }
 
+.attr-name {
+    font-family: monospace;
+    font-weight: bold;
+}
+
+.attr-value {
+    font-family: monospace;
+}
+
+.boolean-value {
+    color: #ff7675;
+}
+
+.number-value {
+    color: #74b9ff;
+}
+
+.string-value {
+    color: #55efc4;
+}
+
+.null-value {
+    color: #b2bec3;
+    font-style: italic;
+}
+
+.complex-value {
+    color: #fdcb6e;
+    font-style: italic;
+}
+
+.url-value {
+    color: #0984e3;
+    text-decoration: underline;
+}
+
+/* Resource styling */
+.resource-icon {
+    margin-right: 5px;
+    color: var(--accent-color);
+}
+
+.resource-type {
+    font-family: monospace;
+    font-size: 0.9em;
+    padding: 2px 5px;
+    background: rgba(0,0,0,0.1);
+    border-radius: 3px;
+}
+
+.provider-badge {
+    background: var(--accent-color);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.8em;
+}
+
+.module-badge {
+    background: #6c5ce7;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.8em;
+}
+
+.root-badge {
+    background: #636e72;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.8em;
+}
+
+.status-badge {
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.status-created {
+    background: #00b894;
+    color: white;
+}
+
+.status-pending {
+    background: #fdcb6e;
+    color: #333;
+}
+
+.status-tainted {
+    background: #d63031;
+    color: white;
+}
+
+.status-other {
+    background: #636e72;
+    color: white;
+}
+
+.dependency-list {
+    margin: 0;
+    padding-left: 20px;
+    list-style-type: square;
+}
+
+.dependency-list li {
+    font-family: monospace;
+    margin-bottom: 5px;
+}
+
 /* Terraform modal styles */
+.terraform-modal .source-option:hover {
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
 .source-option {
     margin-bottom: 15px;
     border-bottom: 1px solid var(--border-color);
@@ -400,66 +654,79 @@ th {
     font-style: italic;
 }
 
-/* Platform connection status indicators */
-.platform-button {
-    position: relative;
-    transition: all 0.3s ease;
-    border-radius: 8px;
-    overflow: hidden;
+/* Add clearfix to the modal content */
+.modal-content::after {
+    content: "";
+    clear: both;
+    display: table;
 }
 
-.platform-button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-radius: 8px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: -1;
+/* Override background for inputs specifically in modals */
+.modal-content input[type="text"] {
+    background-color: var(--input-bg-color) !important;
 }
 
-.platform-button.connected::before {
-    opacity: 1;
-    box-shadow: 0 0 20px 3px rgba(46, 213, 115, 0.6);
-    background-color: rgba(46, 213, 115, 0.1);
+/* Modal background styling */
+.modal {
+    background-color: rgba(0, 0, 0, 0.7) !important;
 }
 
-.platform-button.not-connected {
-    opacity: 0.6;
-}
-
-.platform-button:hover {
-    transform: scale(1.05);
-}
-
-.platform-button.connected:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 25px 5px rgba(46, 213, 115, 0.7);
-}
-
-/* Connection status badge */
-.connection-badge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    border: 2px solid var(--card-bg);
-}
-
-.connection-badge.connected {
-    background-color: #2ed573;
-}
-
-.connection-badge.not-connected {
-    background-color: #ff4757;
-}
-
+/* Animations */
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    from { box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    to { box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+}
+
+@keyframes pulse-green {
+    from { box-shadow: 0 0 10px 2px var(--connected-glow); }
+    to { box-shadow: 0 0 20px 4px var(--connected-glow); }
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 768px) {
+    .inventory-buttons {
+        flex-wrap: wrap;
+    }
+    
+    .logo {
+        width: 20%;
+    }
+    
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .resource-nav {
+        top: auto;
+        bottom: 80px;
+        right: 20px;
+        transform: none;
+        max-height: 40vh;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo {
+        width: 30%;
+    }
+    
+    .inventory-buttons button, .platform-button {
+        width: 50px;
+        height: 50px;
+        padding: 8px;
+    }
+    
+    .inventory-buttons button img {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .table-container {
+        overflow-x: auto;
+    }
 }

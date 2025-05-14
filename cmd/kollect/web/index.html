@@ -133,6 +133,10 @@
                     const button = document.getElementById(buttonId);
                     
                     if (button) {
+                        // Remove any existing badges first to prevent duplicates
+                        const existingBadges = button.querySelectorAll('.connection-badge');
+                        existingBadges.forEach(badge => badge.remove());
+                        
                         if (isConnected) {
                             button.classList.add('connected');
                             button.classList.remove('not-connected');
