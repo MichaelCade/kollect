@@ -30,6 +30,15 @@ type AzureData struct {
 	AzureResourceGroups  []armresources.ResourceGroup
 }
 
+func CheckCredentials(ctx context.Context) (bool, error) {
+	err := error(nil)
+
+	// Try to get the subscription ID to verify credentials work
+	_, err = getAzureSubscriptionID()
+
+	return err == nil, err
+}
+
 func CollectAzureData(ctx context.Context) (AzureData, error) {
 	var data AzureData
 	subscriptionID, err := getAzureSubscriptionID()

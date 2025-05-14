@@ -119,5 +119,58 @@
             });
         });
     </script>
+    <script>
+    // Check platform connections and update UI
+    function checkPlatformConnections() {
+        fetch('/api/check-credentials')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Connection status:', data);
+                
+                // Update UI for each platform
+                for (const [platform, isConnected] of Object.entries(data)) {
+                    const buttonId = platform === 'gcp' ? 'google-button' : `${platform}-button`;
+                    const button = document.getElementById(buttonId);
+                    
+                    if (button) {
+                        if (isConnected) {
+                            button.classList.add('connected');
+                            button.classList.remove('not-connected');
+                            
+                            // Add a badge
+                            const badge = document.createElement('span');
+                            badge.className = 'connection-badge connected';
+                            button.appendChild(badge);
+                            
+                            // Add tooltip
+                            button.title = `${platform.charAt(0).toUpperCase() + platform.slice(1)} (Connected)`;
+                        } else {
+                            button.classList.add('not-connected');
+                            button.classList.remove('connected');
+                            
+                            // Add a badge
+                            const badge = document.createElement('span');
+                            badge.className = 'connection-badge not-connected';
+                            button.appendChild(badge);
+                            
+                            // Add tooltip
+                            button.title = `${platform.charAt(0).toUpperCase() + platform.slice(1)} (Not Connected)`;
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking platform connections:', error);
+            });
+    }
+    
+    // Call this function when the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        // Existing event listeners
+        
+        // Check platform connections
+        checkPlatformConnections();
+    });
+</script>
 </body>
 </html>

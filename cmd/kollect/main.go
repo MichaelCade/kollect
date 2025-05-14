@@ -25,6 +25,9 @@ import (
 	"github.com/michaelcade/kollect/pkg/terraform"
 	"github.com/michaelcade/kollect/pkg/veeam"
 	"golang.org/x/term"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 var (
@@ -219,6 +222,44 @@ func printData(data interface{}) {
 	fmt.Println(string(prettyData))
 }
 
+func checkCredentials(ctx context.Context) map[string]bool {
+	results := make(map[string]bool)
+
+	// Check Kubernetes credentials
+	k8sConfig, err := clientcmd.BuildConfigFromFlags("", filepath.Join(os.Getenv("HOME"), ".kube", "config"))
+	if err == nil {
+		clientset, err := kubernetes.NewForConfig(k8sConfig)
+		if err == nil {
+			// Try to list namespaces to verify connection
+			_, err = clientset.CoreV1().Namespaces().List(ctx, v1.ListOptions{Limit: 1})
+			results["kubernetes"] = err == nil
+		}
+	} else {
+		results["kubernetes"] = false
+	}
+
+	// Check AWS credentials
+	awsHasCredentials, _ := aws.CheckCredentials(ctx)
+	results["aws"] = awsHasCredentials
+
+	// Check Azure credentials
+	azureHasCredentials, _ := azure.CheckCredentials(ctx)
+	results["azure"] = azureHasCredentials
+
+	// Check GCP credentials
+	gcpHasCredentials, _ := gcp.CheckCredentials(ctx)
+	results["gcp"] = gcpHasCredentials
+
+	// Veeam would typically require explicit credentials, so we'll default to false
+	results["veeam"] = false
+
+	// For Terraform, we'll just check if the terraform command is available
+	_, err = exec.LookPath("terraform")
+	results["terraform"] = err == nil
+
+	return results
+}
+
 func startWebServer(initialData interface{}, openBrowser bool, baseURL, username, password string) {
 	fsys, err := fs.Sub(staticFiles, "web")
 	if err != nil {
@@ -236,6 +277,14 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			log.Printf("Error encoding data: %v", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
+	})
+
+	http.HandleFunc("/api/check-credentials", func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		results := checkCredentials(ctx)
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(results)
 	})
 
 	http.HandleFunc("/api/import", func(w http.ResponseWriter, r *http.Request) {

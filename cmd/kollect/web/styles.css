@@ -400,6 +400,65 @@ th {
     font-style: italic;
 }
 
+/* Platform connection status indicators */
+.platform-button {
+    position: relative;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.platform-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.platform-button.connected::before {
+    opacity: 1;
+    box-shadow: 0 0 20px 3px rgba(46, 213, 115, 0.6);
+    background-color: rgba(46, 213, 115, 0.1);
+}
+
+.platform-button.not-connected {
+    opacity: 0.6;
+}
+
+.platform-button:hover {
+    transform: scale(1.05);
+}
+
+.platform-button.connected:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px 5px rgba(46, 213, 115, 0.7);
+}
+
+/* Connection status badge */
+.connection-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--card-bg);
+}
+
+.connection-badge.connected {
+    background-color: #2ed573;
+}
+
+.connection-badge.not-connected {
+    background-color: #ff4757;
+}
+
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }

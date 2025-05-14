@@ -69,6 +69,19 @@ type GCPData struct {
 	CloudFunctions    []CloudFunctionInfo
 }
 
+func CheckCredentials(ctx context.Context) (bool, error) {
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return false, err
+	}
+	defer client.Close()
+
+	// Attempt to get the current project to verify credentials
+	_, err = getCurrentProject()
+
+	return err == nil, err
+}
+
 func CollectGCPData(ctx context.Context) (GCPData, error) {
 	var data GCPData
 

@@ -53,6 +53,18 @@ type AWSData struct {
 	VPCs           []VPCInfo
 }
 
+func CheckCredentials(ctx context.Context) (bool, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	ec2Client := ec2.NewFromConfig(cfg)
+	_, err = ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
+
+	return err == nil, err
+}
+
 func FetchEC2Instances(ctx context.Context) ([]EC2InstanceInfo, error) {
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
