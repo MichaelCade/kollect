@@ -213,6 +213,30 @@ With an example of this as:
 }
 ```
 
+## Recent Improvements
+
+### UI and User Experience
+- **Enhanced Loading Indicators**: Added visual feedback during cloud platform connections and data loading operations
+- **Improved Error Handling**: Better error messages for connection issues, particularly for Azure subscription access problems
+- **Consistent Visual Cues**: Loading spinners now display for all cloud platform operations
+
+### Platform Integration Enhancements
+- **Azure Integration Fixes**: 
+  - Improved subscription detection and display
+  - Added resilience for permission-related issues
+  - Prevent application crashes when encountering access denied errors
+  - Better error messages for subscription query failures
+
+### Backend Improvements
+- **Error Handling**: Gracefully handle authorization failures instead of crashing
+- **Logging Improvements**: More detailed logs for troubleshooting API connections
+- **Stability**: Enhanced error recovery for API requests to various cloud platforms
+
+### Technical Details
+- Added a mutation observer to automatically enhance dynamically created UI elements
+- Updated loading indicator z-index to ensure visibility above modals
+- Fixed Azure API error handling to continue collecting accessible resources when permission errors occur
+
 ## Contributing
 
 We welcome contributions to Kollect! Please open an issue or submit a pull request on GitHub.
