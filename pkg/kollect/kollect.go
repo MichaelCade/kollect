@@ -146,6 +146,106 @@ func CollectData(ctx context.Context, kubeconfig string) (k8sdata.K8sData, error
 	return data, nil
 }
 
+func CollectDataWithContext(ctx context.Context, kubeconfig string, contextName string) (k8sdata.K8sData, error) {
+	var data k8sdata.K8sData
+
+	// Create config with specified context
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
+		&clientcmd.ConfigOverrides{CurrentContext: contextName},
+	)
+	config, err := clientConfig.ClientConfig()
+	if err != nil {
+		return k8sdata.K8sData{}, fmt.Errorf("error building kubeconfig with context %s: %v", contextName, err)
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return k8sdata.K8sData{}, err
+	}
+
+	data.Nodes, err = fetchNodes(ctx, clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching Nodes: %v", err)
+	}
+
+	data.Namespaces, err = fetchNamespaces(ctx, clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching Namespaces: %v", err)
+	}
+
+	data.Pods, err = fetchPods(ctx, clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching Pods: %v", err)
+	}
+
+	data.Deployments, err = fetchDeployments(ctx, clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching Deployments: %v", err)
+	}
+
+	data.StatefulSets, err = fetchStatefulSets(ctx, clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching StatefulSets: %v", err)
+	}
+
+	data.Services, err = fetchServices(ctx, clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching Services: %v", err)
+	}
+
+	data.PersistentVolumes, err = fetchPersistentVolumes(ctx, clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching PersistentVolumes: %v", err)
+	}
+
+	data.PersistentVolumeClaims, err = fetchPersistentVolumeClaims(ctx, clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching PersistentVolumeClaims: %v", err)
+	}
+
+	data.StorageClasses, err = fetchStorageClasses(ctx, clientset)
+	if err != nil {
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching StorageClasses: %v", err)
+	}
+
+	data.VolumeSnapshotClasses, err = fetchVolumeSnapshotClasses(ctx, dynamicClient)
+	if err != nil {
+		return k8sdata.K8sData{}, fmt.Errorf("error fetching VolumeSnapshotClasses: %v", err)
+	}
+
+	data.VolumeSnapshots, err = fetchVolumeSnapshots(ctx, dynamicClient)
+	if err != nil {
+		log.Printf("Warning: VolumeSnapshots resource not found in the cluster: %v", err)
+		data.VolumeSnapshots = []k8sdata.VolumeSnapshotInfo{}
+	}
+
+	data.CustomResourceDefs, err = fetchCustomResourceDefinitions(ctx, config)
+	if err != nil {
+		log.Printf("Warning: Failed to fetch CRDs: %v", err)
+		data.CustomResourceDefs = []k8sdata.CRDInfo{}
+	}
+
+	data.VirtualMachines, err = fetchVirtualMachines(ctx, dynamicClient)
+	if err != nil {
+		log.Printf("Warning: Failed to fetch VirtualMachines: %v", err)
+		data.VirtualMachines = []k8sdata.VirtualMachineInfo{}
+	}
+
+	data.DataVolumes, err = fetchDataVolumes(ctx, dynamicClient)
+	if err != nil {
+		log.Printf("Warning: Failed to fetch DataVolumes: %v", err)
+		data.DataVolumes = []k8sdata.DataVolumeInfo{}
+	}
+
+	return data, nil
+}
+
 func fetchNodes(ctx context.Context, clientset *kubernetes.Clientset) ([]k8sdata.NodeInfo, error) {
 	nodes, err := clientset.CoreV1().Nodes().List(ctx, v1.ListOptions{})
 	if err != nil {

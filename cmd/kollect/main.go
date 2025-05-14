@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/michaelcade/kollect/pkg/aws"
 	"github.com/michaelcade/kollect/pkg/azure"
@@ -51,6 +53,7 @@ func main() {
 	terraformS3Region := flag.String("terraform-s3-region", "", "AWS region for S3 bucket (defaults to AWS_REGION env var)")
 	terraformAzureContainer := flag.String("terraform-azure", "", "Azure storage container (format: storageaccount/container/blob)")
 	terraformGCSBucket := flag.String("terraform-gcs", "", "GCS bucket and object (format: bucket/object)")
+	kubeContext := flag.String("kube-context", "", "Kubernetes context to use")
 	help := flag.Bool("help", false, "Show help message")
 
 	flag.Parse()
@@ -87,7 +90,11 @@ func main() {
 	case "gcp":
 		data, err = gcp.CollectGCPData(ctx)
 	case "kubernetes":
-		data, err = collectData(ctx, *storageOnly, *kubeconfig)
+		if *kubeContext != "" {
+			data, err = collectData(ctx, *storageOnly, *kubeconfig, *kubeContext)
+		} else {
+			data, err = collectData(ctx, *storageOnly, *kubeconfig)
+		}
 	case "terraform":
 		if *terraformStateFile != "" {
 			data, err = terraform.CollectTerraformData(ctx, *terraformStateFile)
@@ -194,8 +201,18 @@ func getEnv(envVar, prompt string) string {
 	return value
 }
 
-func collectData(ctx context.Context, storageOnly bool, kubeconfig string) (interface{}, error) {
-	return kollect.CollectData(ctx, kubeconfig)
+func collectData(ctx context.Context, storageOnly bool, kubeconfigPath string, contextName ...string) (interface{}, error) {
+	if storageOnly {
+		return kollect.CollectStorageData(ctx, kubeconfigPath)
+	}
+
+	// If context name is provided, use it
+	if len(contextName) > 0 && contextName[0] != "" {
+		return kollect.CollectDataWithContext(ctx, kubeconfigPath, contextName[0])
+	}
+
+	// Otherwise use default context from kubeconfig
+	return kollect.CollectData(ctx, kubeconfigPath)
 }
 
 func saveToFile(data interface{}, filename string) error {
@@ -250,9 +267,7 @@ func checkCredentials(ctx context.Context) map[string]bool {
 	gcpHasCredentials, _ := gcp.CheckCredentials(ctx)
 	results["gcp"] = gcpHasCredentials
 
-	// Veeam would typically require explicit credentials, so we'll default to false
-	results["veeam"] = false
-
+	// Check Veeam credentials
 	dataMutex.Lock()
 	veeamConnected := false
 	if d, ok := data.(veeam.VeeamData); ok {
@@ -506,6 +521,151 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		json.NewEncoder(w).Encode(map[string]string{
 			"status":  "success",
 			"message": "Successfully connected to Veeam server",
+		})
+	})
+
+	// Add Kubernetes context listing endpoint
+	http.HandleFunc("/api/kubernetes/contexts", func(w http.ResponseWriter, r *http.Request) {
+		kubeconfigPath := r.URL.Query().Get("path")
+		if kubeconfigPath == "" {
+			kubeconfigPath = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+		}
+
+		// Check that the kubeconfig file exists
+		if _, err := os.Stat(kubeconfigPath); os.IsNotExist(err) {
+			http.Error(w, fmt.Sprintf("Kubeconfig file not found: %s", kubeconfigPath), http.StatusBadRequest)
+			return
+		}
+
+		// Load the kubeconfig file
+		config, err := clientcmd.LoadFromFile(kubeconfigPath)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error loading kubeconfig: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Get all contexts
+		contexts := make([]map[string]string, 0)
+		for name, context := range config.Contexts {
+			ctxInfo := map[string]string{
+				"name":      name,
+				"cluster":   context.Cluster,
+				"namespace": context.Namespace,
+				"user":      context.AuthInfo,
+				"current":   "false",
+			}
+
+			// Mark the current context
+			if name == config.CurrentContext {
+				ctxInfo["current"] = "true"
+			}
+
+			contexts = append(contexts, ctxInfo)
+		}
+
+		// Return the contexts
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"contexts":       contexts,
+			"currentContext": config.CurrentContext,
+		})
+	})
+
+	// Add kubeconfig upload endpoint
+	http.HandleFunc("/api/kubernetes/upload-kubeconfig", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Parse the multipart form data
+		err := r.ParseMultipartForm(10 << 20) // 10 MB max
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		// Get the file from the form
+		file, handler, err := r.FormFile("kubeconfig")
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error retrieving file: %v", err), http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+
+		// Create a temporary file to store the kubeconfig
+		tempDir := os.TempDir()
+		tempFileName := fmt.Sprintf("kubeconfig_%d_%s", time.Now().UnixNano(), handler.Filename)
+		tempFilePath := filepath.Join(tempDir, tempFileName)
+
+		tempFile, err := os.Create(tempFilePath)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to create temporary file: %v", err), http.StatusInternalServerError)
+			return
+		}
+		defer tempFile.Close()
+
+		// Copy the file content to the temporary file
+		if _, err := io.Copy(tempFile, file); err != nil {
+			http.Error(w, fmt.Sprintf("Failed to save file: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Return the path to the uploaded file
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status": "success",
+			"path":   tempFilePath,
+		})
+	})
+
+	// Add Kubernetes connection endpoint
+	http.HandleFunc("/api/kubernetes/connect", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var params struct {
+			KubeconfigPath string `json:"kubeconfigPath"`
+			Context        string `json:"context"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		// Default to the home directory config if not provided
+		if params.KubeconfigPath == "" {
+			params.KubeconfigPath = filepath.Join(os.Getenv("HOME"), ".kube", "config")
+		}
+
+		// Check that the kubeconfig file exists
+		if _, err := os.Stat(params.KubeconfigPath); os.IsNotExist(err) {
+			http.Error(w, fmt.Sprintf("Kubeconfig file not found: %s", params.KubeconfigPath), http.StatusBadRequest)
+			return
+		}
+
+		ctx := r.Context()
+
+		// Collect Kubernetes data using the provided kubeconfig and context
+		kubeData, err := collectData(ctx, false, params.KubeconfigPath, params.Context)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error connecting to Kubernetes: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// Update the global data with the new Kubernetes data
+		dataMutex.Lock()
+		data = kubeData
+		dataMutex.Unlock()
+
+		// Return success response
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "Successfully connected to Kubernetes cluster",
 		})
 	})
 
