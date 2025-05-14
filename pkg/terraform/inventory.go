@@ -4,8 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+
+	"cloud.google.com/go/storage"
 )
 
 // TerraformData represents the parsed Terraform state data
@@ -70,6 +79,172 @@ func CollectTerraformData(ctx context.Context, stateFile string) (TerraformData,
 	}
 
 	// Handle version 4 state files (most common)
+	resources, providers, outputs, err := parseStateFile(rawState)
+	if err != nil {
+		return data, err
+	}
+
+	data.Resources = resources
+	data.Providers = providers
+	data.Outputs = outputs
+
+	return data, nil
+}
+
+func CollectTerraformDataFromS3(ctx context.Context, bucket, key, region string) (TerraformData, error) {
+	var data TerraformData
+
+	// Load AWS configuration
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+	if err != nil {
+		return data, fmt.Errorf("unable to load AWS SDK config: %v", err)
+	}
+
+	// Create S3 client
+	s3Client := s3.NewFromConfig(cfg)
+
+	// Get the state file from S3
+	result, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: &bucket,
+		Key:    &key,
+	})
+	if err != nil {
+		return data, fmt.Errorf("failed to retrieve state file from S3: %v", err)
+	}
+	defer result.Body.Close()
+
+	// Read the state file content
+	stateBytes, err := io.ReadAll(result.Body)
+	if err != nil {
+		return data, fmt.Errorf("failed to read state file content from S3: %v", err)
+	}
+
+	// Parse the state file
+	var rawState map[string]interface{}
+	if err := json.Unmarshal(stateBytes, &rawState); err != nil {
+		return data, fmt.Errorf("failed to parse state file from S3: %v", err)
+	}
+
+	// Use the existing parsing logic
+	version, ok := rawState["version"]
+	if !ok {
+		return data, fmt.Errorf("invalid terraform state file format: missing version")
+	}
+
+	versionFloat, ok := version.(float64)
+	if !ok || versionFloat < 3 {
+		return data, fmt.Errorf("unsupported terraform state file version: %v", version)
+	}
+
+	resources, providers, outputs, err := parseStateFile(rawState)
+	if err != nil {
+		return data, err
+	}
+
+	data.Resources = resources
+	data.Providers = providers
+	data.Outputs = outputs
+
+	return data, nil
+}
+
+func CollectTerraformDataFromAzure(ctx context.Context, storageAccount, container, blob string) (TerraformData, error) {
+	var data TerraformData
+
+	// Create a default credential using the Azure CLI or environment variables
+	credential, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return data, fmt.Errorf("failed to create Azure credential: %v", err)
+	}
+
+	// Create a blob service client
+	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net", storageAccount)
+	client, err := azblob.NewClient(serviceURL, credential, nil)
+	if err != nil {
+		return data, fmt.Errorf("failed to create Azure blob client: %v", err)
+	}
+
+	// Download the blob
+	downloadResponse, err := client.DownloadStream(ctx, container, blob, nil)
+	if err != nil {
+		return data, fmt.Errorf("failed to download blob: %v", err)
+	}
+
+	// Read the blob content
+	stateBytes, err := io.ReadAll(downloadResponse.Body)
+	if err != nil {
+		return data, fmt.Errorf("failed to read blob content: %v", err)
+	}
+
+	// Parse the state file
+	var rawState map[string]interface{}
+	if err := json.Unmarshal(stateBytes, &rawState); err != nil {
+		return data, fmt.Errorf("failed to parse state file from Azure blob: %v", err)
+	}
+
+	// Use the existing parsing logic
+	version, ok := rawState["version"]
+	if !ok {
+		return data, fmt.Errorf("invalid terraform state file format: missing version")
+	}
+
+	versionFloat, ok := version.(float64)
+	if !ok || versionFloat < 3 {
+		return data, fmt.Errorf("unsupported terraform state file version: %v", version)
+	}
+
+	resources, providers, outputs, err := parseStateFile(rawState)
+	if err != nil {
+		return data, err
+	}
+
+	data.Resources = resources
+	data.Providers = providers
+	data.Outputs = outputs
+
+	return data, nil
+}
+
+func CollectTerraformDataFromGCS(ctx context.Context, bucket, object string) (TerraformData, error) {
+	var data TerraformData
+
+	// Create a GCS client
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		return data, fmt.Errorf("failed to create GCS client: %v", err)
+	}
+	defer client.Close()
+
+	// Get the object from GCS
+	reader, err := client.Bucket(bucket).Object(object).NewReader(ctx)
+	if err != nil {
+		return data, fmt.Errorf("failed to read GCS object: %v", err)
+	}
+	defer reader.Close()
+
+	// Read the object content
+	stateBytes, err := io.ReadAll(reader)
+	if err != nil {
+		return data, fmt.Errorf("failed to read object content: %v", err)
+	}
+
+	// Parse the state file
+	var rawState map[string]interface{}
+	if err := json.Unmarshal(stateBytes, &rawState); err != nil {
+		return data, fmt.Errorf("failed to parse state file from GCS: %v", err)
+	}
+
+	// Use the existing parsing logic
+	version, ok := rawState["version"]
+	if !ok {
+		return data, fmt.Errorf("invalid terraform state file format: missing version")
+	}
+
+	versionFloat, ok := version.(float64)
+	if !ok || versionFloat < 3 {
+		return data, fmt.Errorf("unsupported terraform state file version: %v", version)
+	}
+
 	resources, providers, outputs, err := parseStateFile(rawState)
 	if err != nil {
 		return data, err

@@ -39,11 +39,15 @@ func main() {
 	kubeconfig := flag.String("kubeconfig", filepath.Join(os.Getenv("HOME"), ".kube", "config"), "Path to the kubeconfig file")
 	browser := flag.Bool("browser", false, "Open the web interface in a browser (can be used alone to import data)")
 	output := flag.String("output", "", "Output file to save the collected data")
-	inventoryType := flag.String("inventory", "", "Type of inventory to collect (kubernetes/aws/azure/gcp/veeam)")
+	inventoryType := flag.String("inventory", "", "Type of inventory to collect (kubernetes/aws/azure/gcp/veeam/terraform)")
 	baseURL := flag.String("veeam-url", "", "Veeam server URL")
 	username := flag.String("veeam-username", "", "Veeam username")
 	password := flag.String("veeam-password", "", "Veeam password")
-	terraformStateFile := flag.String("terraform-state", "", "Path to the Terraform state file")
+	terraformStateFile := flag.String("terraform-state", "", "Path to a local Terraform state file")
+	terraformS3Bucket := flag.String("terraform-s3", "", "S3 bucket containing Terraform state (format: bucket/key)")
+	terraformS3Region := flag.String("terraform-s3-region", "", "AWS region for S3 bucket (defaults to AWS_REGION env var)")
+	terraformAzureContainer := flag.String("terraform-azure", "", "Azure storage container (format: storageaccount/container/blob)")
+	terraformGCSBucket := flag.String("terraform-gcs", "", "GCS bucket and object (format: bucket/object)")
 	help := flag.Bool("help", false, "Show help message")
 
 	flag.Parse()
@@ -64,7 +68,7 @@ func main() {
 
 	if *inventoryType == "" {
 		fmt.Println("Error: You must specify an inventory type with --inventory")
-		fmt.Println("Available inventory types: kubernetes, aws, azure, gcp, veeam")
+		fmt.Println("Available inventory types: kubernetes, aws, azure, gcp, veeam, terraform")
 		fmt.Println("Or use --browser alone to start web interface for importing data")
 		os.Exit(1)
 	}
@@ -82,11 +86,44 @@ func main() {
 	case "kubernetes":
 		data, err = collectData(ctx, *storageOnly, *kubeconfig)
 	case "terraform":
-		if *terraformStateFile == "" {
-			fmt.Println("Error: You must specify a Terraform state file with --terraform-state")
+		if *terraformStateFile != "" {
+			data, err = terraform.CollectTerraformData(ctx, *terraformStateFile)
+		} else if *terraformS3Bucket != "" {
+			parts := strings.SplitN(*terraformS3Bucket, "/", 2)
+			if len(parts) != 2 {
+				fmt.Println("Error: terraform-s3 flag must be in format 'bucket/key'")
+				os.Exit(1)
+			}
+			region := *terraformS3Region
+			if region == "" {
+				region = os.Getenv("AWS_REGION")
+				if region == "" {
+					region = "us-east-1" // Default region
+				}
+			}
+			data, err = terraform.CollectTerraformDataFromS3(ctx, parts[0], parts[1], region)
+		} else if *terraformAzureContainer != "" {
+			parts := strings.SplitN(*terraformAzureContainer, "/", 3)
+			if len(parts) != 3 {
+				fmt.Println("Error: terraform-azure flag must be in format 'storageaccount/container/blob'")
+				os.Exit(1)
+			}
+			data, err = terraform.CollectTerraformDataFromAzure(ctx, parts[0], parts[1], parts[2])
+		} else if *terraformGCSBucket != "" {
+			parts := strings.SplitN(*terraformGCSBucket, "/", 2)
+			if len(parts) != 2 {
+				fmt.Println("Error: terraform-gcs flag must be in format 'bucket/object'")
+				os.Exit(1)
+			}
+			data, err = terraform.CollectTerraformDataFromGCS(ctx, parts[0], parts[1])
+		} else {
+			fmt.Println("Error: You must specify a Terraform state source with one of:")
+			fmt.Println("  --terraform-state (local file)")
+			fmt.Println("  --terraform-s3 (AWS S3)")
+			fmt.Println("  --terraform-azure (Azure Blob Storage)")
+			fmt.Println("  --terraform-gcs (Google Cloud Storage)")
 			os.Exit(1)
 		}
-		data, err = terraform.CollectTerraformData(ctx, *terraformStateFile)
 	case "veeam":
 		if *baseURL == "" {
 			*baseURL = os.Getenv("VBR_SERVER_URL")
@@ -130,22 +167,20 @@ func main() {
 }
 
 func promptUser(prompt string) string {
+	reader := bufio.NewReader(os.Stdin)
 	fmt.Print(prompt)
-	scanner := bufio.NewScanner(os.Stdin)
-	if scanner.Scan() {
-		return strings.TrimSpace(scanner.Text())
-	}
-	return ""
+	input, _ := reader.ReadString('\n')
+	return strings.TrimSpace(input)
 }
 
 func getSensitiveInput(prompt string) string {
 	fmt.Print(prompt)
-	bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
-	fmt.Println() // Move to the next line after password input
+	password, err := term.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Println() // Add a newline after the password input
 	if err != nil {
-		log.Fatalf("Error reading password: %v", err)
+		return promptUser("(echo enabled) " + prompt)
 	}
-	return strings.TrimSpace(string(bytePassword))
+	return string(password)
 }
 
 func getEnv(envVar, prompt string) string {
@@ -157,9 +192,6 @@ func getEnv(envVar, prompt string) string {
 }
 
 func collectData(ctx context.Context, storageOnly bool, kubeconfig string) (interface{}, error) {
-	if storageOnly {
-		return kollect.CollectStorageData(ctx, kubeconfig)
-	}
 	return kollect.CollectData(ctx, kubeconfig)
 }
 
@@ -187,7 +219,7 @@ func printData(data interface{}) {
 	fmt.Println(string(prettyData))
 }
 
-func startWebServer(data interface{}, openBrowser bool, baseURL, username, password string) {
+func startWebServer(initialData interface{}, openBrowser bool, baseURL, username, password string) {
 	fsys, err := fs.Sub(staticFiles, "web")
 	if err != nil {
 		panic(err)
@@ -270,6 +302,109 @@ func startWebServer(data interface{}, openBrowser bool, baseURL, username, passw
 		if err != nil {
 			log.Printf("Error encoding response: %v", err)
 		}
+	})
+
+	// Add the Terraform API endpoints
+	http.HandleFunc("/api/terraform/s3-state", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var params struct {
+			Bucket string `json:"bucket"`
+			Key    string `json:"key"`
+			Region string `json:"region"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if params.Bucket == "" || params.Key == "" {
+			http.Error(w, "Bucket and key are required", http.StatusBadRequest)
+			return
+		}
+
+		if params.Region == "" {
+			params.Region = "us-east-1"
+		}
+
+		ctx := context.Background()
+		tfData, err := terraform.CollectTerraformDataFromS3(ctx, params.Bucket, params.Key, params.Region)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error retrieving state from S3: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(tfData)
+	})
+
+	http.HandleFunc("/api/terraform/azure-state", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var params struct {
+			Account   string `json:"account"`
+			Container string `json:"container"`
+			Blob      string `json:"blob"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if params.Account == "" || params.Container == "" || params.Blob == "" {
+			http.Error(w, "Account, container, and blob are required", http.StatusBadRequest)
+			return
+		}
+
+		ctx := context.Background()
+		tfData, err := terraform.CollectTerraformDataFromAzure(ctx, params.Account, params.Container, params.Blob)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error retrieving state from Azure: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(tfData)
+	})
+
+	http.HandleFunc("/api/terraform/gcs-state", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var params struct {
+			Bucket string `json:"bucket"`
+			Object string `json:"object"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if params.Bucket == "" || params.Object == "" {
+			http.Error(w, "Bucket and object are required", http.StatusBadRequest)
+			return
+		}
+
+		ctx := context.Background()
+		tfData, err := terraform.CollectTerraformDataFromGCS(ctx, params.Bucket, params.Object)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error retrieving state from GCS: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(tfData)
 	})
 
 	log.Println("Server starting on port http://localhost:8080")
