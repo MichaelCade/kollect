@@ -496,47 +496,61 @@ func fetchVolumeSnapshotClasses(ctx context.Context, dynamicClient dynamic.Inter
 }
 
 func fetchVolumeSnapshots(ctx context.Context, dynamicClient dynamic.Interface) ([]k8sdata.VolumeSnapshotInfo, error) {
+	log.Printf("Fetching volume snapshots from Kubernetes")
 	gvr := schema.GroupVersionResource{
 		Group:    "snapshot.storage.k8s.io",
 		Version:  "v1",
 		Resource: "volumesnapshots",
 	}
-	volumeSnapshots, err := dynamicClient.Resource(gvr).List(ctx, v1.ListOptions{})
+	snapshots, err := dynamicClient.Resource(gvr).List(ctx, v1.ListOptions{})
 	if err != nil {
+		log.Printf("Error listing volume snapshots: %v", err)
 		if strings.Contains(err.Error(), "the server could not find the requested resource") {
-			log.Printf("Warning: VolumeSnapshots resource not found in the cluster")
+			log.Printf("Warning: VolumeSnapshots resource not found in the cluster - is the snapshot CRD installed?")
 			return []k8sdata.VolumeSnapshotInfo{}, nil
 		}
 		return nil, err
 	}
 
-	var volumeSnapshotInfos []k8sdata.VolumeSnapshotInfo
-	for _, vs := range volumeSnapshots.Items {
-		volumeSnapshot := k8sdata.VolumeSnapshotInfo{
-			Name:      vs.GetName(),
-			Namespace: vs.GetNamespace(),
+	log.Printf("Found %d volume snapshots", len(snapshots.Items))
+	var snapshotInfos []k8sdata.VolumeSnapshotInfo
+	for _, snap := range snapshots.Items {
+		snapshotInfo := k8sdata.VolumeSnapshotInfo{
+			Name:      snap.GetName(),
+			Namespace: snap.GetNamespace(),
 		}
 
-		if volumeName, found, err := unstructured.NestedString(vs.Object, "spec", "source", "persistentVolumeClaimName"); err == nil && found {
-			volumeSnapshot.Volume = volumeName
+		if pvcName, found, _ := unstructured.NestedString(snap.Object, "spec", "source", "persistentVolumeClaimName"); found {
+			snapshotInfo.Volume = pvcName
 		}
 
-		if creationTimestamp, found, err := unstructured.NestedString(vs.Object, "metadata", "creationTimestamp"); err == nil && found {
-			volumeSnapshot.CreationTimestamp = creationTimestamp
+		if timestamp := snap.GetCreationTimestamp(); !timestamp.IsZero() {
+			snapshotInfo.CreationTimestamp = timestamp.Format(time.RFC3339)
 		}
 
-		if restoreSize, found, err := unstructured.NestedString(vs.Object, "status", "restoreSize"); err == nil && found {
-			volumeSnapshot.RestoreSize = restoreSize
+		if restoreSize, found, _ := unstructured.NestedString(snap.Object, "status", "restoreSize"); found {
+			snapshotInfo.RestoreSize = restoreSize
 		}
 
-		if status, found, err := unstructured.NestedBool(vs.Object, "status", "readyToUse"); err == nil && found {
-			volumeSnapshot.Status = status
+		readyStatus := false
+		if status, found, _ := unstructured.NestedBool(snap.Object, "status", "readyToUse"); found {
+			readyStatus = status
+		}
+		snapshotInfo.Status = readyStatus
+
+		statusFields, statusFound, _ := unstructured.NestedMap(snap.Object, "status")
+		if !statusFound || len(statusFields) == 0 {
+			snapshotInfo.State = "Creating"
+		} else if readyStatus {
+			snapshotInfo.State = "Ready"
+		} else {
+			snapshotInfo.State = "Pending"
 		}
 
-		volumeSnapshotInfos = append(volumeSnapshotInfos, volumeSnapshot)
+		snapshotInfos = append(snapshotInfos, snapshotInfo)
 	}
 
-	return volumeSnapshotInfos, nil
+	return snapshotInfos, nil
 }
 
 func fetchCustomResourceDefinitions(ctx context.Context, config *rest.Config) ([]k8sdata.CRDInfo, error) {
@@ -867,4 +881,102 @@ func fetchDataVolumes(ctx context.Context, dynamicClient dynamic.Interface) ([]k
 	}
 
 	return dvInfos, nil
+}
+
+func CollectSnapshotData(ctx context.Context, kubeconfigPath string) (map[string]interface{}, error) {
+	snapshotData := map[string]interface{}{}
+
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("error building kubeconfig: %v", err)
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("error creating dynamic client: %v", err)
+	}
+
+	volumeSnapshots, err := fetchVolumeSnapshots(ctx, dynamicClient)
+	if err == nil {
+		var snapshotMaps []map[string]string
+		for _, vs := range volumeSnapshots {
+			snapshotMap := map[string]string{
+				"Name":              vs.Name,
+				"Namespace":         vs.Namespace,
+				"Volume":            vs.Volume,
+				"CreationTimestamp": vs.CreationTimestamp,
+				"RestoreSize":       vs.RestoreSize,
+				"Status":            fmt.Sprintf("%t", vs.Status),
+				"State":             vs.State,
+			}
+			snapshotMaps = append(snapshotMaps, snapshotMap)
+		}
+		log.Printf("Collected %d volume snapshots", len(snapshotMaps))
+		snapshotData["VolumeSnapshots"] = snapshotMaps
+	} else {
+		log.Printf("Warning: Failed to fetch VolumeSnapshots: %v", err)
+	}
+
+	volumeSnapshotContents, err := fetchVolumeSnapshotContents(ctx, dynamicClient)
+	if err == nil {
+		var contentMaps []map[string]string
+		for _, content := range volumeSnapshotContents {
+			contentMap := map[string]string{
+				"Name":           content.Name,
+				"Driver":         content.Driver,
+				"VolumeHandle":   content.VolumeHandle,
+				"SnapshotHandle": content.SnapshotHandle,
+				"RestoreSize":    content.RestoreSize,
+			}
+			contentMaps = append(contentMaps, contentMap)
+		}
+		log.Printf("Collected %d volume snapshot contents", len(contentMaps))
+		snapshotData["VolumeSnapshotContents"] = contentMaps
+	} else {
+		log.Printf("Warning: Failed to fetch VolumeSnapshotContents: %v", err)
+	}
+
+	return snapshotData, nil
+}
+
+func fetchVolumeSnapshotContents(ctx context.Context, dynamicClient dynamic.Interface) ([]k8sdata.VolumeSnapshotContentInfo, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    "snapshot.storage.k8s.io",
+		Version:  "v1",
+		Resource: "volumesnapshotcontents",
+	}
+	snapshotContents, err := dynamicClient.Resource(gvr).List(ctx, v1.ListOptions{})
+	if err != nil {
+		if strings.Contains(err.Error(), "the server could not find the requested resource") {
+			return []k8sdata.VolumeSnapshotContentInfo{}, nil
+		}
+		return nil, err
+	}
+
+	var contentInfos []k8sdata.VolumeSnapshotContentInfo
+	for _, content := range snapshotContents.Items {
+		contentInfo := k8sdata.VolumeSnapshotContentInfo{
+			Name: content.GetName(),
+		}
+
+		if driver, found, _ := unstructured.NestedString(content.Object, "spec", "driver"); found {
+			contentInfo.Driver = driver
+		}
+
+		if volumeHandle, found, _ := unstructured.NestedString(content.Object, "spec", "source", "volumeHandle"); found {
+			contentInfo.VolumeHandle = volumeHandle
+		}
+
+		if snapshotHandle, found, _ := unstructured.NestedString(content.Object, "status", "snapshotHandle"); found {
+			contentInfo.SnapshotHandle = snapshotHandle
+		}
+
+		if restoreSize, found, _ := unstructured.NestedString(content.Object, "status", "restoreSize"); found {
+			contentInfo.RestoreSize = restoreSize
+		}
+
+		contentInfos = append(contentInfos, contentInfo)
+	}
+
+	return contentInfos, nil
 }

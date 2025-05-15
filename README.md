@@ -10,6 +10,7 @@ Kollect is a tool for collecting and displaying data from Kubernetes clusters, A
 - Collects data from Google Cloud resources (Compute Instances, Storage Buckets, SQL Instances, VPCs)
 - Collects data from Veeam Backup & Replication servers (Backup Jobs, Repositories, Proxies, Scale-out Repositories)
 - Inventory data from a Terraform state file (.tfstate / .json) (Local, AWS S3, Azure Blob, Google Cloud Storage)
+- Snapshot Hunter feature to collect snapshots from all available platforms (Kubernetes, AWS, Azure, GCP) with a single command
 - Displays data in a web interface
 - Supports exporting data as a JSON file
 
@@ -56,18 +57,22 @@ Run the Kollect binary with the desired flags:
 
 ### Flags
 
-- `--inventory=<source>`: Specifies the inventory source. Valid values are `kubernetes`, `aws`, `azure`, `gcp`, `terraform`, and `veeam`.
-- `--kubeconfig=<file>`: Specifies a custom kubeconfig file for Kubernetes.
-- `--output=<file>`: Specifies an output file to save the collected data as JSON.
-- `--browser`: Opens the collected data in a web browser.
-- `--terraform-state=<file>`: Specifies a local Terraform state file to read.
-- `--terraform-s3=<bucket/key>`: Specifies an AWS S3 bucket and key for Terraform state.
-- `--terraform-s3-region=<region>`: Specifies the AWS region for the S3 bucket.
-- `--terraform-azure=<storage-account/container/blob>`: Specifies an Azure Blob Storage location for Terraform state.
-- `--terraform-gcs=<bucket/object>`: Specifies a Google Cloud Storage location for Terraform state.
-- `--base-url=<url>`: Specifies the base URL for Veeam connections.
-- `--username=<username>`: Specifies the username for Veeam connections.
-- `--password=<password>`: Specifies the password for Veeam connections.
+  - `browser` Open the web interface in a browser (can be used alone to import data)
+  - `help` Show help message
+  - `inventory string` Type of inventory to collect (kubernetes/aws/azure/gcp/veeam/terraform)
+  - `kube-context string` Kubernetes context to use
+  - `kubeconfig string` Path to the kubeconfig file (default "/Users/USERNAME/.kube/config")
+  - output string Output file to save the collected data
+  - `snapshots` Collect snapshots from all available platforms
+  - `storage` Collect only storage-related objects (Kubernetes Only)
+  - `terraform-azure string` Azure storage container (format: storageaccount/container/blob)
+  - `terraform-gcs string` GCS bucket and object (format: bucket/object)
+  - `terraform-s3 string` S3 bucket containing Terraform state (format: bucket/key)
+  - `terraform-s3-region string` AWS region for S3 bucket (defaults to AWS_REGION env var)
+  - `terraform-state string` Path to a local Terraform state file
+  - `veeam-password string` Veeam password
+  - `veeam-url string` Veeam server URL
+  - `veeam-username string` Veeam username
 
 ### Examples
 
@@ -118,6 +123,24 @@ Collect data from AWS resources and save it to a file:
 ```sh
 ./kollect --inventory aws --output aws_data.json
 ```
+
+## Snapshot Hunter 
+
+You can use the Snapshot Hunter feature to collect snapshots from all available platforms (Kubernetes, AWS, Azure, GCP) with a single command:
+
+```sh
+./kollect --snapshots
+```
+
+Alternatively you could use the browser flag and hit the Snapshot Hunter button and select your platform options. 
+
+The Snapshot Hunter feature collects: 
+- Kubernetes volume snapshots and volume snapshot contents 
+- AWS EBS and RDS Snapshots 
+- Azure Disk Snapshots 
+- GCP Disk Snapshots 
+
+You can test this feature by importing the snapshots.json file found in the test folder within the repository. 
 
 ### Building the Project
 

@@ -68,12 +68,13 @@ type VolumeSnapshotClassInfo struct {
 }
 
 type VolumeSnapshotInfo struct {
-	Name              string
-	Namespace         string
-	Volume            string
-	CreationTimestamp string
-	RestoreSize       string
-	Status            bool
+	Name              string `json:"Name"`
+	Namespace         string `json:"Namespace"`
+	Volume            string `json:"Volume,omitempty"`
+	CreationTimestamp string `json:"CreationTimestamp,omitempty"`
+	RestoreSize       string `json:"RestoreSize,omitempty"`
+	Status            bool   `json:"Status"`
+	State             string `json:"State,omitempty"` // Add this field
 }
 type VirtualMachineInfo struct {
 	Name        string
@@ -105,6 +106,17 @@ type CRDInfo struct {
 	Kind    string
 	Scope   string
 	Age     string
+}
+
+// Add this struct definition if it doesn't exist
+
+// VolumeSnapshotContentInfo contains information about a volume snapshot content
+type VolumeSnapshotContentInfo struct {
+	Name           string `json:"Name"`
+	Driver         string `json:"Driver,omitempty"`
+	VolumeHandle   string `json:"VolumeHandle,omitempty"`
+	SnapshotHandle string `json:"SnapshotHandle,omitempty"`
+	RestoreSize    string `json:"RestoreSize,omitempty"`
 }
 
 type K8sData struct {

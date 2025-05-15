@@ -364,7 +364,7 @@ function showAzureCredentialsModal() {
                         <br><br>
                         Try one of these options:
                         <ul style="margin-top: 5px; margin-bottom: 0; padding-left: 20px;">
-                            <li>Click Connect to try with your default subscription (<code>Michael Cade Sub</code>)</li>
+                            <li>Click Connect to try with your default subscription (<code>Subscription Name</code>)</li>
                             <li>Use service principal credentials instead (select option above)</li>
                             <li>If using Connect fails, you can manually set your default subscription in terminal with:<br>
                             <code>az account set --subscription "Subscription Name"</code></li>

@@ -54,6 +54,7 @@ func main() {
 	terraformAzureContainer := flag.String("terraform-azure", "", "Azure storage container (format: storageaccount/container/blob)")
 	terraformGCSBucket := flag.String("terraform-gcs", "", "GCS bucket and object (format: bucket/object)")
 	kubeContext := flag.String("kube-context", "", "Kubernetes context to use")
+	snapshotFlag := flag.Bool("snapshots", false, "Collect snapshots from all available platforms")
 	help := flag.Bool("help", false, "Show help message")
 
 	flag.Parse()
@@ -66,16 +67,56 @@ func main() {
 		return
 	}
 
+	if *snapshotFlag {
+		fmt.Println("Collecting snapshots from all available platforms...")
+		snapshotData, err := collectAllSnapshots(context.Background())
+		if err != nil {
+			fmt.Printf("Error collecting snapshots: %v\n", err)
+			os.Exit(1)
+		}
+
+		// Output the snapshot data
+		outputData := *output
+		if outputData != "" {
+			// Save to file if output file is specified
+			jsonData, err := json.MarshalIndent(snapshotData, "", "  ")
+			if err != nil {
+				fmt.Printf("Error marshaling data: %v\n", err)
+				os.Exit(1)
+			}
+
+			err = os.WriteFile(outputData, jsonData, 0644)
+			if err != nil {
+				fmt.Printf("Error writing to file: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("Snapshot data saved to %s\n", outputData)
+		} else {
+			// Print to stdout
+			jsonData, err := json.MarshalIndent(snapshotData, "", "  ")
+			if err != nil {
+				fmt.Printf("Error marshaling data: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Println(string(jsonData))
+		}
+
+		return
+	}
+
 	if *browser && *inventoryType == "" && *output == "" {
 		fmt.Println("Starting browser interface. Use the import function to load data.")
 		startWebServer(map[string]interface{}{}, true, "", "", "")
 		return
 	}
 
-	if *inventoryType == "" {
+	if *inventoryType == "" && !*snapshotFlag && !(*browser && *output == "") {
 		fmt.Println("Error: You must specify an inventory type with --inventory")
 		fmt.Println("Available inventory types: kubernetes, aws, azure, gcp, veeam, terraform")
 		fmt.Println("Or use --browser alone to start web interface for importing data")
+		fmt.Println("Or use --snapshots to collect snapshot data from all available platforms")
 		os.Exit(1)
 	}
 
@@ -174,6 +215,65 @@ func main() {
 	if *browser {
 		startWebServer(data, true, *baseURL, *username, *password)
 	}
+
+}
+
+// collectAllSnapshots gathers snapshots from all available platforms
+func collectAllSnapshots(ctx context.Context) (map[string]interface{}, error) {
+	results := make(map[string]interface{})
+
+	// Check which platforms are available
+	credentials := checkCredentials(ctx)
+
+	// Collect Kubernetes snapshots
+	if credentials["kubernetes"] {
+		fmt.Println("Collecting Kubernetes snapshots...")
+		k8sSnapshots, err := kollect.CollectSnapshotData(ctx, filepath.Join(os.Getenv("HOME"), ".kube", "config"))
+		if err != nil {
+			fmt.Printf("Warning: Error collecting Kubernetes snapshots: %v\n", err)
+		} else if k8sSnapshots != nil {
+			fmt.Println("Successfully collected Kubernetes snapshots")
+			results["kubernetes"] = k8sSnapshots
+		}
+	}
+
+	// Collect AWS snapshots
+	if credentials["aws"] {
+		fmt.Println("Collecting AWS snapshots...")
+		awsSnapshots, err := aws.CollectSnapshotData(ctx)
+		if err != nil {
+			fmt.Printf("Warning: Error collecting AWS snapshots: %v\n", err)
+		} else if awsSnapshots != nil {
+			fmt.Println("Successfully collected AWS snapshots")
+			results["aws"] = awsSnapshots
+		}
+	}
+
+	// Collect Azure snapshots
+	if credentials["azure"] {
+		fmt.Println("Collecting Azure snapshots...")
+		azureSnapshots, err := azure.CollectSnapshotData(ctx)
+		if err != nil {
+			fmt.Printf("Warning: Error collecting Azure snapshots: %v\n", err)
+		} else if azureSnapshots != nil {
+			fmt.Println("Successfully collected Azure snapshots")
+			results["azure"] = azureSnapshots
+		}
+	}
+
+	// Collect GCP snapshots
+	if credentials["gcp"] {
+		fmt.Println("Collecting GCP snapshots...")
+		gcpSnapshots, err := gcp.CollectSnapshotData(ctx)
+		if err != nil {
+			fmt.Printf("Warning: Error collecting GCP snapshots: %v\n", err)
+		} else if gcpSnapshots != nil {
+			fmt.Println("Successfully collected GCP snapshots")
+			results["gcp"] = gcpSnapshots
+		}
+	}
+
+	return results, nil
 }
 
 func promptUser(prompt string) string {
@@ -889,6 +989,84 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"projects": projects,
 		})
+	})
+
+	http.HandleFunc("/api/snapshots", func(w http.ResponseWriter, r *http.Request) {
+		platform := r.URL.Query().Get("platform")
+
+		ctx := r.Context()
+		var snapshots interface{}
+		var err error
+
+		switch platform {
+		case "kubernetes":
+			snapshots, err = kollect.CollectSnapshotData(ctx, filepath.Join(os.Getenv("HOME"), ".kube", "config"))
+		case "aws":
+			snapshots, err = aws.CollectSnapshotData(ctx)
+		case "azure":
+			snapshots, err = azure.CollectSnapshotData(ctx)
+		case "gcp":
+			snapshots, err = gcp.CollectSnapshotData(ctx)
+			// Fix for the "all" case in the snapshots API endpoint
+		case "all":
+			allSnapshots := make(map[string]interface{})
+
+			// Add debug logging
+			log.Println("Collecting snapshots from all connected platforms...")
+
+			k8sSnapshots, k8sErr := kollect.CollectSnapshotData(ctx, filepath.Join(os.Getenv("HOME"), ".kube", "config"))
+			if k8sErr != nil {
+				log.Printf("Warning: Error collecting Kubernetes snapshots: %v", k8sErr)
+			} else if k8sSnapshots != nil {
+				log.Println("Successfully collected Kubernetes snapshots")
+				allSnapshots["kubernetes"] = k8sSnapshots
+			}
+
+			awsSnapshots, awsErr := aws.CollectSnapshotData(ctx)
+			if awsErr != nil {
+				log.Printf("Warning: Error collecting AWS snapshots: %v", awsErr)
+			} else if awsSnapshots != nil {
+				log.Println("Successfully collected AWS snapshots")
+				allSnapshots["aws"] = awsSnapshots
+			}
+
+			azureSnapshots, azureErr := azure.CollectSnapshotData(ctx)
+			if azureErr != nil {
+				log.Printf("Warning: Error collecting Azure snapshots: %v", azureErr)
+			} else if azureSnapshots != nil {
+				log.Println("Successfully collected Azure snapshots")
+				allSnapshots["azure"] = azureSnapshots
+			}
+
+			gcpSnapshots, gcpErr := gcp.CollectSnapshotData(ctx)
+			if gcpErr != nil {
+				log.Printf("Warning: Error collecting GCP snapshots: %v", gcpErr)
+			} else if gcpSnapshots != nil {
+				log.Println("Successfully collected GCP snapshots")
+				allSnapshots["gcp"] = gcpSnapshots
+			}
+
+			// Set the snapshots variable with the collected data
+			snapshots = allSnapshots
+
+			// Print debug info about what was found
+			keys := make([]string, 0)
+			for k := range allSnapshots {
+				keys = append(keys, k)
+			}
+			log.Printf("All snapshots collected. Platforms found: %v", strings.Join(keys, ", "))
+		default:
+			http.Error(w, "Invalid platform specified", http.StatusBadRequest)
+			return
+		}
+
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error collecting snapshot data: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(snapshots)
 	})
 
 	http.HandleFunc("/api/gcp/connect", func(w http.ResponseWriter, r *http.Request) {
