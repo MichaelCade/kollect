@@ -76,7 +76,6 @@ func CheckCredentials(ctx context.Context) (bool, error) {
 	}
 	defer client.Close()
 
-	// Attempt to get the current project to verify credentials
 	_, err = getCurrentProject()
 
 	return err == nil, err
@@ -85,14 +84,12 @@ func CheckCredentials(ctx context.Context) (bool, error) {
 func CollectGCPData(ctx context.Context) (GCPData, error) {
 	var data GCPData
 
-	// Get Project ID from environment or gcloud
 	projectID, err := getCurrentProject()
 	if err != nil {
 		log.Printf("Warning: %v", err)
 
 	}
 
-	// Collect Compute Instances
 	instances, err := fetchComputeInstances(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch compute instances: %v", err)
@@ -100,7 +97,6 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 		data.ComputeInstances = instances
 	}
 
-	// Collect GCS Buckets
 	buckets, err := fetchGCSBuckets(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch GCS buckets: %v", err)
@@ -108,7 +104,6 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 		data.GCSBuckets = buckets
 	}
 
-	// Collect Cloud SQL Instances
 	sqlInstances, err := fetchCloudSQLInstances(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch Cloud SQL instances: %v", err)
@@ -116,7 +111,6 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 		data.CloudSQLInstances = sqlInstances
 	}
 
-	// Collect Cloud Run Services
 	runServices, err := fetchCloudRunServices(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch Cloud Run services: %v", err)
@@ -124,7 +118,6 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 		data.CloudRunServices = runServices
 	}
 
-	// Collect Cloud Functions
 	functions, err := fetchCloudFunctions(ctx, projectID)
 	if err != nil {
 		log.Printf("Warning: Failed to fetch Cloud Functions: %v", err)
@@ -161,14 +154,12 @@ func fetchComputeInstances(ctx context.Context, projectID string) ([]ComputeInst
 		return nil, fmt.Errorf("failed to create compute service: %v", err)
 	}
 
-	// List zones
 	zonesResp, err := computeService.Zones.List(projectID).Do()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list zones: %v", err)
 	}
 
 	for _, zone := range zonesResp.Items {
-		// List instances in each zone
 		instancesResp, err := computeService.Instances.List(projectID, zone.Name).Do()
 		if err != nil {
 			return nil, fmt.Errorf("failed to list instances in zone %s: %v", zone.Name, err)
@@ -176,7 +167,6 @@ func fetchComputeInstances(ctx context.Context, projectID string) ([]ComputeInst
 
 		for _, instance := range instancesResp.Items {
 			machineType := instance.MachineType
-			// Extract the machine type from the URL
 			if parts := strings.Split(machineType, "/"); len(parts) > 0 {
 				machineType = parts[len(parts)-1]
 			}
@@ -266,7 +256,6 @@ func fetchCloudRunServices(ctx context.Context, projectID string) ([]CloudRunSer
 		return nil, fmt.Errorf("failed to create Cloud Run service: %v", err)
 	}
 
-	// List all locations
 	locationsResp, err := runService.Projects.Locations.List("projects/" + projectID).Do()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list Cloud Run locations: %v", err)
@@ -276,7 +265,7 @@ func fetchCloudRunServices(ctx context.Context, projectID string) ([]CloudRunSer
 		servicesResp, err := runService.Projects.Locations.Services.List(
 			fmt.Sprintf("projects/%s/locations/%s", projectID, location.LocationId)).Do()
 		if err != nil {
-			continue // Skip locations that might not have Cloud Run enabled
+			continue
 		}
 
 		for _, service := range servicesResp.Items {
@@ -313,7 +302,6 @@ func fetchCloudFunctions(ctx context.Context, projectID string) ([]CloudFunction
 		return nil, fmt.Errorf("failed to create Cloud Functions service: %v", err)
 	}
 
-	// List all locations
 	locationsCall := functionsService.Projects.Locations.List("projects/" + projectID)
 	locationsResp, err := locationsCall.Do()
 	if err != nil {
@@ -325,7 +313,7 @@ func fetchCloudFunctions(ctx context.Context, projectID string) ([]CloudFunction
 			fmt.Sprintf("projects/%s/locations/%s", projectID, location.LocationId))
 		functionsResp, err := functionsCall.Do()
 		if err != nil {
-			continue // Skip locations that might not have Cloud Functions enabled
+			continue
 		}
 
 		for _, function := range functionsResp.Functions {

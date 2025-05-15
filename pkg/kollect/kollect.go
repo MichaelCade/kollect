@@ -149,7 +149,6 @@ func CollectData(ctx context.Context, kubeconfig string) (k8sdata.K8sData, error
 func CollectDataWithContext(ctx context.Context, kubeconfig string, contextName string) (k8sdata.K8sData, error) {
 	var data k8sdata.K8sData
 
-	// Create config with specified context
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
 		&clientcmd.ConfigOverrides{CurrentContext: contextName},

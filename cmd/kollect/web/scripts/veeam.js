@@ -692,12 +692,9 @@ function generateCharts(data) {
     }
 }
 
-// Update the Veeam button click handler to show the connection modal
 document.getElementById('veeam-button')?.addEventListener('click', () => {
-    // Check if we're already connected to Veeam
     const button = document.getElementById('veeam-button');
     if (button && button.classList.contains('connected')) {
-        // If connected, just switch to Veeam data
         showLoadingIndicator();
         fetch('/api/switch?type=veeam')
             .then(response => response.json())
@@ -707,14 +704,11 @@ document.getElementById('veeam-button')?.addEventListener('click', () => {
             .catch(error => console.error('Error switching to Veeam:', error))
             .finally(() => hideLoadingIndicator());
     } else {
-        // If not connected, show the connection modal
         showVeeamConnectionModal();
     }
 });
 
-// Function to show the Veeam connection modal
 function showVeeamConnectionModal() {
-    // Create a modal dialog for Veeam connection
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
@@ -724,7 +718,7 @@ function showVeeamConnectionModal() {
     modal.style.top = 0;
     modal.style.width = '100%';
     modal.style.height = '100%';
-    modal.style.backgroundColor = 'rgba(0,0,0,0.7)'; // Darker overlay for better contrast
+    modal.style.backgroundColor = 'rgba(0,0,0,0.7)'; 
     modal.style.alignItems = 'center';
     modal.style.justifyContent = 'center';
     
@@ -784,12 +778,10 @@ function showVeeamConnectionModal() {
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
     
-    // Handle cancel button
     document.getElementById('veeam-cancel-btn').addEventListener('click', () => {
         modal.remove();
     });
     
-    // Verify this part is properly implemented at the end of showVeeamConnectionModal function:
 document.getElementById('veeam-connect-btn').addEventListener('click', () => {
     const server = document.getElementById('veeam-server').value.trim();
     const username = document.getElementById('veeam-username').value.trim();
@@ -803,22 +795,18 @@ document.getElementById('veeam-connect-btn').addEventListener('click', () => {
     
     showLoadingIndicator();
     
-    // Format the URL with https:// and port if not included
-    let serverUrl = server;  // Just use the server value directly
+    let serverUrl = server;  
 
-    // Only add https:// if not already present
     if (!serverUrl.startsWith('http')) {
         serverUrl = `https://${serverUrl}`;
     }
     
-    // Only add port if not already included in the URL
     if (!serverUrl.includes(':9419') && !server.includes(':')) {
         serverUrl += ':9419';
     }
     
     console.log("Connecting to Veeam server:", serverUrl);
     
-    // Send request to connect to Veeam
     fetch('/api/veeam/connect', {
         method: 'POST',
         headers: {
@@ -841,30 +829,23 @@ document.getElementById('veeam-connect-btn').addEventListener('click', () => {
     })
     .then(data => {
     if (data.status === 'success') {
-        // Update the button status before reloading
         const button = document.getElementById('veeam-button');
         if (button) {
-            // Remove any existing badges
             const existingBadges = button.querySelectorAll('.connection-badge');
             existingBadges.forEach(badge => badge.remove());
             
-            // Add connected class and badge
             button.classList.add('connected');
             button.classList.remove('not-connected');
             
-            // Add a green badge
             const badge = document.createElement('span');
             badge.className = 'connection-badge connected';
             button.appendChild(badge);
             
-            // Add tooltip
             button.title = 'Veeam (Connected)';
         }
         
-        // Remove modal
         modal.remove();
         
-        // Reload after a short delay to allow UI update
         setTimeout(() => {
             location.reload();
         }, 300);

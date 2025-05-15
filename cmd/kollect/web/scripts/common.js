@@ -68,7 +68,6 @@ function createTable(headerText, data, rowTemplate, headers) {
     return tableContainer;
 }
 
-// Update this part in the toggleAllTables function:
 function toggleAllTables(collapse) {
     console.log("Toggling all tables:", collapse ? "Collapse" : "Expand");
     const tables = document.querySelectorAll('.collapsible-table');
@@ -87,7 +86,6 @@ function toggleAllTables(collapse) {
         }
     });
     
-    // Update the toggle button state with icon only
     const toggleButton = document.getElementById('toggle-tables');
     if (toggleButton) {
         if (collapse) {
@@ -259,7 +257,6 @@ function loadTestJson(platform) {
 function loadTerraformState(source) {
     showLoadingIndicator();
     
-    // If source is a URL to an S3 bucket
     if (source.startsWith('s3://')) {
         fetch('/api/terraform/s3-state', {
             method: 'POST',
@@ -288,14 +285,11 @@ function loadTerraformState(source) {
         })
         .finally(() => hideLoadingIndicator());
     }
-    // Add more backend types as needed
 }
 
-// Add this function to enhance all cloud connection buttons with loading indicators
 function enhanceConnectionButtons() {
     console.log("Enhancing connection buttons with loading indicators");
     
-    // AWS connection button
     const awsConnectBtn = document.getElementById('aws-connect-btn');
     if (awsConnectBtn) {
         const originalClickHandler = awsConnectBtn.onclick;
@@ -307,7 +301,6 @@ function enhanceConnectionButtons() {
         };
     }
     
-    // Azure connection button
     const azureConnectBtn = document.getElementById('azure-connect-btn');
     if (azureConnectBtn) {
         const originalClickHandler = azureConnectBtn.onclick;
@@ -319,7 +312,6 @@ function enhanceConnectionButtons() {
         };
     }
     
-    // GCP connection button
     const gcpConnectBtn = document.getElementById('gcp-connect-btn');
     if (gcpConnectBtn) {
         const originalClickHandler = gcpConnectBtn.onclick;
@@ -331,7 +323,6 @@ function enhanceConnectionButtons() {
         };
     }
     
-    // Kubernetes connection button
     const k8sConnectBtn = document.getElementById('kubernetes-connect-btn');
     if (k8sConnectBtn) {
         const originalClickHandler = k8sConnectBtn.onclick;
@@ -343,7 +334,6 @@ function enhanceConnectionButtons() {
         };
     }
     
-    // Terraform connection buttons
     const tfConnectBtns = document.querySelectorAll('[id$="-terraform-connect-btn"]');
     tfConnectBtns.forEach(btn => {
         const originalClickHandler = btn.onclick;
@@ -381,10 +371,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`Toggle tables clicked, current state: ${isCollapsed ? 'Collapsed' : 'Expanded'}`);
             
             if (isCollapsed) {
-                // Currently collapsed, so expand
                 toggleAllTables(false);
             } else {
-                // Currently expanded, so collapse  
                 toggleAllTables(true);
             }
         });
@@ -412,7 +400,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .finally(() => hideLoadingIndicator());
     });
     
-    // Observer for dynamically added elements (for modals that open later)
     const bodyObserver = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.addedNodes && mutation.addedNodes.length > 0) {
@@ -428,13 +415,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
     
-    // Configure the observer to watch for changes to the body
     bodyObserver.observe(document.body, {
         childList: true,
         subtree: true
     });
     
-    // Initial enhancement
     enhanceConnectionButtons();
 });
 
@@ -470,7 +455,6 @@ document.getElementById('import-file')?.addEventListener('change', (event) => {
             try {
                 const data = JSON.parse(e.target.result);
                 console.log("Imported data:", Object.keys(data));
-                // Process the data directly
                 processWithHandler(data);
                 hideLoadingIndicator();
             } catch (error) {

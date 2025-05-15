@@ -127,7 +127,6 @@ function azureCosmosDBRowTemplate(item) {
     return `<td>${item.name}</td><td>${item.location}</td>`;
 }
 
-// Update the DOMContentLoaded event handler
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded - Azure module setting up event listener");
     
@@ -135,18 +134,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (azureButton) {
         console.log("Found Azure button, setting up handler");
         
-        // Clone the button to remove any existing event listeners
         const newButton = azureButton.cloneNode(true);
         if (azureButton.parentNode) {
             azureButton.parentNode.replaceChild(newButton, azureButton);
         }
         
-        // Add our click handler that ALWAYS shows the form
         newButton.addEventListener('click', function(event) {
             console.log("Azure button clicked");
             event.preventDefault();
             
-            // Always show the connection form, regardless of current connection state
             showAzureCredentialsModal();
         });
     } else {
@@ -287,7 +283,6 @@ function showAzureCredentialsModal() {
     
     if (configSource === 'default') {
         const subscription = document.getElementById('azure-subscription-selector').value;
-        // Even if subscription is empty, we can still try to connect using Azure CLI's default subscription
         console.log(`Using Azure subscription: ${subscription || 'default'}`);
         connectToAzure({ 
             type: 'cli', 
@@ -356,7 +351,6 @@ function showAzureCredentialsModal() {
                 option.textContent = "No subscriptions found - CLI may not be properly detected";
                 subscriptionSelector.appendChild(option);
                 
-                // Add a note about Azure CLI login - show actual count if available
                 const noteDiv = document.createElement('div');
                 noteDiv.style.marginTop = '10px';
                 noteDiv.style.padding = '8px';
@@ -401,7 +395,6 @@ function showAzureCredentialsModal() {
     .then(response => {
         if (!response.ok) {
             return response.text().then(text => {
-                // Check for specific error conditions
                 if (response.status === 403) {
                     throw new Error("Permission denied: You don't have sufficient permissions for some Azure resources");
                 } else if (response.status === 401) {

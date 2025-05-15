@@ -23,37 +23,29 @@ type VeeamData struct {
 	BackupJobs           []map[string]interface{}
 }
 
-// CheckCredentials is a placeholder function to match other providers
 func CheckCredentials(ctx context.Context) (bool, error) {
-	// Veeam requires explicit credentials, so can't auto-detect
 	return false, nil
 }
 
-// CollectVeeamData gathers data from Veeam Backup & Replication
-// Accepts optional ignoreSSL parameter that defaults to true if not provided
 func CollectVeeamData(ctx context.Context, baseURL, username, password string, ignoreSSL ...bool) (VeeamData, error) {
 	var data VeeamData
 
-	// Default to true for ignoreSSL for backward compatibility
 	skipSSLVerify := true
 	if len(ignoreSSL) > 0 {
 		skipSSLVerify = ignoreSSL[0]
 	}
 
-	// Pass the ignoreSSL parameter to authenticate
 	token, err := authenticate(baseURL, username, password, skipSSLVerify)
 	if err != nil {
 		return data, fmt.Errorf("authentication failed: %v", err)
 	}
 
-	// Create an HTTP client with the proper SSL verification setting
 	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: skipSSLVerify},
 		},
 	}
 
-	// Get server info using the client
 	data.ServerInfo, err = getServerInfo(baseURL, token, client)
 	if err != nil {
 		return data, fmt.Errorf("failed to get server info: %v", err)

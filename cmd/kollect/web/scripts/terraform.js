@@ -7,19 +7,16 @@ registerDataHandler('terraform',
     function(data) {
         console.log("Processing Terraform data");
         
-        // Create the resources table
         if (data.Resources) {
             createTable('Terraform Resources', data.Resources, resourceRowTemplate, 
                 ['Name', 'Type', 'Provider', 'Module', 'Status', 'Details']);
         }
         
-        // Create the outputs table
         if (data.Outputs) {
             createTable('Terraform Outputs', data.Outputs, outputRowTemplate, 
                 ['Name', 'Value', 'Type']);
         }
         
-        // Create the providers table
         if (data.Providers) {
             createTable('Terraform Providers', data.Providers, providerRowTemplate, 
                 ['Name', 'Version']);
@@ -32,13 +29,9 @@ registerDataHandler('terraform',
 );
 
 function resourceRowTemplate(item) {
-    // Generate a unique ID for the resource
     const resourceId = `tf-resource-${item.Type}-${item.Name}`.replace(/[^a-zA-Z0-9-]/g, '-');
-    
-    // Format the provider name to be more readable
     const provider = item.Provider.replace(/^provider\[\"/g, '').replace(/\"\]$/g, '');
     
-    // Format the module name to be more readable
     let module = item.Module || 'root';
     if (module !== 'root') {
         module = module.replace('module.', '');
@@ -97,7 +90,6 @@ function toggleTerraformDetails(id) {
 }
 
 document.getElementById('terraform-button')?.addEventListener('click', () => {
-    // Create a modal dialog for state file selection
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
@@ -107,7 +99,7 @@ document.getElementById('terraform-button')?.addEventListener('click', () => {
     modal.style.top = 0;
     modal.style.width = '100%';
     modal.style.height = '100%';
-    modal.style.backgroundColor = 'rgba(0,0,0,0.7)'; // Darker overlay for better contrast
+    modal.style.backgroundColor = 'rgba(0,0,0,0.7)'; 
     modal.style.alignItems = 'center';
     modal.style.justifyContent = 'center';
     
@@ -202,13 +194,10 @@ document.getElementById('terraform-button')?.addEventListener('click', () => {
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
     
-    // Handle radio button selection
     const sourceForms = document.querySelectorAll('.source-form');
     document.querySelectorAll('input[name="state-source"]').forEach(radio => {
         radio.addEventListener('change', () => {
-            // Hide all forms
             sourceForms.forEach(form => form.style.display = 'none');
-            // Show the selected form
             const selectedForm = document.getElementById(`${radio.value}-form`);
             if (selectedForm) {
                 selectedForm.style.display = 'block';
@@ -216,7 +205,6 @@ document.getElementById('terraform-button')?.addEventListener('click', () => {
         });
     });
     
-    // Handle file selection
     let selectedFile = null;
     document.getElementById('browse-file')?.addEventListener('click', () => {
         const input = document.createElement('input');
@@ -231,12 +219,10 @@ document.getElementById('terraform-button')?.addEventListener('click', () => {
         input.click();
     });
     
-    // Handle cancel button
     document.getElementById('cancel-btn').addEventListener('click', () => {
         modal.remove();
     });
     
-    // Handle load state button
     document.getElementById('load-state-btn').addEventListener('click', () => {
         const sourceType = document.querySelector('input[name="state-source"]:checked').value;
         showLoadingIndicator();
@@ -403,16 +389,13 @@ function parseTerraformState(stateData) {
         Providers: []
     };
     
-    // Parse resources
     if (stateData.resources && Array.isArray(stateData.resources)) {
         stateData.resources.forEach(res => {
             if (res.instances && Array.isArray(res.instances)) {
                 res.instances.forEach(inst => {
-                    // Extract attributes in a flattened format
                     const attributes = {};
                     if (inst.attributes) {
                         Object.entries(inst.attributes).forEach(([key, value]) => {
-                            // Handle simple types only
                             if (typeof value === 'string' || 
                                 typeof value === 'number' || 
                                 typeof value === 'boolean') {
@@ -420,7 +403,6 @@ function parseTerraformState(stateData) {
                             } else if (value === null) {
                                 attributes[key] = "null";
                             } else {
-                                // For complex types, just show the type
                                 attributes[key] = `[${Array.isArray(value) ? 'array' : 'object'}]`;
                             }
                         });
@@ -441,7 +423,6 @@ function parseTerraformState(stateData) {
         });
     }
     
-    // Parse outputs
     if (stateData.outputs) {
         Object.entries(stateData.outputs).forEach(([name, output]) => {
             result.Outputs.push({
@@ -454,10 +435,8 @@ function parseTerraformState(stateData) {
         });
     }
     
-    // Parse providers
     if (stateData.provider_hash) {
         Object.entries(stateData.provider_hash).forEach(([name, version]) => {
-            // Clean up provider names
             let cleanName = name;
             if (cleanName.startsWith('provider.')) {
                 cleanName = cleanName.substring(9);

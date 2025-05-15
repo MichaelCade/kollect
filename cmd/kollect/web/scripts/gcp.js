@@ -59,7 +59,6 @@ function cloudFunctionRowTemplate(item) {
     return `<td>${item.Name}</td><td>${item.Region}</td><td>${item.Runtime}</td><td>${item.Status}</td><td>${item.EntryPoint}</td><td>${item.AvailableMemory}</td><td>${item.Project}</td>`;
 }
 
-// Update the DOMContentLoaded event handler
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded - GCP module setting up event listener");
     
@@ -67,18 +66,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (gcpButton) {
         console.log("Found GCP button, setting up handler");
         
-        // Clone the button to remove any existing event listeners
         const newButton = gcpButton.cloneNode(true);
         if (gcpButton.parentNode) {
             gcpButton.parentNode.replaceChild(newButton, gcpButton);
         }
         
-        // Add our click handler that ALWAYS shows the form
         newButton.addEventListener('click', function(event) {
             console.log("GCP button clicked");
             event.preventDefault();
             
-            // Always show the connection form, regardless of current connection state
             showGCPCredentialsModal();
         });
     } else {

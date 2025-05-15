@@ -17,14 +17,11 @@ import (
 	"cloud.google.com/go/storage"
 )
 
-// TerraformData represents the parsed Terraform state data
 type TerraformData struct {
 	Resources []ResourceInfo `json:"Resources"`
 	Outputs   []OutputInfo   `json:"Outputs"`
 	Providers []ProviderInfo `json:"Providers"`
 }
-
-// ResourceInfo represents a Terraform resource
 type ResourceInfo struct {
 	Name         string            `json:"Name"`
 	Type         string            `json:"Type"`
@@ -35,50 +32,39 @@ type ResourceInfo struct {
 	Dependencies []string          `json:"Dependencies"`
 	Status       string            `json:"Status"`
 }
-
-// OutputInfo represents a Terraform output
 type OutputInfo struct {
 	Name  string `json:"Name"`
 	Value string `json:"Value"`
 	Type  string `json:"Type"`
 }
-
-// ProviderInfo represents a Terraform provider
 type ProviderInfo struct {
 	Name    string `json:"Name"`
 	Version string `json:"Version"`
 }
 
-// CollectTerraformData parses a Terraform state file
 func CollectTerraformData(ctx context.Context, stateFile string) (TerraformData, error) {
 	var data TerraformData
 
-	// Read the state file
 	fileContents, err := ioutil.ReadFile(stateFile)
 	if err != nil {
 		return data, fmt.Errorf("error reading Terraform state file: %v", err)
 	}
 
-	// Parse the state file
 	var rawState map[string]interface{}
 	if err := json.Unmarshal(fileContents, &rawState); err != nil {
 		return data, fmt.Errorf("error parsing Terraform state file: %v", err)
 	}
 
-	// Extract the version to ensure we're dealing with a state file
 	version, ok := rawState["version"]
 	if !ok {
 		return data, fmt.Errorf("invalid terraform state file format: missing version")
 	}
 
-	// Check that we're dealing with a supported version
-	// Most code handles version 4, but you might need specific handling for other versions
 	versionFloat, ok := version.(float64)
 	if !ok || versionFloat < 3 {
 		return data, fmt.Errorf("unsupported terraform state file version: %v", version)
 	}
 
-	// Handle version 4 state files (most common)
 	resources, providers, outputs, err := parseStateFile(rawState)
 	if err != nil {
 		return data, err
@@ -94,16 +80,13 @@ func CollectTerraformData(ctx context.Context, stateFile string) (TerraformData,
 func CollectTerraformDataFromS3(ctx context.Context, bucket, key, region string) (TerraformData, error) {
 	var data TerraformData
 
-	// Load AWS configuration
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		return data, fmt.Errorf("unable to load AWS SDK config: %v", err)
 	}
 
-	// Create S3 client
 	s3Client := s3.NewFromConfig(cfg)
 
-	// Get the state file from S3
 	result, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: &bucket,
 		Key:    &key,
@@ -113,19 +96,16 @@ func CollectTerraformDataFromS3(ctx context.Context, bucket, key, region string)
 	}
 	defer result.Body.Close()
 
-	// Read the state file content
 	stateBytes, err := io.ReadAll(result.Body)
 	if err != nil {
 		return data, fmt.Errorf("failed to read state file content from S3: %v", err)
 	}
 
-	// Parse the state file
 	var rawState map[string]interface{}
 	if err := json.Unmarshal(stateBytes, &rawState); err != nil {
 		return data, fmt.Errorf("failed to parse state file from S3: %v", err)
 	}
 
-	// Use the existing parsing logic
 	version, ok := rawState["version"]
 	if !ok {
 		return data, fmt.Errorf("invalid terraform state file format: missing version")
@@ -151,38 +131,32 @@ func CollectTerraformDataFromS3(ctx context.Context, bucket, key, region string)
 func CollectTerraformDataFromAzure(ctx context.Context, storageAccount, container, blob string) (TerraformData, error) {
 	var data TerraformData
 
-	// Create a default credential using the Azure CLI or environment variables
 	credential, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return data, fmt.Errorf("failed to create Azure credential: %v", err)
 	}
 
-	// Create a blob service client
 	serviceURL := fmt.Sprintf("https://%s.blob.core.windows.net", storageAccount)
 	client, err := azblob.NewClient(serviceURL, credential, nil)
 	if err != nil {
 		return data, fmt.Errorf("failed to create Azure blob client: %v", err)
 	}
 
-	// Download the blob
 	downloadResponse, err := client.DownloadStream(ctx, container, blob, nil)
 	if err != nil {
 		return data, fmt.Errorf("failed to download blob: %v", err)
 	}
 
-	// Read the blob content
 	stateBytes, err := io.ReadAll(downloadResponse.Body)
 	if err != nil {
 		return data, fmt.Errorf("failed to read blob content: %v", err)
 	}
 
-	// Parse the state file
 	var rawState map[string]interface{}
 	if err := json.Unmarshal(stateBytes, &rawState); err != nil {
 		return data, fmt.Errorf("failed to parse state file from Azure blob: %v", err)
 	}
 
-	// Use the existing parsing logic
 	version, ok := rawState["version"]
 	if !ok {
 		return data, fmt.Errorf("invalid terraform state file format: missing version")
@@ -208,33 +182,28 @@ func CollectTerraformDataFromAzure(ctx context.Context, storageAccount, containe
 func CollectTerraformDataFromGCS(ctx context.Context, bucket, object string) (TerraformData, error) {
 	var data TerraformData
 
-	// Create a GCS client
 	client, err := storage.NewClient(ctx)
 	if err != nil {
 		return data, fmt.Errorf("failed to create GCS client: %v", err)
 	}
 	defer client.Close()
 
-	// Get the object from GCS
 	reader, err := client.Bucket(bucket).Object(object).NewReader(ctx)
 	if err != nil {
 		return data, fmt.Errorf("failed to read GCS object: %v", err)
 	}
 	defer reader.Close()
 
-	// Read the object content
 	stateBytes, err := io.ReadAll(reader)
 	if err != nil {
 		return data, fmt.Errorf("failed to read object content: %v", err)
 	}
 
-	// Parse the state file
 	var rawState map[string]interface{}
 	if err := json.Unmarshal(stateBytes, &rawState); err != nil {
 		return data, fmt.Errorf("failed to parse state file from GCS: %v", err)
 	}
 
-	// Use the existing parsing logic
 	version, ok := rawState["version"]
 	if !ok {
 		return data, fmt.Errorf("invalid terraform state file format: missing version")
@@ -262,7 +231,6 @@ func parseStateFile(rawState map[string]interface{}) ([]ResourceInfo, []Provider
 	var providers []ProviderInfo
 	var outputs []OutputInfo
 
-	// Extract resources
 	if resourcesRaw, ok := rawState["resources"]; ok {
 		resourcesList, ok := resourcesRaw.([]interface{})
 		if ok {
@@ -272,14 +240,12 @@ func parseStateFile(rawState map[string]interface{}) ([]ResourceInfo, []Provider
 					continue
 				}
 
-				// Extract resource info
 				mode, _ := res["mode"].(string)
 				rType, _ := res["type"].(string)
 				name, _ := res["name"].(string)
 				provider, _ := res["provider"].(string)
 				module, _ := res["module"].(string)
 
-				// Process instances
 				if instances, ok := res["instances"].([]interface{}); ok {
 					for _, instRaw := range instances {
 						inst, ok := instRaw.(map[string]interface{})
@@ -287,11 +253,9 @@ func parseStateFile(rawState map[string]interface{}) ([]ResourceInfo, []Provider
 							continue
 						}
 
-						// Extract attributes
 						attributes := make(map[string]string)
 						if attrs, ok := inst["attributes"].(map[string]interface{}); ok {
 							for k, v := range attrs {
-								// Skip complex structures, only include simple values
 								switch val := v.(type) {
 								case string:
 									attributes[k] = val
@@ -300,13 +264,11 @@ func parseStateFile(rawState map[string]interface{}) ([]ResourceInfo, []Provider
 								case bool:
 									attributes[k] = fmt.Sprintf("%v", val)
 								default:
-									// For complex types, just indicate type
 									attributes[k] = fmt.Sprintf("[%T]", val)
 								}
 							}
 						}
 
-						// Extract dependencies
 						var dependencies []string
 						if deps, ok := inst["dependencies"].([]interface{}); ok {
 							for _, dep := range deps {
@@ -316,14 +278,11 @@ func parseStateFile(rawState map[string]interface{}) ([]ResourceInfo, []Provider
 							}
 						}
 
-						// Determine status
 						status := "Created"
-						// Check for pending states or other indicators
 						if _, hasChanges := inst["changes"]; hasChanges {
 							status = "Pending Changes"
 						}
 
-						// Create the resource info
 						resourceInfo := ResourceInfo{
 							Name:         name,
 							Type:         rType,
@@ -341,7 +300,6 @@ func parseStateFile(rawState map[string]interface{}) ([]ResourceInfo, []Provider
 		}
 	}
 
-	// Extract providers
 	if providersRaw, ok := rawState["provider_hash"]; ok {
 		providerHash, ok := providersRaw.(map[string]interface{})
 		if ok {
@@ -351,7 +309,6 @@ func parseStateFile(rawState map[string]interface{}) ([]ResourceInfo, []Provider
 					version = vStr
 				}
 
-				// Remove provider prefix if present
 				name := provider
 				if strings.HasPrefix(name, "provider.") {
 					name = strings.TrimPrefix(name, "provider.")
@@ -371,7 +328,6 @@ func parseStateFile(rawState map[string]interface{}) ([]ResourceInfo, []Provider
 		}
 	}
 
-	// Extract outputs
 	if outputsRaw, ok := rawState["outputs"]; ok {
 		outputsMap, ok := outputsRaw.(map[string]interface{})
 		if ok {
@@ -391,7 +347,6 @@ func parseStateFile(rawState map[string]interface{}) ([]ResourceInfo, []Provider
 					case bool:
 						value = fmt.Sprintf("%v", v)
 					default:
-						// For complex values, just indicate it's complex
 						value = fmt.Sprintf("[%T]", v)
 					}
 				}

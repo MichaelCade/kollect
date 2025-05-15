@@ -118,7 +118,6 @@
         });
     </script>
     <script>
-    // Check platform connections and update UI
     function checkPlatformConnections() {
         fetch('/api/check-credentials')
             .then(response => response.json())
@@ -130,7 +129,6 @@
                 const button = document.getElementById(buttonId);
                 
                 if (button) {
-                    // Remove any existing badges first to prevent duplicates
                     const existingBadges = button.querySelectorAll('.connection-badge');
                     existingBadges.forEach(badge => badge.remove());
                     
@@ -138,7 +136,6 @@
                         button.classList.add('connected');
                         button.classList.remove('not-connected');
                         
-                        // Add a badge
                         const badge = document.createElement('span');
                         badge.className = 'connection-badge connected';
                         button.appendChild(badge);
@@ -146,7 +143,6 @@
                         if (platform === 'terraform') {
                             button.title = 'Terraform CLI detected - Click to load state';
                         } else {
-                            // Handle special cases for acronyms
                             let displayName;
                             switch(platform) {
                                 case 'aws':
@@ -164,7 +160,6 @@
                         button.classList.add('not-connected');
                         button.classList.remove('connected');
                         
-                        // Add a badge
                         const badge = document.createElement('span');
                         badge.className = 'connection-badge not-connected';
                         button.appendChild(badge);
@@ -172,7 +167,6 @@
                         if (platform === 'terraform') {
                           button.title = 'Terraform CLI not found';
                       } else {
-                          // Handle special cases for acronyms
                           let displayName;
                           switch(platform) {
                               case 'aws':
@@ -195,11 +189,8 @@
             });
     }
     
-    // Call this function when the page loads
     document.addEventListener('DOMContentLoaded', () => {
-        // Existing event listeners
         
-        // Check platform connections
         checkPlatformConnections();
     });
 </script>

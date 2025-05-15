@@ -108,7 +108,7 @@ func main() {
 			if region == "" {
 				region = os.Getenv("AWS_REGION")
 				if region == "" {
-					region = "us-east-1" // Default region
+					region = "us-east-1"
 				}
 			}
 			data, err = terraform.CollectTerraformDataFromS3(ctx, parts[0], parts[1], region)
@@ -186,7 +186,7 @@ func promptUser(prompt string) string {
 func getSensitiveInput(prompt string) string {
 	fmt.Print(prompt)
 	password, err := term.ReadPassword(int(os.Stdin.Fd()))
-	fmt.Println() // Add a newline after the password input
+	fmt.Println()
 	if err != nil {
 		return promptUser("(echo enabled) " + prompt)
 	}
@@ -206,12 +206,10 @@ func collectData(ctx context.Context, storageOnly bool, kubeconfigPath string, c
 		return kollect.CollectStorageData(ctx, kubeconfigPath)
 	}
 
-	// If context name is provided, use it
 	if len(contextName) > 0 && contextName[0] != "" {
 		return kollect.CollectDataWithContext(ctx, kubeconfigPath, contextName[0])
 	}
 
-	// Otherwise use default context from kubeconfig
 	return kollect.CollectData(ctx, kubeconfigPath)
 }
 
@@ -242,12 +240,10 @@ func printData(data interface{}) {
 func checkCredentials(ctx context.Context) map[string]bool {
 	results := make(map[string]bool)
 
-	// Check Kubernetes credentials
 	k8sConfig, err := clientcmd.BuildConfigFromFlags("", filepath.Join(os.Getenv("HOME"), ".kube", "config"))
 	if err == nil {
 		clientset, err := kubernetes.NewForConfig(k8sConfig)
 		if err == nil {
-			// Try to list namespaces to verify connection
 			_, err = clientset.CoreV1().Namespaces().List(ctx, v1.ListOptions{Limit: 1})
 			results["kubernetes"] = err == nil
 		}
@@ -255,19 +251,15 @@ func checkCredentials(ctx context.Context) map[string]bool {
 		results["kubernetes"] = false
 	}
 
-	// Check AWS credentials
 	awsHasCredentials, _ := aws.CheckCredentials(ctx)
 	results["aws"] = awsHasCredentials
 
-	// Check Azure credentials
 	azureHasCredentials, _ := azure.CheckCredentials(ctx)
 	results["azure"] = azureHasCredentials
 
-	// Check GCP credentials
 	gcpHasCredentials, _ := gcp.CheckCredentials(ctx)
 	results["gcp"] = gcpHasCredentials
 
-	// Check Veeam credentials
 	dataMutex.Lock()
 	veeamConnected := false
 	if d, ok := data.(veeam.VeeamData); ok {
@@ -276,7 +268,6 @@ func checkCredentials(ctx context.Context) map[string]bool {
 	dataMutex.Unlock()
 	results["veeam"] = veeamConnected
 
-	// For Terraform, we'll just check if the terraform command is available
 	_, err = exec.LookPath("terraform")
 	results["terraform"] = err == nil
 
@@ -376,7 +367,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		}
 	})
 
-	// Add the Terraform API endpoints
 	http.HandleFunc("/api/terraform/s3-state", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -511,12 +501,10 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			return
 		}
 
-		// Update the global data with the new Veeam data
 		dataMutex.Lock()
 		data = veeamData
 		dataMutex.Unlock()
 
-		// Return success response
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"status":  "success",
@@ -524,27 +512,23 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		})
 	})
 
-	// Add Kubernetes context listing endpoint
 	http.HandleFunc("/api/kubernetes/contexts", func(w http.ResponseWriter, r *http.Request) {
 		kubeconfigPath := r.URL.Query().Get("path")
 		if kubeconfigPath == "" {
 			kubeconfigPath = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 		}
 
-		// Check that the kubeconfig file exists
 		if _, err := os.Stat(kubeconfigPath); os.IsNotExist(err) {
 			http.Error(w, fmt.Sprintf("Kubeconfig file not found: %s", kubeconfigPath), http.StatusBadRequest)
 			return
 		}
 
-		// Load the kubeconfig file
 		config, err := clientcmd.LoadFromFile(kubeconfigPath)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error loading kubeconfig: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		// Get all contexts
 		contexts := make([]map[string]string, 0)
 		for name, context := range config.Contexts {
 			ctxInfo := map[string]string{
@@ -555,7 +539,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 				"current":   "false",
 			}
 
-			// Mark the current context
 			if name == config.CurrentContext {
 				ctxInfo["current"] = "true"
 			}
@@ -563,7 +546,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			contexts = append(contexts, ctxInfo)
 		}
 
-		// Return the contexts
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"contexts":       contexts,
@@ -571,21 +553,18 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		})
 	})
 
-	// Add kubeconfig upload endpoint
 	http.HandleFunc("/api/kubernetes/upload-kubeconfig", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		// Parse the multipart form data
 		err := r.ParseMultipartForm(10 << 20) // 10 MB max
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
 			return
 		}
 
-		// Get the file from the form
 		file, handler, err := r.FormFile("kubeconfig")
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error retrieving file: %v", err), http.StatusBadRequest)
@@ -593,7 +572,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		}
 		defer file.Close()
 
-		// Create a temporary file to store the kubeconfig
 		tempDir := os.TempDir()
 		tempFileName := fmt.Sprintf("kubeconfig_%d_%s", time.Now().UnixNano(), handler.Filename)
 		tempFilePath := filepath.Join(tempDir, tempFileName)
@@ -605,13 +583,11 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		}
 		defer tempFile.Close()
 
-		// Copy the file content to the temporary file
 		if _, err := io.Copy(tempFile, file); err != nil {
 			http.Error(w, fmt.Sprintf("Failed to save file: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		// Return the path to the uploaded file
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"status": "success",
@@ -619,7 +595,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		})
 	})
 
-	// Add Kubernetes connection endpoint
 	http.HandleFunc("/api/kubernetes/connect", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -636,12 +611,10 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			return
 		}
 
-		// Default to the home directory config if not provided
 		if params.KubeconfigPath == "" {
 			params.KubeconfigPath = filepath.Join(os.Getenv("HOME"), ".kube", "config")
 		}
 
-		// Check that the kubeconfig file exists
 		if _, err := os.Stat(params.KubeconfigPath); os.IsNotExist(err) {
 			http.Error(w, fmt.Sprintf("Kubeconfig file not found: %s", params.KubeconfigPath), http.StatusBadRequest)
 			return
@@ -649,19 +622,16 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 
 		ctx := r.Context()
 
-		// Collect Kubernetes data using the provided kubeconfig and context
 		kubeData, err := collectData(ctx, false, params.KubeconfigPath, params.Context)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error connecting to Kubernetes: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		// Update the global data with the new Kubernetes data
 		dataMutex.Lock()
 		data = kubeData
 		dataMutex.Unlock()
 
-		// Return success response
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"status":  "success",
@@ -670,22 +640,16 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 
 	})
 
-	// AWS endpoints
 	http.HandleFunc("/api/aws/profiles", func(w http.ResponseWriter, r *http.Request) {
-		// Get AWS profiles from ~/.aws/credentials and ~/.aws/config
 		profiles := []string{"default"}
-
-		// Try to read profiles from AWS credentials/config files
 		homeDir, err := os.UserHomeDir()
 		if err == nil {
 			awsDir := filepath.Join(homeDir, ".aws")
 
-			// Check credentials file
 			credPath := filepath.Join(awsDir, "credentials")
 			if _, err := os.Stat(credPath); err == nil {
 				data, err := os.ReadFile(credPath)
 				if err == nil {
-					// Extract profile names from credentials file
 					lines := strings.Split(string(data), "\n")
 					for _, line := range lines {
 						if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
@@ -698,12 +662,10 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 				}
 			}
 
-			// Check config file
 			configPath := filepath.Join(awsDir, "config")
 			if _, err := os.Stat(configPath); err == nil {
 				data, err := os.ReadFile(configPath)
 				if err == nil {
-					// Extract profile names from config file
 					lines := strings.Split(string(data), "\n")
 					for _, line := range lines {
 						if strings.HasPrefix(line, "[profile ") && strings.HasSuffix(line, "]") {
@@ -742,7 +704,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			return
 		}
 
-		// Store credentials temporarily in environment variables
 		if params.Type == "credentials" {
 			os.Setenv("AWS_ACCESS_KEY_ID", params.AccessKey)
 			os.Setenv("AWS_SECRET_ACCESS_KEY", params.SecretKey)
@@ -753,7 +714,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			os.Setenv("AWS_PROFILE", params.Profile)
 		}
 
-		// Test the credentials
 		ctx := r.Context()
 		hasCredentials, err := aws.CheckCredentials(ctx)
 		if err != nil || !hasCredentials {
@@ -761,14 +721,12 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			return
 		}
 
-		// Collect AWS data
 		awsData, err := aws.CollectAWSData(ctx)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error collecting AWS data: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		// Update the global data with the new AWS data
 		dataMutex.Lock()
 		data = awsData
 		dataMutex.Unlock()
@@ -781,12 +739,10 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 	})
 
 	http.HandleFunc("/api/azure/subscriptions", func(w http.ResponseWriter, r *http.Request) {
-		// Try to get Azure subscriptions using the Azure CLI
 		subscriptions := []map[string]string{}
 		defaultSub := ""
 		subscriptionsCount := 0
 
-		// Run the 'az account list' command
 		cmd := exec.Command("az", "account", "list", "--query", "[].{name:name, id:id, isDefault:isDefault}", "--output", "json")
 		output, err := cmd.Output()
 
@@ -798,7 +754,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 				log.Printf("Found %d subscriptions in Azure CLI output", subscriptionsCount)
 
 				for _, sub := range azSubs {
-					// Only process subscriptions that have all required fields
 					if name, ok := sub["name"].(string); ok {
 						if id, ok := sub["id"].(string); ok {
 							subscription := map[string]string{
@@ -853,14 +808,12 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			return
 		}
 
-		// Store credentials temporarily in environment variables
 		if params.Type == "service_principal" {
 			os.Setenv("AZURE_TENANT_ID", params.TenantId)
 			os.Setenv("AZURE_CLIENT_ID", params.ClientId)
 			os.Setenv("AZURE_CLIENT_SECRET", params.ClientSecret)
 			os.Setenv("AZURE_SUBSCRIPTION_ID", params.SubscriptionId)
 		} else if params.Type == "cli" && params.Subscription != "" {
-			// Set the subscription in the Azure CLI
 			cmd := exec.Command("az", "account", "set", "--subscription", params.Subscription)
 			if err := cmd.Run(); err != nil {
 				http.Error(w, fmt.Sprintf("Error setting Azure subscription: %v", err), http.StatusBadRequest)
@@ -868,7 +821,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			}
 		}
 
-		// Test the credentials
 		ctx := r.Context()
 		hasCredentials, err := azure.CheckCredentials(ctx)
 		if err != nil || !hasCredentials {
@@ -876,15 +828,12 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			return
 		}
 
-		// Collect Azure data
 		azureData, err := azure.CollectAzureData(ctx)
 		if err != nil {
-			// Check if it's a permissions error
 			if strings.Contains(err.Error(), "Authorization") ||
 				strings.Contains(err.Error(), "authorization") ||
 				strings.Contains(err.Error(), "permission") ||
 				strings.Contains(err.Error(), "access") {
-				// Send more specific error message for permission issues
 				http.Error(w, "Permission denied: You don't have sufficient permissions for some Azure resources", http.StatusForbidden)
 				return
 			}
@@ -893,7 +842,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			return
 		}
 
-		// Update the global data with the new Azure data
 		dataMutex.Lock()
 		data = azureData
 		dataMutex.Unlock()
@@ -905,9 +853,7 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		})
 	})
 
-	// GCP endpoints
 	http.HandleFunc("/api/gcp/projects", func(w http.ResponseWriter, r *http.Request) {
-		// Try to get GCP projects using the gcloud CLI
 		projects := []map[string]string{}
 
 		cmd := exec.Command("gcloud", "projects", "list", "--format=json")
@@ -927,7 +873,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			}
 		}
 
-		// Try to get the default project
 		cmd = exec.Command("gcloud", "config", "get-value", "project")
 		output, err = cmd.CombinedOutput()
 		if err == nil {
@@ -965,7 +910,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 
 		tempKeyFile := ""
 
-		// Store service account key temporarily in a file
 		if params.Type == "service_account" && params.KeyData != nil {
 			keyBytes, err := json.Marshal(params.KeyData)
 			if err != nil {
@@ -973,7 +917,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 				return
 			}
 
-			// Create a temporary file for the key
 			tempFile, err := os.CreateTemp("", "gcp-key-*.json")
 			if err != nil {
 				http.Error(w, fmt.Sprintf("Error creating temporary key file: %v", err), http.StatusInternalServerError)
@@ -989,7 +932,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			tempKeyFile = tempFile.Name()
 			os.Setenv("GOOGLE_APPLICATION_CREDENTIALS", tempKeyFile)
 		} else if params.Type == "gcloud" && params.Project != "" {
-			// Set the project in gcloud CLI
 			cmd := exec.Command("gcloud", "config", "set", "project", params.Project)
 			if err := cmd.Run(); err != nil {
 				http.Error(w, fmt.Sprintf("Error setting GCP project: %v", err), http.StatusBadRequest)
@@ -997,11 +939,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			}
 		}
 
-		// Test the credentials
 		ctx := r.Context()
 		hasCredentials, err := gcp.CheckCredentials(ctx)
 		if err != nil || !hasCredentials {
-			// Clean up the temporary key file if needed
 			if tempKeyFile != "" {
 				os.Remove(tempKeyFile)
 				os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
@@ -1010,10 +950,8 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			return
 		}
 
-		// Collect GCP data
 		gcpData, err := gcp.CollectGCPData(ctx)
 		if err != nil {
-			// Clean up the temporary key file if needed
 			if tempKeyFile != "" {
 				os.Remove(tempKeyFile)
 				os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
@@ -1022,12 +960,10 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			return
 		}
 
-		// Update the global data with the new GCP data
 		dataMutex.Lock()
 		data = gcpData
 		dataMutex.Unlock()
 
-		// Clean up the temporary key file if needed
 		if tempKeyFile != "" {
 			os.Remove(tempKeyFile)
 			os.Unsetenv("GOOGLE_APPLICATION_CREDENTIALS")
@@ -1042,7 +978,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 
 	log.Println("Server starting on port http://localhost:8080")
 	if openBrowser {
-		// Open the browser
 		go func() {
 			var err error
 			switch runtime.GOOS {
@@ -1050,7 +985,7 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 				err = exec.Command("open", "http://localhost:8080").Start()
 			case "windows":
 				err = exec.Command("rundll32", "url.dll,FileProtocolHandler", "http://localhost:8080").Start()
-			default: // Linux and other Unix-like systems
+			default:
 				err = exec.Command("xdg-open", "http://localhost:8080").Start()
 			}
 			if err != nil {

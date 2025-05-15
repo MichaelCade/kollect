@@ -59,7 +59,6 @@ function vpcRowTemplate(item) {
     return `<td>${item.VPCID}</td><td>${item.State}</td><td>${item.Region}</td>`;
 }
 
-// Update the DOMContentLoaded event handler
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded - AWS module setting up event listener");
     
@@ -67,18 +66,15 @@ document.addEventListener('DOMContentLoaded', function() {
     if (awsButton) {
         console.log("Found AWS button, setting up handler");
         
-        // Clone the button to remove any existing event listeners
         const newButton = awsButton.cloneNode(true);
         if (awsButton.parentNode) {
             awsButton.parentNode.replaceChild(newButton, awsButton);
         }
         
-        // Add our click handler that ALWAYS shows the form
         newButton.addEventListener('click', function(event) {
             console.log("AWS button clicked");
             event.preventDefault();
             
-            // Always show the connection form, regardless of current connection state
             showAWSCredentialsModal();
         });
     } else {
@@ -251,7 +247,7 @@ function showAWSCredentialsModal() {
             .then(data => {
                 console.log("Profiles loaded:", data);
                 const profileSelector = document.getElementById('aws-profile-selector');
-                profileSelector.innerHTML = ''; // Clear existing options
+                profileSelector.innerHTML = ''; 
                 
                 if (data.profiles && data.profiles.length > 0) {
                     data.profiles.forEach(profile => {

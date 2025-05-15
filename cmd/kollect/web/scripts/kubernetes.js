@@ -177,23 +177,19 @@ function dataVolumeRowTemplate(item) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded - Kubernetes module setting up event listener");
     
-    // Get the kubernetes button
     const kubernetesButton = document.getElementById('kubernetes-button');
     if (kubernetesButton) {
         console.log("Found kubernetes button, setting up handler");
         
-        // Clone the button to remove any existing event listeners
         const newButton = kubernetesButton.cloneNode(true);
         if (kubernetesButton.parentNode) {
             kubernetesButton.parentNode.replaceChild(newButton, kubernetesButton);
         }
         
-        // Add our click handler that ALWAYS shows the form
         newButton.addEventListener('click', function(event) {
             console.log("Kubernetes button clicked");
             event.preventDefault();
             
-            // Always show the connection modal to allow context selection
             showKubernetesConnectionModal();
         });
     } else {
@@ -201,11 +197,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Function to show the Kubernetes connection modal
 function showKubernetesConnectionModal() {
     console.log("Creating Kubernetes connection modal");
     
-    // Create a modal dialog for Kubernetes connection
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.style.display = 'flex';
@@ -287,14 +281,11 @@ function showKubernetesConnectionModal() {
     
     console.log("Modal created and added to DOM");
 
-    // Handle radio button selection
     const sourceForms = document.querySelectorAll('.source-form');
     document.querySelectorAll('input[name="kubeconfig-source"]').forEach(radio => {
         radio.addEventListener('change', () => {
             console.log(`Radio changed to: ${radio.value}`);
-            // Hide all forms
             sourceForms.forEach(form => form.style.display = 'none');
-            // Show the selected form
             const selectedForm = document.getElementById(`${radio.value}-kubeconfig-form`);
             if (selectedForm) {
                 selectedForm.style.display = 'block';
@@ -302,11 +293,9 @@ function showKubernetesConnectionModal() {
         });
     });
 
-    // Load contexts for default kubeconfig
     console.log("Loading contexts for default kubeconfig");
     loadKubeContexts(null, 'default-context-selector');
 
-    // Handle file selection
     let selectedKubeconfigFile = null;
     document.getElementById('browse-kubeconfig')?.addEventListener('click', () => {
         console.log("Browse kubeconfig button clicked");
@@ -319,19 +308,15 @@ function showKubernetesConnectionModal() {
                 document.getElementById('selected-kubeconfig-name').textContent = selectedKubeconfigFile.name;
                 console.log(`Selected file: ${selectedKubeconfigFile.name}`);
                 
-                // Create a FileReader to read the file and get its path
                 const reader = new FileReader();
                 reader.onload = () => {
-                    // Check if this is a valid kubeconfig (basic check for context info)
                     try {
                         const content = reader.result;
                         if (content.includes('contexts:') && content.includes('clusters:') && content.includes('users:')) {
                             console.log("File appears to be a valid kubeconfig");
-                            // Looks like a kubeconfig, load contexts
                             const customContextSelector = document.getElementById('custom-context-selector');
                             customContextSelector.disabled = false;
                             
-                            // Upload the file and parse it server-side
                             uploadKubeconfigAndGetContexts(selectedKubeconfigFile, 'custom-context-selector');
                         } else {
                             console.error("Invalid kubeconfig file format");
@@ -348,13 +333,11 @@ function showKubernetesConnectionModal() {
         input.click();
     });
 
-    // Handle cancel button
     document.getElementById('kubernetes-cancel-btn').addEventListener('click', () => {
         console.log("Cancel button clicked");
         modal.remove();
     });
 
-    // Handle connect button
     document.getElementById('kubernetes-connect-btn').addEventListener('click', () => {
         console.log("Connect button clicked");
         let kubeconfigPath = '';
@@ -364,12 +347,11 @@ function showKubernetesConnectionModal() {
         console.log(`Selected source: ${kubeSource}`);
         
         if (kubeSource === 'default') {
-            kubeconfigPath = ''; // Use default
+            kubeconfigPath = '';  
             selectedContext = document.getElementById('default-context-selector').value;
             console.log(`Using default kubeconfig with context: ${selectedContext}`);
             connectToKubernetes(kubeconfigPath, selectedContext);
         } else {
-            // For custom kubeconfig, we'd need to upload the file to the server
             if (!selectedKubeconfigFile) {
                 alert('Please select a kubeconfig file');
                 return;
@@ -378,12 +360,10 @@ function showKubernetesConnectionModal() {
             selectedContext = document.getElementById('custom-context-selector').value;
             console.log(`Using custom kubeconfig with context: ${selectedContext}`);
             
-            // Upload the kubeconfig file
             const formData = new FormData();
             formData.append('kubeconfig', selectedKubeconfigFile);
             
             console.log("Uploading kubeconfig file");
-            // Send the file to the server
             fetch('/api/kubernetes/upload-kubeconfig', {
                 method: 'POST',
                 body: formData
@@ -471,7 +451,6 @@ function showKubernetesConnectionModal() {
     });
 }
 
-    // Function to load kubeconfig contexts from server
     function loadKubeContexts(kubeconfigPath, selectId) {
         const url = kubeconfigPath ? 
             `/api/kubernetes/contexts?path=${encodeURIComponent(kubeconfigPath)}` : 
@@ -491,7 +470,7 @@ function showKubernetesConnectionModal() {
             .then(data => {
                 console.log("Contexts loaded:", data);
                 const contextSelector = document.getElementById(selectId);
-                contextSelector.innerHTML = ''; // Clear existing options
+                contextSelector.innerHTML = ''; 
                 
                 if (data.contexts && data.contexts.length > 0) {
                     data.contexts.forEach(context => {
@@ -522,7 +501,6 @@ function showKubernetesConnectionModal() {
             });
     }
 
-    // Function to upload kubeconfig and get contexts
     function uploadKubeconfigAndGetContexts(file, selectId) {
         console.log(`Uploading kubeconfig file to get contexts for selector: ${selectId}`);
         const formData = new FormData();
@@ -543,7 +521,6 @@ function showKubernetesConnectionModal() {
         .then(data => {
             if (data.status === 'success') {
                 console.log(`Kubeconfig uploaded to: ${data.path}`);
-                // Now load the contexts from the uploaded file
                 loadKubeContexts(data.path, selectId);
             } else {
                 throw new Error(data.message || 'Failed to upload kubeconfig');

@@ -33,7 +33,6 @@ type AzureData struct {
 func CheckCredentials(ctx context.Context) (bool, error) {
 	err := error(nil)
 
-	// Try to get the subscription ID to verify credentials work
 	_, err = getAzureSubscriptionID()
 
 	return err == nil, err
@@ -65,7 +64,6 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 		}
 	}
 
-	// Collect VMs
 	vmClient, err := armcompute.NewVirtualMachinesClient(subscriptionID, cred, nil)
 	if err != nil {
 		return data, err
@@ -82,7 +80,6 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 		}
 	}
 
-	// Collect VMSS
 	vmssClient, err := armcompute.NewVirtualMachineScaleSetsClient(subscriptionID, cred, nil)
 	if err != nil {
 		log.Printf("Warning: Failed to create VMSS client: %v", err)
@@ -100,7 +97,6 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 		}
 	}
 
-	// Collect AKS Clusters
 	aksClient, err := armcontainerservice.NewManagedClustersClient(subscriptionID, cred, nil)
 	if err != nil {
 		log.Printf("Warning: Failed to create AKS client: %v", err)
@@ -118,7 +114,6 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 		}
 	}
 
-	// Collect Storage Accounts
 	storageClient, err := armstorage.NewAccountsClient(subscriptionID, cred, nil)
 	if err != nil {
 		log.Printf("Warning: Failed to create Storage client: %v", err)
@@ -136,7 +131,6 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 		}
 	}
 
-	// Collect Blob Containers
 	for _, account := range data.AzureStorageAccounts {
 		resourceGroup := getResourceGroupFromID(*account.ID)
 		blobClient, err := armstorage.NewBlobContainersClient(subscriptionID, cred, nil)
@@ -157,7 +151,6 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 		}
 	}
 
-	// Collect Virtual Networks
 	vnetClient, err := armnetwork.NewVirtualNetworksClient(subscriptionID, cred, nil)
 	if err != nil {
 		log.Printf("Warning: Failed to create VNet client: %v", err)
@@ -175,12 +168,10 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 		}
 	}
 
-	// Collect SQL Databases
 	sqlClient, err := armsql.NewDatabasesClient(subscriptionID, cred, nil)
 	if err != nil {
 		log.Printf("Warning: Failed to create SQL client: %v", err)
 	} else {
-		// List SQL servers first to get the server names
 		sqlServerClient, err := armsql.NewServersClient(subscriptionID, cred, nil)
 		if err != nil {
 			log.Printf("Warning: Failed to create SQL server client: %v", err)
@@ -210,7 +201,6 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 		}
 	}
 
-	// Collect CosmosDB Accounts
 	cosmosClient, err := armcosmos.NewDatabaseAccountsClient(subscriptionID, cred, nil)
 	if err != nil {
 		log.Printf("Warning: Failed to create CosmosDB client: %v", err)
@@ -231,7 +221,6 @@ func CollectAzureData(ctx context.Context) (AzureData, error) {
 	return data, nil
 }
 
-// Helper function to extract resource group from resource ID
 func getResourceGroupFromID(resourceID string) string {
 	parts := strings.Split(resourceID, "/")
 	for i, part := range parts {
@@ -242,7 +231,6 @@ func getResourceGroupFromID(resourceID string) string {
 	return ""
 }
 
-// Helper function to get the Azure subscription ID using Azure CLI
 func getAzureSubscriptionID() (string, error) {
 	cmd := exec.Command("az", "account", "show", "--query", "id", "--output", "json")
 	output, err := cmd.Output()
