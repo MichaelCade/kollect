@@ -7,6 +7,7 @@ import (
 	"log"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute"
@@ -244,4 +245,80 @@ func getAzureSubscriptionID() (string, error) {
 	}
 
 	return subscriptionID, nil
+}
+
+// Add this function to implement Azure snapshot collection
+
+// CollectSnapshotData retrieves all snapshot-related resources from Azure
+func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
+	snapshots := map[string]interface{}{}
+
+	// Get subscription ID from Azure CLI
+	subscriptionID, err := getAzureSubscriptionID()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Azure subscription ID: %v", err)
+	}
+
+	// Create a credential using DefaultAzureCredential
+	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create credential: %v", err)
+	}
+
+	// Collect disk snapshots
+	diskSnapshots, err := collectDiskSnapshots(ctx, subscriptionID, cred)
+	if err != nil {
+		log.Printf("Warning: Failed to collect disk snapshots: %v", err)
+	} else {
+		snapshots["DiskSnapshots"] = diskSnapshots
+	}
+
+	return snapshots, nil
+}
+
+func collectDiskSnapshots(ctx context.Context, subscriptionID string, cred *azidentity.DefaultAzureCredential) ([]map[string]string, error) {
+	snapshotsClient, err := armcompute.NewSnapshotsClient(subscriptionID, cred, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create snapshots client: %v", err)
+	}
+
+	pager := snapshotsClient.NewListPager(nil)
+	snapshots := []map[string]string{}
+
+	for pager.More() {
+		page, err := pager.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get next page: %v", err)
+		}
+
+		for _, snapshot := range page.Value {
+			snapshotInfo := map[string]string{
+				"Name":     *snapshot.Name,
+				"ID":       *snapshot.ID,
+				"Location": *snapshot.Location,
+			}
+
+			if snapshot.Properties != nil {
+				if snapshot.Properties.TimeCreated != nil {
+					snapshotInfo["CreationTime"] = snapshot.Properties.TimeCreated.Format(time.RFC3339)
+				}
+
+				if snapshot.Properties.DiskSizeGB != nil {
+					snapshotInfo["SizeGB"] = fmt.Sprintf("%d", *snapshot.Properties.DiskSizeGB)
+				}
+
+				if snapshot.Properties.ProvisioningState != nil {
+					snapshotInfo["ProvisioningState"] = *snapshot.Properties.ProvisioningState
+				}
+
+				if snapshot.Properties.DiskState != nil {
+					snapshotInfo["State"] = string(*snapshot.Properties.DiskState)
+				}
+			}
+
+			snapshots = append(snapshots, snapshotInfo)
+		}
+	}
+
+	return snapshots, nil
 }

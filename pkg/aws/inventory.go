@@ -3,6 +3,8 @@ package aws
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -291,4 +293,116 @@ func CollectAWSData(ctx context.Context) (AWSData, error) {
 	}
 
 	return data, nil
+}
+
+func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
+	snapshots := map[string]interface{}{}
+
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load AWS config: %v", err)
+	}
+
+	ebsSnapshots, err := collectEBSSnapshots(ctx, cfg)
+	if err != nil {
+		log.Printf("Warning: Failed to collect EBS snapshots: %v", err)
+	} else {
+		snapshots["EBSSnapshots"] = ebsSnapshots
+	}
+
+	rdsSnapshots, err := collectRDSSnapshots(ctx, cfg)
+	if err != nil {
+		log.Printf("Warning: Failed to collect RDS snapshots: %v", err)
+	} else {
+		snapshots["RDSSnapshots"] = rdsSnapshots
+	}
+
+	return snapshots, nil
+}
+
+func collectEBSSnapshots(ctx context.Context, cfg aws.Config) ([]map[string]string, error) {
+	client := ec2.NewFromConfig(cfg)
+
+	resp, err := client.DescribeSnapshots(ctx, &ec2.DescribeSnapshotsInput{
+		OwnerIds: []string{"self"},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var snapshots []map[string]string
+	for _, snapshot := range resp.Snapshots {
+		snapshotInfo := map[string]string{
+			"SnapshotId": *snapshot.SnapshotId,
+			"VolumeId":   *snapshot.VolumeId,
+			"State":      string(snapshot.State),
+		}
+
+		if snapshot.VolumeSize != nil {
+			snapshotInfo["VolumeSize"] = fmt.Sprintf("%d GiB", *snapshot.VolumeSize)
+		}
+
+		if snapshot.StartTime != nil {
+			snapshotInfo["StartTime"] = snapshot.StartTime.Format(time.RFC3339)
+		}
+
+		if snapshot.Description != nil {
+			snapshotInfo["Description"] = *snapshot.Description
+		}
+
+		if snapshot.Encrypted != nil {
+			if *snapshot.Encrypted {
+				snapshotInfo["Encrypted"] = "true"
+			} else {
+				snapshotInfo["Encrypted"] = "false"
+			}
+		}
+
+		snapshots = append(snapshots, snapshotInfo)
+	}
+
+	return snapshots, nil
+}
+
+func collectRDSSnapshots(ctx context.Context, cfg aws.Config) ([]map[string]string, error) {
+	client := rds.NewFromConfig(cfg)
+
+	resp, err := client.DescribeDBSnapshots(ctx, &rds.DescribeDBSnapshotsInput{})
+	if err != nil {
+		return nil, err
+	}
+
+	var snapshots []map[string]string
+	for _, snapshot := range resp.DBSnapshots {
+		snapshotInfo := map[string]string{
+			"SnapshotId":   aws.ToString(snapshot.DBSnapshotIdentifier),
+			"DBInstanceId": aws.ToString(snapshot.DBInstanceIdentifier),
+			"SnapshotType": aws.ToString(snapshot.SnapshotType),
+			"Status":       aws.ToString(snapshot.Status),
+		}
+
+		if snapshot.Engine != nil {
+			snapshotInfo["Engine"] = *snapshot.Engine
+		}
+
+		if snapshot.AllocatedStorage != nil && *snapshot.AllocatedStorage != 0 {
+			snapshotInfo["AllocatedStorage"] = fmt.Sprintf("%d GiB", *snapshot.AllocatedStorage)
+		}
+
+		if snapshot.SnapshotCreateTime != nil {
+			snapshotInfo["CreationTime"] = snapshot.SnapshotCreateTime.Format(time.RFC3339)
+		}
+
+		if snapshot.Encrypted != nil {
+			if *snapshot.Encrypted {
+				snapshotInfo["Encrypted"] = "true"
+			} else {
+				snapshotInfo["Encrypted"] = "false"
+			}
+		}
+
+		snapshots = append(snapshots, snapshotInfo)
+	}
+
+	return snapshots, nil
 }

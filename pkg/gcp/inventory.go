@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	"cloud.google.com/go/storage"
@@ -330,4 +331,88 @@ func fetchCloudFunctions(ctx context.Context, projectID string) ([]CloudFunction
 	}
 
 	return functions, nil
+}
+
+// Add this function to implement GCP snapshot collection
+
+// CollectSnapshotData retrieves all snapshot-related resources from GCP
+func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
+	snapshots := map[string]interface{}{}
+
+	// Get GCP project ID
+	projectID, err := getGCPProjectID()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get GCP project ID: %v", err)
+	}
+
+	// Create compute service client
+	client, err := compute.NewService(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create compute service: %v", err)
+	}
+
+	// Collect disk snapshots
+	diskSnapshots, err := collectDiskSnapshots(ctx, client, projectID)
+	if err != nil {
+		log.Printf("Warning: Failed to collect disk snapshots: %v", err)
+	} else {
+		snapshots["DiskSnapshots"] = diskSnapshots
+	}
+
+	return snapshots, nil
+}
+
+func collectDiskSnapshots(ctx context.Context, client *compute.Service, projectID string) ([]map[string]string, error) {
+	var snapshots []map[string]string
+
+	req := client.Snapshots.List(projectID)
+	err := req.Pages(ctx, func(page *compute.SnapshotList) error {
+		for _, snapshot := range page.Items {
+			sourceDiskName := ""
+			if snapshot.SourceDisk != "" {
+				parts := strings.Split(snapshot.SourceDisk, "/")
+				sourceDiskName = parts[len(parts)-1]
+			}
+
+			snapshotInfo := map[string]string{
+				"Name":           snapshot.Name,
+				"ID":             strconv.FormatUint(snapshot.Id, 10),
+				"Status":         snapshot.Status,
+				"SourceDisk":     snapshot.SourceDisk,
+				"SourceDiskName": sourceDiskName,
+				"DiskSizeGB":     strconv.FormatInt(snapshot.DiskSizeGb, 10),
+				"CreationTime":   snapshot.CreationTimestamp,
+			}
+
+			if snapshot.StorageBytes > 0 {
+				snapshotInfo["StorageBytes"] = strconv.FormatInt(snapshot.StorageBytes, 10)
+			}
+
+			snapshots = append(snapshots, snapshotInfo)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to list snapshots: %v", err)
+	}
+
+	return snapshots, nil
+}
+
+// Add this helper function to get the GCP project ID if it doesn't already exist
+func getGCPProjectID() (string, error) {
+	// Run gcloud to get the current project
+	cmd := exec.Command("gcloud", "config", "get-value", "project")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get project ID from gcloud: %v", err)
+	}
+
+	projectID := strings.TrimSpace(string(output))
+	if projectID == "" {
+		return "", fmt.Errorf("no project ID configured in gcloud")
+	}
+
+	return projectID, nil
 }
