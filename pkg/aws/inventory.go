@@ -303,18 +303,60 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to load AWS config: %v", err)
 	}
 
-	ebsSnapshots, err := collectEBSSnapshots(ctx, cfg)
+	// Get list of all regions
+	ec2Client := ec2.NewFromConfig(cfg)
+	regionsOutput, err := ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
-		log.Printf("Warning: Failed to collect EBS snapshots: %v", err)
-	} else {
-		snapshots["EBSSnapshots"] = ebsSnapshots
+		return nil, fmt.Errorf("unable to describe regions: %v", err)
 	}
 
-	rdsSnapshots, err := collectRDSSnapshots(ctx, cfg)
-	if err != nil {
-		log.Printf("Warning: Failed to collect RDS snapshots: %v", err)
-	} else {
-		snapshots["RDSSnapshots"] = rdsSnapshots
+	var allEBSSnapshots []map[string]string
+	var allRDSSnapshots []map[string]string
+
+	// Iterate through all regions
+	for _, region := range regionsOutput.Regions {
+		regionName := *region.RegionName
+		log.Printf("Collecting snapshot data from region: %s", regionName)
+
+		// Create config for this specific region
+		regionCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(regionName))
+		if err != nil {
+			log.Printf("Warning: Failed to load config for region %s: %v", regionName, err)
+			continue
+		}
+
+		// Collect EBS snapshots for this region
+		ebsSnapshots, err := collectEBSSnapshots(ctx, regionCfg)
+		if err != nil {
+			log.Printf("Warning: Failed to collect EBS snapshots from region %s: %v", regionName, err)
+		} else {
+			// Add region information to each snapshot
+			for i := range ebsSnapshots {
+				ebsSnapshots[i]["Region"] = regionName
+			}
+			allEBSSnapshots = append(allEBSSnapshots, ebsSnapshots...)
+		}
+
+		// Collect RDS snapshots for this region
+		rdsSnapshots, err := collectRDSSnapshots(ctx, regionCfg)
+		if err != nil {
+			log.Printf("Warning: Failed to collect RDS snapshots from region %s: %v", regionName, err)
+		} else {
+			// Add region information to each snapshot
+			for i := range rdsSnapshots {
+				rdsSnapshots[i]["Region"] = regionName
+			}
+			allRDSSnapshots = append(allRDSSnapshots, rdsSnapshots...)
+		}
+	}
+
+	// Add collected snapshots to the result
+	if len(allEBSSnapshots) > 0 {
+		snapshots["EBSSnapshots"] = allEBSSnapshots
+	}
+
+	if len(allRDSSnapshots) > 0 {
+		snapshots["RDSSnapshots"] = allRDSSnapshots
 	}
 
 	return snapshots, nil

@@ -1,10 +1,13 @@
 package cost
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/michaelcade/kollect/pkg/gcp"
 )
 
 // CalculateGcpDiskSnapshotCosts calculates costs for GCP disk snapshots
@@ -107,4 +110,115 @@ func EstimateGcpResourceCosts(resourceData map[string]interface{}) (map[string]i
 	}
 
 	return costData, nil
+}
+
+func getGCPProjectID() (string, error) {
+	projectID := gcp.GetProjectID()
+	if projectID == "" {
+		return "", fmt.Errorf("could not determine GCP project ID")
+	}
+	return projectID, nil
+}
+
+func ConvertGcpDataForCostAnalysis(ctx context.Context) (map[string]interface{}, error) {
+	// Use the existing GCP inventory collection function
+	gcpData, err := gcp.CollectGCPData(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect GCP data: %v", err)
+	}
+
+	// Create a generic map to hold all resource types
+	inventory := make(map[string]interface{})
+
+	// Convert Compute Instances to generic map entries
+	if len(gcpData.ComputeInstances) > 0 {
+		instances := make([]map[string]interface{}, len(gcpData.ComputeInstances))
+		for i, instance := range gcpData.ComputeInstances {
+			instances[i] = map[string]interface{}{
+				"Name":        instance.Name,
+				"Zone":        instance.Zone,
+				"MachineType": instance.MachineType,
+				"Status":      instance.Status,
+				"Project":     instance.Project,
+			}
+		}
+		inventory["ComputeInstances"] = instances
+	}
+
+	// Convert GCS Buckets to generic map entries
+	if len(gcpData.GCSBuckets) > 0 {
+		buckets := make([]map[string]interface{}, len(gcpData.GCSBuckets))
+		for i, bucket := range gcpData.GCSBuckets {
+			buckets[i] = map[string]interface{}{
+				"Name":         bucket.Name,
+				"Location":     bucket.Location,
+				"StorageClass": bucket.StorageClass,
+				"Project":      bucket.Project,
+				"SizeGB":       100.0, // Default size estimate, would need to be calculated
+			}
+		}
+		inventory["GCSBuckets"] = buckets
+	}
+
+	// Convert Cloud SQL Instances to generic map entries
+	if len(gcpData.CloudSQLInstances) > 0 {
+		instances := make([]map[string]interface{}, len(gcpData.CloudSQLInstances))
+		for i, instance := range gcpData.CloudSQLInstances {
+			instances[i] = map[string]interface{}{
+				"Name":            instance.Name,
+				"DatabaseVersion": instance.DatabaseVersion,
+				"Region":          instance.Region,
+				"Tier":            instance.Tier,
+				"Status":          instance.Status,
+				"Project":         instance.Project,
+				"DiskSizeGB":      100.0, // Default size estimate, would need to be calculated
+			}
+		}
+		inventory["CloudSQLInstances"] = instances
+	}
+
+	// Convert Cloud Run Services to generic map entries
+	if len(gcpData.CloudRunServices) > 0 {
+		services := make([]map[string]interface{}, len(gcpData.CloudRunServices))
+		for i, service := range gcpData.CloudRunServices {
+			services[i] = map[string]interface{}{
+				"Name":      service.Name,
+				"Region":    service.Region,
+				"URL":       service.URL,
+				"Project":   service.Project,
+				"Replicas":  service.Replicas,
+				"Container": service.Container,
+			}
+		}
+		inventory["CloudRunServices"] = services
+	}
+
+	// Convert Cloud Functions to generic map entries
+	if len(gcpData.CloudFunctions) > 0 {
+		functions := make([]map[string]interface{}, len(gcpData.CloudFunctions))
+		for i, function := range gcpData.CloudFunctions {
+			functions[i] = map[string]interface{}{
+				"Name":            function.Name,
+				"Region":          function.Region,
+				"Runtime":         function.Runtime,
+				"Status":          function.Status,
+				"EntryPoint":      function.EntryPoint,
+				"AvailableMemory": function.AvailableMemory,
+				"Project":         function.Project,
+			}
+		}
+		inventory["CloudFunctions"] = functions
+	}
+
+	// Include snapshot data
+	snapshotData, err := gcp.CollectSnapshotData(ctx)
+	if err != nil {
+		log.Printf("Warning: Failed to collect snapshot data: %v", err)
+	} else {
+		for k, v := range snapshotData {
+			inventory[k] = v
+		}
+	}
+
+	return inventory, nil
 }

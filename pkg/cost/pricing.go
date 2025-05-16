@@ -756,3 +756,36 @@ func HandlePricingInfo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(info)
 }
+func InitPricing() {
+	// Initialize default pricing values
+	// This will use the values already defined at the top of the file
+
+	// Initialize metadata
+	PricingMetadata = map[string]PricingInfo{
+		"aws_ebs": {
+			Source:       "AWS Pricing API (Default Values)",
+			LastVerified: time.Now(),
+		},
+		"aws_rds": {
+			Source:       "AWS Pricing API (Default Values)",
+			LastVerified: time.Now(),
+		},
+		"azure_disk": {
+			Source:       "Azure Pricing API (Default Values)",
+			LastVerified: time.Now(),
+		},
+		"gcp_disk": {
+			Source:       "GCP Pricing API (Default Values)",
+			LastVerified: time.Now(),
+		},
+	}
+
+	// Load cached pricing data if available
+	loadPricingFromCache()
+
+	// Start a background refresh (optional)
+	go func() {
+		ctx := context.Background()
+		RefreshPricing(ctx)
+	}()
+}

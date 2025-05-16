@@ -1,23 +1,27 @@
 package cost
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
+
+	"github.com/michaelcade/kollect/pkg/aws"
 )
 
-// CalculateEbsSnapshotCosts calculates costs for AWS EBS snapshots
+// CalculateEbsSnapshotCosts calculates costs for EBS snapshots
 func CalculateEbsSnapshotCosts(snapshots []map[string]string) []map[string]interface{} {
 	results := make([]map[string]interface{}, 0, len(snapshots))
 
 	for _, snapshot := range snapshots {
-		// Parse size from format like "100 GiB" or just "100"
+		// Parse size
 		var sizeGB float64 = 0
 		if sizeStr, ok := snapshot["VolumeSize"]; ok && sizeStr != "" {
-			// First, clean up the string to extract just the number
+			// Clean up the string to extract just the number
 			numStr := strings.TrimSpace(sizeStr)
-			numStr = strings.Split(numStr, " ")[0] // Take the first part before any space
+			numStr = strings.TrimSuffix(numStr, " GiB") // Remove unit if present
+			numStr = strings.Split(numStr, " ")[0]      // Take the first part before any space
 
 			// Try to parse it as a float
 			if val, err := strconv.ParseFloat(numStr, 64); err == nil {
@@ -32,11 +36,8 @@ func CalculateEbsSnapshotCosts(snapshots []map[string]string) []map[string]inter
 
 		// Determine region or use default
 		region := "us-east-1" // Default region
-		if snapshotId, ok := snapshot["SnapshotId"]; ok && strings.Contains(snapshotId, ":") {
-			parts := strings.Split(snapshotId, ":")
-			if len(parts) >= 4 {
-				region = parts[3]
-			}
+		if regionVal, ok := snapshot["Region"]; ok && regionVal != "" {
+			region = strings.ToLower(regionVal)
 		}
 
 		// Calculate monthly cost
@@ -48,17 +49,18 @@ func CalculateEbsSnapshotCosts(snapshots []map[string]string) []map[string]inter
 		priceInfo := GetPricingMetadata("aws", "ebs_snapshot")
 
 		// Log price information for debugging
-		log.Printf("AWS EBS pricing for region %s: $%.4f per GB/month (Source: %s, Last verified: %s)",
+		log.Printf("AWS EBS snapshot pricing for region %s: $%.4f per GB/month (Source: %s, Last verified: %s)",
 			region, pricePerGB, priceSource, priceInfo.LastVerified.Format("2006-01-02"))
 
 		// Create result with cost info
 		result := map[string]interface{}{
 			"SnapshotId":      snapshot["SnapshotId"],
+			"Description":     snapshot["Description"],
 			"VolumeId":        snapshot["VolumeId"],
 			"SizeGB":          sizeGB,
 			"Region":          region,
 			"State":           snapshot["State"],
-			"CreationTime":    snapshot["StartTime"],
+			"StartTime":       snapshot["StartTime"],
 			"PricePerGBMonth": pricePerGB,
 			"PriceSource":     priceSource,
 			"LastVerified":    priceInfo.LastVerified.Format("2006-01-02"),
@@ -72,7 +74,7 @@ func CalculateEbsSnapshotCosts(snapshots []map[string]string) []map[string]inter
 	return results
 }
 
-// CalculateRdsSnapshotCosts calculates costs for AWS RDS snapshots
+// CalculateRdsSnapshotCosts calculates costs for RDS snapshots
 func CalculateRdsSnapshotCosts(snapshots []map[string]string) []map[string]interface{} {
 	results := make([]map[string]interface{}, 0, len(snapshots))
 
@@ -82,7 +84,8 @@ func CalculateRdsSnapshotCosts(snapshots []map[string]string) []map[string]inter
 		if sizeStr, ok := snapshot["AllocatedStorage"]; ok && sizeStr != "" {
 			// Clean up the string to extract just the number
 			numStr := strings.TrimSpace(sizeStr)
-			numStr = strings.Split(numStr, " ")[0] // Take the first part before any space
+			numStr = strings.TrimSuffix(numStr, " GB") // Remove unit if present
+			numStr = strings.Split(numStr, " ")[0]     // Take the first part before any space
 
 			// Try to parse it as a float
 			if val, err := strconv.ParseFloat(numStr, 64); err == nil {
@@ -97,11 +100,8 @@ func CalculateRdsSnapshotCosts(snapshots []map[string]string) []map[string]inter
 
 		// Determine region or use default
 		region := "us-east-1" // Default region
-		if arn, ok := snapshot["SnapshotId"]; ok && strings.Contains(arn, ":") {
-			parts := strings.Split(arn, ":")
-			if len(parts) >= 4 {
-				region = parts[3]
-			}
+		if regionVal, ok := snapshot["Region"]; ok && regionVal != "" {
+			region = strings.ToLower(regionVal)
 		}
 
 		// Calculate monthly cost
@@ -113,22 +113,24 @@ func CalculateRdsSnapshotCosts(snapshots []map[string]string) []map[string]inter
 		priceInfo := GetPricingMetadata("aws", "rds_snapshot")
 
 		// Log price information for debugging
-		log.Printf("AWS RDS pricing for region %s: $%.4f per GB/month (Source: %s, Last verified: %s)",
+		log.Printf("AWS RDS snapshot pricing for region %s: $%.4f per GB/month (Source: %s, Last verified: %s)",
 			region, pricePerGB, priceSource, priceInfo.LastVerified.Format("2006-01-02"))
 
 		// Create result with cost info
 		result := map[string]interface{}{
-			"SnapshotId":      snapshot["SnapshotId"],
-			"Engine":          snapshot["Engine"],
-			"SizeGB":          sizeGB,
-			"Region":          region,
-			"Status":          snapshot["Status"],
-			"CreationTime":    snapshot["SnapshotCreateTime"],
-			"PricePerGBMonth": pricePerGB,
-			"PriceSource":     priceSource,
-			"LastVerified":    priceInfo.LastVerified.Format("2006-01-02"),
-			"MonthlyCost":     monthlyCost,
-			"MonthlyCostUSD":  fmt.Sprintf("$%.2f", monthlyCost),
+			"DBSnapshotIdentifier": snapshot["DBSnapshotIdentifier"],
+			"DBInstanceIdentifier": snapshot["DBInstanceIdentifier"],
+			"SnapshotType":         snapshot["SnapshotType"],
+			"Engine":               snapshot["Engine"],
+			"SizeGB":               sizeGB,
+			"Region":               region,
+			"Status":               snapshot["Status"],
+			"SnapshotCreateTime":   snapshot["SnapshotCreateTime"],
+			"PricePerGBMonth":      pricePerGB,
+			"PriceSource":          priceSource,
+			"LastVerified":         priceInfo.LastVerified.Format("2006-01-02"),
+			"MonthlyCost":          monthlyCost,
+			"MonthlyCostUSD":       fmt.Sprintf("$%.2f", monthlyCost),
 		}
 
 		results = append(results, result)
@@ -196,29 +198,99 @@ func EstimateAwsResourceCosts(resourceData map[string]interface{}) (map[string]i
 	return costData, nil
 }
 
-// Helper function to convert various data types to snapshot list
-func convertToSnapshotList(data interface{}) ([]map[string]string, bool) {
-	// First, try direct type assertion
-	if snapshots, ok := data.([]map[string]string); ok {
-		return snapshots, true
+// ConvertAwsDataForCostAnalysis converts the structured AWSData into a generic map for cost analysis
+func ConvertAwsDataForCostAnalysis(ctx context.Context) (map[string]interface{}, error) {
+	// Use the existing AWS inventory collection function
+	awsData, err := aws.CollectAWSData(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect AWS data: %v", err)
 	}
 
-	// Next, try to handle it as an array of interfaces
-	if snapshotsArray, ok := data.([]interface{}); ok {
-		result := make([]map[string]string, 0, len(snapshotsArray))
-		for _, item := range snapshotsArray {
-			if mapItem, ok := item.(map[string]interface{}); ok {
-				strMap := make(map[string]string)
-				for k, v := range mapItem {
-					strMap[k] = fmt.Sprintf("%v", v)
-				}
-				result = append(result, strMap)
-			} else if stringMap, ok := item.(map[string]string); ok {
-				result = append(result, stringMap)
+	// Create a generic map to hold all resource types
+	inventory := make(map[string]interface{})
+
+	// Convert EC2 instances to generic map entries
+	if len(awsData.EC2Instances) > 0 {
+		instances := make([]map[string]interface{}, len(awsData.EC2Instances))
+		for i, instance := range awsData.EC2Instances {
+			instances[i] = map[string]interface{}{
+				"InstanceId":   instance.InstanceID,
+				"Name":         instance.Name,
+				"InstanceType": instance.Type,
+				"State":        instance.State,
+				"Region":       instance.Region,
 			}
 		}
-		return result, len(result) > 0
+		inventory["EC2Instances"] = instances
 	}
 
-	return nil, false
+	// Convert S3 buckets to generic map entries
+	if len(awsData.S3Buckets) > 0 {
+		buckets := make([]map[string]interface{}, len(awsData.S3Buckets))
+		for i, bucket := range awsData.S3Buckets {
+			buckets[i] = map[string]interface{}{
+				"Name":         bucket.Name,
+				"Region":       bucket.Region,
+				"Immutable":    bucket.Immutable,
+				"SizeGB":       100.0, // Default size estimate
+				"StorageClass": "STANDARD",
+			}
+		}
+		inventory["S3Buckets"] = buckets
+	}
+
+	// Convert RDS instances to generic map entries
+	if len(awsData.RDSInstances) > 0 {
+		instances := make([]map[string]interface{}, len(awsData.RDSInstances))
+		for i, instance := range awsData.RDSInstances {
+			instances[i] = map[string]interface{}{
+				"DBInstanceIdentifier": instance.InstanceID,
+				"Engine":               instance.Engine,
+				"Status":               instance.Status,
+				"Region":               instance.Region,
+				"DBInstanceClass":      "db.t3.medium", // Default value
+				"AllocatedStorage":     20.0,           // Default value
+			}
+		}
+		inventory["RDSInstances"] = instances
+	}
+
+	// Convert DynamoDB tables to generic map entries
+	if len(awsData.DynamoDBTables) > 0 {
+		tables := make([]map[string]interface{}, len(awsData.DynamoDBTables))
+		for i, table := range awsData.DynamoDBTables {
+			tables[i] = map[string]interface{}{
+				"TableName": table.TableName,
+				"Status":    table.Status,
+				"Region":    table.Region,
+				"SizeGB":    1.0, // Default value
+			}
+		}
+		inventory["DynamoDBTables"] = tables
+	}
+
+	// Convert VPCs to generic map entries
+	if len(awsData.VPCs) > 0 {
+		vpcs := make([]map[string]interface{}, len(awsData.VPCs))
+		for i, vpc := range awsData.VPCs {
+			vpcs[i] = map[string]interface{}{
+				"VPCID":  vpc.VPCID,
+				"State":  vpc.State,
+				"Region": vpc.Region,
+			}
+		}
+		inventory["VPCs"] = vpcs
+	}
+
+	// Include snapshot data
+	snapshotData, err := aws.CollectSnapshotData(ctx)
+	if err != nil {
+		log.Printf("Warning: Failed to collect snapshot data: %v", err)
+	} else {
+		for k, v := range snapshotData {
+			inventory[k] = v
+		}
+	}
+
+	return inventory, nil
 }

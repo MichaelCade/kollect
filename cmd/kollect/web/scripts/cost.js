@@ -136,6 +136,7 @@ function processPlatformCosts(platform, costData) {
         console.log("AWS cost data details:", {
             hasEBSSnapshots: costData.EBSSnapshotCosts ? costData.EBSSnapshotCosts.length : 'none',
             hasRDSSnapshots: costData.RDSSnapshotCosts ? costData.RDSSnapshotCosts.length : 'none',
+            hasEC2Instances: costData.EC2Costs ? costData.EC2Costs.length : 'none',
             summary: costData.Summary
         });
     }
@@ -171,20 +172,82 @@ function processPlatformCosts(platform, costData) {
         } else {
             console.log("No RDS snapshot costs found");
         }
+        
+        // NEW: Display EC2 Instance costs
+        if (costData.EC2Costs && costData.EC2Costs.length > 0) {
+            createTable(`${platform} EC2 Instance Costs`, costData.EC2Costs, 
+                item => `<td>${item.InstanceId}</td><td>${item.InstanceType}</td><td>${item.Region}</td><td>$${item.HourlyCost.toFixed(4)}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
+                ['Instance ID', 'Instance Type', 'Region', 'Hourly Cost', 'Monthly Cost']);
+        } else {
+            console.log("No EC2 instance costs found");
+        }
+        
+        // NEW: Display S3 Bucket costs
+        if (costData.S3Costs && costData.S3Costs.length > 0) {
+            createTable(`${platform} S3 Bucket Costs`, costData.S3Costs, 
+                item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Region}</td><td>${item.StorageClass}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
+                ['Bucket Name', 'Size', 'Region', 'Storage Class', 'Monthly Cost']);
+        }
+        
+        // NEW: Display RDS Instance costs
+        if (costData.RDSInstanceCosts && costData.RDSInstanceCosts.length > 0) {
+            createTable(`${platform} RDS Instance Costs`, costData.RDSInstanceCosts, 
+                item => `<td>${item.DBInstanceIdentifier}</td><td>${item.Engine}</td><td>${item.Region}</td><td>${item.DBInstanceClass}</td><td>${item.AllocatedStorage} GB</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
+                ['Instance ID', 'Engine', 'Region', 'Instance Class', 'Storage', 'Monthly Cost']);
+        }
     }
     
     // Display Disk Snapshot costs for Azure
-    if (platform === 'Azure' && costData.DiskSnapshotCosts && costData.DiskSnapshotCosts.length > 0) {
-        createTable(`${platform} Disk Snapshot Costs`, costData.DiskSnapshotCosts, 
-            item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Region}</td><td>${item.State || 'N/A'}</td><td>$${item.PricePerGBMonth.toFixed(3)}</td><td>${item.MonthlyCostUSD}</td>`,
-            ['Name', 'Size', 'Region', 'State', 'Price per GB/Month', 'Monthly Cost']);
+    if (platform === 'Azure') {
+        if (costData.DiskSnapshotCosts && costData.DiskSnapshotCosts.length > 0) {
+            createTable(`${platform} Disk Snapshot Costs`, costData.DiskSnapshotCosts, 
+                item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Location}</td><td>${item.State || 'N/A'}</td><td>$${item.PricePerGBMonth.toFixed(3)}</td><td>${item.MonthlyCostUSD}</td>`,
+                ['Name', 'Size', 'Region', 'State', 'Price per GB/Month', 'Monthly Cost']);
+        }
+        
+        // NEW: Display VM costs
+        if (costData.VMCosts && costData.VMCosts.length > 0) {
+            createTable(`${platform} Virtual Machine Costs`, costData.VMCosts, 
+                item => `<td>${item.Name}</td><td>${item.ResourceGroup}</td><td>${item.Location}</td><td>${item.VMSize}</td><td>$${item.HourlyCost.toFixed(4)}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
+                ['Name', 'Resource Group', 'Location', 'VM Size', 'Hourly Cost', 'Monthly Cost']);
+        }
+        
+        // NEW: Display Storage Account costs
+        if (costData.StorageAccountCosts && costData.StorageAccountCosts.length > 0) {
+            createTable(`${platform} Storage Account Costs`, costData.StorageAccountCosts, 
+                item => `<td>${item.Name}</td><td>${item.UsedCapacityGB} GB</td><td>${item.Location}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
+                ['Name', 'Used Capacity', 'Location', 'Monthly Cost']);
+        }
     }
     
     // Display Disk Snapshot costs for GCP
-    if (platform === 'GCP' && costData.DiskSnapshotCosts && costData.DiskSnapshotCosts.length > 0) {
-        createTable(`${platform} Disk Snapshot Costs`, costData.DiskSnapshotCosts, 
-            item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Region}</td><td>${item.Status || 'N/A'}</td><td>$${item.PricePerGBMonth.toFixed(3)}</td><td>${item.MonthlyCostUSD}</td>`,
-            ['Name', 'Size', 'Region', 'Status', 'Price per GB/Month', 'Monthly Cost']);
+    if (platform === 'GCP') {
+        if (costData.DiskSnapshotCosts && costData.DiskSnapshotCosts.length > 0) {
+            createTable(`${platform} Disk Snapshot Costs`, costData.DiskSnapshotCosts, 
+                item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Region}</td><td>${item.Status || 'N/A'}</td><td>$${item.PricePerGBMonth.toFixed(3)}</td><td>${item.MonthlyCostUSD}</td>`,
+                ['Name', 'Size', 'Region', 'Status', 'Price per GB/Month', 'Monthly Cost']);
+        }
+        
+        // NEW: Display Compute Instance costs
+        if (costData.ComputeCosts && costData.ComputeCosts.length > 0) {
+            createTable(`${platform} Compute Instance Costs`, costData.ComputeCosts, 
+                item => `<td>${item.Name}</td><td>${item.MachineType}</td><td>${item.Zone}</td><td>$${item.HourlyCost.toFixed(4)}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
+                ['Name', 'Machine Type', 'Zone', 'Hourly Cost', 'Monthly Cost']);
+        }
+        
+        // NEW: Display GCS Bucket costs
+        if (costData.GCSCosts && costData.GCSCosts.length > 0) {
+            createTable(`${platform} Cloud Storage Costs`, costData.GCSCosts, 
+                item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Location}</td><td>${item.StorageClass}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
+                ['Bucket Name', 'Size', 'Location', 'Storage Class', 'Monthly Cost']);
+        }
+        
+        // NEW: Display Cloud SQL costs
+        if (costData.CloudSQLCosts && costData.CloudSQLCosts.length > 0) {
+            createTable(`${platform} Cloud SQL Costs`, costData.CloudSQLCosts, 
+                item => `<td>${item.Name}</td><td>${item.DatabaseVersion}</td><td>${item.Region}</td><td>${item.Tier}</td><td>${item.DiskSizeGB} GB</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
+                ['Name', 'Version', 'Region', 'Tier', 'Disk Size', 'Monthly Cost']);
+        }
     }
     
     // Display summary for this platform
@@ -194,13 +257,19 @@ function processPlatformCosts(platform, costData) {
         summaryDiv.innerHTML = `
             <div class="summary-card" style="background-color: var(--card-bg); border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 <h3 style="margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">${platform} Cost Summary</h3>
-                <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-                    <div class="summary-item">
+                <div style="display: flex; justify-content: space-between; flex-wrap: wrap; margin-top: 10px;">
+                    <div class="summary-item" style="margin-bottom: 10px; min-width: 180px;">
                         <div style="font-size: 0.9em; color: var(--secondary-text-color);">Total Snapshot Storage</div>
                         <div style="font-size: 1.5em; font-weight: bold;">${costData.Summary.TotalSnapshotStorage.toFixed(2)} GB</div>
                     </div>
-                    <div class="summary-item">
-                        <div style="font-size: 0.9em; color: var(--secondary-text-color);">Estimated Monthly Cost</div>
+                    ${costData.Summary.TotalComputeCost ? `
+                    <div class="summary-item" style="margin-bottom: 10px; min-width: 180px;">
+                        <div style="font-size: 0.9em; color: var(--secondary-text-color);">Compute Resources Cost</div>
+                        <div style="font-size: 1.5em; font-weight: bold;">$${costData.Summary.TotalComputeCost.toFixed(2)}</div>
+                    </div>
+                    ` : ''}
+                    <div class="summary-item" style="margin-bottom: 10px; min-width: 180px;">
+                        <div style="font-size: 0.9em; color: var(--secondary-text-color);">Estimated Total Monthly Cost</div>
                         <div style="font-size: 1.5em; font-weight: bold;">$${costData.Summary.TotalMonthlyCost.toFixed(2)}</div>
                     </div>
                 </div>
