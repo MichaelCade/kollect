@@ -2,11 +2,12 @@ package cost
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 )
 
-// First, let's improve the CalculateEbsSnapshotCosts function
+// CalculateEbsSnapshotCosts calculates costs for AWS EBS snapshots
 func CalculateEbsSnapshotCosts(snapshots []map[string]string) []map[string]interface{} {
 	results := make([]map[string]interface{}, 0, len(snapshots))
 
@@ -39,8 +40,16 @@ func CalculateEbsSnapshotCosts(snapshots []map[string]string) []map[string]inter
 		}
 
 		// Calculate monthly cost
-		pricePerGB := GetPrice(AwsEbsSnapshotPricing, region)
+		pricePerGB := GetPrice("aws", "ebs_snapshot", region)
 		monthlyCost := sizeGB * pricePerGB
+
+		// Get pricing source and metadata
+		priceSource := GetPricingSource("aws", "ebs_snapshot")
+		priceInfo := GetPricingMetadata("aws", "ebs_snapshot")
+
+		// Log price information for debugging
+		log.Printf("AWS EBS pricing for region %s: $%.4f per GB/month (Source: %s, Last verified: %s)",
+			region, pricePerGB, priceSource, priceInfo.LastVerified.Format("2006-01-02"))
 
 		// Create result with cost info
 		result := map[string]interface{}{
@@ -51,6 +60,8 @@ func CalculateEbsSnapshotCosts(snapshots []map[string]string) []map[string]inter
 			"State":           snapshot["State"],
 			"CreationTime":    snapshot["StartTime"],
 			"PricePerGBMonth": pricePerGB,
+			"PriceSource":     priceSource,
+			"LastVerified":    priceInfo.LastVerified.Format("2006-01-02"),
 			"MonthlyCost":     monthlyCost,
 			"MonthlyCostUSD":  fmt.Sprintf("$%.2f", monthlyCost),
 		}
@@ -61,7 +72,7 @@ func CalculateEbsSnapshotCosts(snapshots []map[string]string) []map[string]inter
 	return results
 }
 
-// Now, let's do the same for RDS snapshots
+// CalculateRdsSnapshotCosts calculates costs for AWS RDS snapshots
 func CalculateRdsSnapshotCosts(snapshots []map[string]string) []map[string]interface{} {
 	results := make([]map[string]interface{}, 0, len(snapshots))
 
@@ -93,9 +104,17 @@ func CalculateRdsSnapshotCosts(snapshots []map[string]string) []map[string]inter
 			}
 		}
 
-		// Calculate monthly cost - using RDS-specific pricing
-		pricePerGB := GetPrice(AwsRdsSnapshotPricing, region)
+		// Calculate monthly cost
+		pricePerGB := GetPrice("aws", "rds_snapshot", region)
 		monthlyCost := sizeGB * pricePerGB
+
+		// Get pricing source and metadata
+		priceSource := GetPricingSource("aws", "rds_snapshot")
+		priceInfo := GetPricingMetadata("aws", "rds_snapshot")
+
+		// Log price information for debugging
+		log.Printf("AWS RDS pricing for region %s: $%.4f per GB/month (Source: %s, Last verified: %s)",
+			region, pricePerGB, priceSource, priceInfo.LastVerified.Format("2006-01-02"))
 
 		// Create result with cost info
 		result := map[string]interface{}{
@@ -106,6 +125,8 @@ func CalculateRdsSnapshotCosts(snapshots []map[string]string) []map[string]inter
 			"Status":          snapshot["Status"],
 			"CreationTime":    snapshot["SnapshotCreateTime"],
 			"PricePerGBMonth": pricePerGB,
+			"PriceSource":     priceSource,
+			"LastVerified":    priceInfo.LastVerified.Format("2006-01-02"),
 			"MonthlyCost":     monthlyCost,
 			"MonthlyCostUSD":  fmt.Sprintf("$%.2f", monthlyCost),
 		}
@@ -116,7 +137,7 @@ func CalculateRdsSnapshotCosts(snapshots []map[string]string) []map[string]inter
 	return results
 }
 
-// Now, let's fix the main function
+// EstimateAwsResourceCosts calculates costs for AWS resources
 func EstimateAwsResourceCosts(resourceData map[string]interface{}) (map[string]interface{}, error) {
 	costData := make(map[string]interface{})
 
@@ -160,16 +181,22 @@ func EstimateAwsResourceCosts(resourceData map[string]interface{}) (map[string]i
 		}
 	}
 
+	// Include pricing source information in the summary
+	priceSource := GetPricingSource("aws", "ebs_snapshot")
+	lastVerified := GetPricingMetadata("aws", "ebs_snapshot").LastVerified.Format("2006-01-02")
+
 	costData["Summary"] = map[string]interface{}{
 		"TotalSnapshotStorage": totalSnapshotStorage,
 		"TotalMonthlyCost":     totalMonthlyCost,
 		"Currency":             "USD",
+		"PriceSource":          priceSource,
+		"LastVerified":         lastVerified,
 	}
 
 	return costData, nil
 }
 
-// Also ensure the convertToSnapshotList function is working properly
+// Helper function to convert various data types to snapshot list
 func convertToSnapshotList(data interface{}) ([]map[string]string, bool) {
 	// First, try direct type assertion
 	if snapshots, ok := data.([]map[string]string); ok {

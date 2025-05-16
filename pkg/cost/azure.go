@@ -2,6 +2,7 @@ package cost
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -22,14 +23,6 @@ func CalculateAzureDiskSnapshotCosts(snapshots []map[string]string) []map[string
 			if val, err := strconv.ParseFloat(numStr, 64); err == nil {
 				sizeGB = val
 			}
-		} else if sizeStr, ok := snapshot["SizeGB"]; ok && sizeStr != "" {
-			// Alternative field name
-			numStr := strings.TrimSpace(sizeStr)
-			numStr = strings.Split(numStr, " ")[0]
-
-			if val, err := strconv.ParseFloat(numStr, 64); err == nil {
-				sizeGB = val
-			}
 		}
 
 		// If size is still 0, use a default size
@@ -44,8 +37,16 @@ func CalculateAzureDiskSnapshotCosts(snapshots []map[string]string) []map[string
 		}
 
 		// Calculate monthly cost
-		pricePerGB := GetPrice(AzureDiskSnapshotPricing, region)
+		pricePerGB := GetPrice("azure", "disk_snapshot", region)
 		monthlyCost := sizeGB * pricePerGB
+
+		// Get pricing source and metadata
+		priceSource := GetPricingSource("azure", "disk_snapshot")
+		priceInfo := GetPricingMetadata("azure", "disk_snapshot")
+
+		// Log price information for debugging
+		log.Printf("Azure disk pricing for region %s: $%.4f per GB/month (Source: %s, Last verified: %s)",
+			region, pricePerGB, priceSource, priceInfo.LastVerified.Format("2006-01-02"))
 
 		// Create result with cost info
 		result := map[string]interface{}{
@@ -55,6 +56,8 @@ func CalculateAzureDiskSnapshotCosts(snapshots []map[string]string) []map[string
 			"State":           snapshot["ProvisioningState"],
 			"CreationTime":    snapshot["TimeCreated"],
 			"PricePerGBMonth": pricePerGB,
+			"PriceSource":     priceSource,
+			"LastVerified":    priceInfo.LastVerified.Format("2006-01-02"),
 			"MonthlyCost":     monthlyCost,
 			"MonthlyCostUSD":  fmt.Sprintf("$%.2f", monthlyCost),
 		}
@@ -91,10 +94,16 @@ func EstimateAzureResourceCosts(resourceData map[string]interface{}) (map[string
 		}
 	}
 
+	// Include pricing source information in the summary
+	priceSource := GetPricingSource("azure", "disk_snapshot")
+	lastVerified := GetPricingMetadata("azure", "disk_snapshot").LastVerified.Format("2006-01-02")
+
 	costData["Summary"] = map[string]interface{}{
 		"TotalSnapshotStorage": totalSnapshotStorage,
 		"TotalMonthlyCost":     totalMonthlyCost,
 		"Currency":             "USD",
+		"PriceSource":          priceSource,
+		"LastVerified":         lastVerified,
 	}
 
 	return costData, nil

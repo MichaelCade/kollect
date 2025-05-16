@@ -2,6 +2,7 @@ package cost
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -36,8 +37,16 @@ func CalculateGcpDiskSnapshotCosts(snapshots []map[string]string) []map[string]i
 		}
 
 		// Calculate monthly cost
-		pricePerGB := GetPrice(GcpDiskSnapshotPricing, region)
+		pricePerGB := GetPrice("gcp", "disk_snapshot", region)
 		monthlyCost := sizeGB * pricePerGB
+
+		// Get pricing source and metadata
+		priceSource := GetPricingSource("gcp", "disk_snapshot")
+		priceInfo := GetPricingMetadata("gcp", "disk_snapshot")
+
+		// Log price information for debugging
+		log.Printf("GCP disk pricing for region %s: $%.4f per GB/month (Source: %s, Last verified: %s)",
+			region, pricePerGB, priceSource, priceInfo.LastVerified.Format("2006-01-02"))
 
 		// Create result with cost info
 		result := map[string]interface{}{
@@ -47,6 +56,8 @@ func CalculateGcpDiskSnapshotCosts(snapshots []map[string]string) []map[string]i
 			"Status":          snapshot["Status"],
 			"CreationTime":    snapshot["CreationTimestamp"],
 			"PricePerGBMonth": pricePerGB,
+			"PriceSource":     priceSource,
+			"LastVerified":    priceInfo.LastVerified.Format("2006-01-02"),
 			"MonthlyCost":     monthlyCost,
 			"MonthlyCostUSD":  fmt.Sprintf("$%.2f", monthlyCost),
 		}
@@ -83,10 +94,16 @@ func EstimateGcpResourceCosts(resourceData map[string]interface{}) (map[string]i
 		}
 	}
 
+	// Include pricing source information in the summary
+	priceSource := GetPricingSource("gcp", "disk_snapshot")
+	lastVerified := GetPricingMetadata("gcp", "disk_snapshot").LastVerified.Format("2006-01-02")
+
 	costData["Summary"] = map[string]interface{}{
 		"TotalSnapshotStorage": totalSnapshotStorage,
 		"TotalMonthlyCost":     totalMonthlyCost,
 		"Currency":             "USD",
+		"PriceSource":          priceSource,
+		"LastVerified":         lastVerified,
 	}
 
 	return costData, nil

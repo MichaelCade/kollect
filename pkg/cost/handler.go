@@ -1,10 +1,12 @@
 package cost
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/michaelcade/kollect/pkg/aws"
 	"github.com/michaelcade/kollect/pkg/azure"
@@ -132,7 +134,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 		costs, err = EstimateGcpResourceCosts(gcpData)
 		costs = map[string]interface{}{"gcp": costs}
 
-		// Inside the "all" case section, modify the code to properly use mock data
 	case "all":
 		allCosts := make(map[string]interface{})
 
@@ -268,9 +269,7 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add disclaimer
-	disclaimer := "Cost estimates are approximations based on publicly available pricing information. " +
-		"Actual costs may vary based on your specific agreements, reserved capacity, and other factors."
+	disclaimer := GetPricingDisclaimer()
 
 	result := map[string]interface{}{
 		"costs":      costs,
@@ -279,6 +278,22 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
+}
+
+// InitPricing initializes pricing data at application startup
+func InitPricing() {
+	// Attempt to initialize pricing from APIs at startup
+	go func() {
+		log.Println("Initializing pricing data...")
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := RefreshPricing(ctx); err != nil {
+			log.Printf("Warning: Error initializing pricing data: %v", err)
+		} else {
+			log.Println("Pricing data initialized successfully")
+		}
+	}()
 }
 
 // Helper function to count snapshots
@@ -298,17 +313,17 @@ func isEmpty(data map[string]interface{}) bool {
 		return true
 	}
 
-	hasSnapshots := false
-	for _, key := range []string{"EBSSnapshots", "RDSSnapshots", "DiskSnapshots"} {
-		if snapshots, ok := data[key].([]interface{}); ok && len(snapshots) > 0 {
-			hasSnapshots = true
-			break
+	for _, v := range data {
+		if arr, ok := v.([]interface{}); ok && len(arr) > 0 {
+			return false
 		}
-		if snapshots, ok := data[key].([]map[string]string); ok && len(snapshots) > 0 {
-			hasSnapshots = true
-			break
+		if arr, ok := v.([]map[string]string); ok && len(arr) > 0 {
+			return false
+		}
+		if arr, ok := v.([]map[string]interface{}); ok && len(arr) > 0 {
+			return false
 		}
 	}
 
-	return !hasSnapshots
+	return true
 }

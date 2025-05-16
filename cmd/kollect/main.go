@@ -381,7 +381,7 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		panic(err)
 	}
 	fileServer := http.FileServer(http.FS(fsys))
-
+	cost.InitPricing()
 	http.Handle("/", fileServer)
 
 	http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
@@ -395,6 +395,8 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 	})
 
 	http.HandleFunc("/api/costs", cost.HandleCostRequest)
+	http.HandleFunc("/api/refresh-pricing", cost.HandleRefreshPricing)
+	http.HandleFunc("/api/pricing-info", cost.HandlePricingInfo)
 
 	http.HandleFunc("/api/check-credentials", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
