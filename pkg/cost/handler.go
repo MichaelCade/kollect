@@ -146,7 +146,7 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 			if resourceType == "snapshots" {
 				gcpData, err = gcp.CollectSnapshotData(ctx)
 			} else {
-				// For all other resource types, use the data converter
+				// For all resources, use the comprehensive data collector
 				gcpData, err = ConvertGcpDataForCostAnalysis(ctx)
 			}
 
@@ -184,7 +184,15 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 		} else {
 			estimator := NewResourceCostEstimator()
 			costs, err = estimator.EstimateGcpResourcesCost(gcpData) // New comprehensive function
+			log.Printf("Using ResourceCostEstimator for comprehensive GCP resource cost analysis")
 		}
+
+		if err != nil {
+			log.Printf("Error estimating GCP costs: %v", err)
+			http.Error(w, fmt.Sprintf("Error estimating GCP costs: %v", err), http.StatusInternalServerError)
+			return
+		}
+
 		costs = map[string]interface{}{"gcp": costs}
 
 	case "all":

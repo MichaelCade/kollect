@@ -127,7 +127,196 @@ func (r *ResourceCostEstimator) EstimateAwsResourcesCost(resourceData map[string
 		if totalCost, ok := summary["TotalMonthlyCost"].(float64); ok {
 			summary["TotalMonthlyCost"] = totalCost + totalResourceCost
 			summary["TotalComputeCost"] = totalResourceCost
-			log.Printf("Updated summary with total resource cost of $%.2f", totalResourceCost)
+			log.Printf("Updated summary with total AWS resource cost of $%.2f", totalResourceCost)
+		}
+	}
+
+	return costData, nil
+}
+
+// EstimateGcpResourcesCost estimates costs for various GCP resources
+func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string]interface{}) (map[string]interface{}, error) {
+	// Start with the snapshot costs
+	costData, err := EstimateGcpResourceCosts(resourceData)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add cost calculations for Compute Instances, GCS buckets, Cloud SQL, etc.
+	var totalResourceCost float64
+
+	// Compute Instances - calculate approximate costs
+	if computeInstancesRaw, ok := resourceData["ComputeInstances"]; ok {
+		if computeInstances, ok := computeInstancesRaw.([]map[string]interface{}); ok {
+			var computeCosts []map[string]interface{}
+
+			log.Printf("Calculating costs for %d GCP Compute instances", len(computeInstances))
+
+			for _, instance := range computeInstances {
+				// Default cost for small instance
+				hourlyCost := 0.05
+
+				// Adjust based on machine type
+				if machineType, ok := instance["MachineType"].(string); ok {
+					switch {
+					case strings.Contains(machineType, "f1-micro"):
+						hourlyCost = 0.01
+					case strings.Contains(machineType, "g1-small"):
+						hourlyCost = 0.02
+					case strings.Contains(machineType, "e2-"):
+						hourlyCost = 0.03
+					case strings.Contains(machineType, "n1-standard"):
+						hourlyCost = 0.05
+					case strings.Contains(machineType, "n2-standard"):
+						hourlyCost = 0.06
+					case strings.Contains(machineType, "c2-"):
+						hourlyCost = 0.09
+					}
+				}
+
+				// Adjust for regional pricing
+				zone := "us-central1-a" // Default zone
+				if z, ok := instance["Zone"].(string); ok && z != "" {
+					zone = z
+				}
+
+				// Premium regions cost more
+				if strings.HasPrefix(zone, "australia-") ||
+					strings.HasPrefix(zone, "europe-") ||
+					strings.HasPrefix(zone, "asia-") {
+					hourlyCost *= 1.2
+				}
+
+				monthlyCost := hourlyCost * 24 * 30
+
+				cost := map[string]interface{}{
+					"Name":        instance["Name"],
+					"MachineType": instance["MachineType"],
+					"Zone":        zone,
+					"HourlyCost":  hourlyCost,
+					"MonthlyCost": monthlyCost,
+				}
+
+				computeCosts = append(computeCosts, cost)
+				totalResourceCost += monthlyCost
+			}
+
+			costData["ComputeCosts"] = computeCosts
+			log.Printf("Added %d GCP Compute instance costs", len(computeCosts))
+		}
+	}
+
+	// GCS Buckets - calculate approximate costs
+	if gcsBucketsRaw, ok := resourceData["GCSBuckets"]; ok {
+		if gcsBuckets, ok := gcsBucketsRaw.([]map[string]interface{}); ok {
+			var gcsCosts []map[string]interface{}
+
+			log.Printf("Calculating costs for %d GCS buckets", len(gcsBuckets))
+
+			for _, bucket := range gcsBuckets {
+				sizeGB := 100.0 // Default size
+				if size, ok := bucket["SizeGB"].(float64); ok && size > 0 {
+					sizeGB = size
+				}
+
+				storageClass := "STANDARD"
+				if sc, ok := bucket["StorageClass"].(string); ok && sc != "" {
+					storageClass = sc
+				}
+
+				// Price per GB per month
+				pricePerGB := 0.02 // Standard storage
+
+				switch storageClass {
+				case "NEARLINE":
+					pricePerGB = 0.01
+				case "COLDLINE":
+					pricePerGB = 0.007
+				case "ARCHIVE":
+					pricePerGB = 0.004
+				}
+
+				monthlyCost := sizeGB * pricePerGB
+
+				cost := map[string]interface{}{
+					"Name":         bucket["Name"],
+					"Location":     bucket["Location"],
+					"SizeGB":       sizeGB,
+					"StorageClass": storageClass,
+					"PricePerGB":   pricePerGB,
+					"MonthlyCost":  monthlyCost,
+				}
+
+				gcsCosts = append(gcsCosts, cost)
+				totalResourceCost += monthlyCost
+			}
+
+			costData["GCSCosts"] = gcsCosts
+			log.Printf("Added %d GCS bucket costs", len(gcsCosts))
+		}
+	}
+
+	// Cloud SQL Instances - calculate approximate costs
+	if cloudSQLInstancesRaw, ok := resourceData["CloudSQLInstances"]; ok {
+		if cloudSQLInstances, ok := cloudSQLInstancesRaw.([]map[string]interface{}); ok {
+			var sqlCosts []map[string]interface{}
+
+			log.Printf("Calculating costs for %d Cloud SQL instances", len(cloudSQLInstances))
+
+			for _, instance := range cloudSQLInstances {
+				// Base hourly cost for the instance
+				hourlyCost := 0.1 // Default for small instance
+
+				if tier, ok := instance["Tier"].(string); ok {
+					switch {
+					case strings.Contains(tier, "db-f1-micro"):
+						hourlyCost = 0.025
+					case strings.Contains(tier, "db-g1-small"):
+						hourlyCost = 0.05
+					case strings.Contains(tier, "standard"):
+						hourlyCost = 0.1
+					case strings.Contains(tier, "highmem"):
+						hourlyCost = 0.15
+					case strings.Contains(tier, "highcpu"):
+						hourlyCost = 0.12
+					}
+				}
+
+				// Storage costs
+				diskSizeGB := 100.0 // Default
+				if size, ok := instance["DiskSizeGB"].(float64); ok && size > 0 {
+					diskSizeGB = size
+				}
+
+				diskCostPerMonth := diskSizeGB * 0.17 // $0.17 per GB per month
+
+				monthlyCost := (hourlyCost * 24 * 30) + diskCostPerMonth
+
+				cost := map[string]interface{}{
+					"Name":            instance["Name"],
+					"DatabaseVersion": instance["DatabaseVersion"],
+					"Region":          instance["Region"],
+					"Tier":            instance["Tier"],
+					"DiskSizeGB":      diskSizeGB,
+					"HourlyCost":      hourlyCost,
+					"MonthlyCost":     monthlyCost,
+				}
+
+				sqlCosts = append(sqlCosts, cost)
+				totalResourceCost += monthlyCost
+			}
+
+			costData["CloudSQLCosts"] = sqlCosts
+			log.Printf("Added %d Cloud SQL instance costs", len(sqlCosts))
+		}
+	}
+
+	// Update the summary to include all resource costs
+	if summary, ok := costData["Summary"].(map[string]interface{}); ok {
+		if totalCost, ok := summary["TotalMonthlyCost"].(float64); ok {
+			summary["TotalMonthlyCost"] = totalCost + totalResourceCost
+			summary["TotalComputeCost"] = totalResourceCost
+			log.Printf("Updated summary with total GCP resource cost of $%.2f", totalResourceCost)
 		}
 	}
 
@@ -182,67 +371,6 @@ func (r *ResourceCostEstimator) EstimateAzureResourcesCost(resourceData map[stri
 			}
 
 			costData["VMCosts"] = vmCosts
-		}
-	}
-
-	// Update the summary to include all resource costs
-	if summary, ok := costData["Summary"].(map[string]interface{}); ok {
-		if totalCost, ok := summary["TotalMonthlyCost"].(float64); ok {
-			summary["TotalMonthlyCost"] = totalCost + totalResourceCost
-			summary["TotalComputeCost"] = totalResourceCost
-		}
-	}
-
-	return costData, nil
-}
-
-// EstimateGcpResourcesCost estimates costs for various GCP resources
-func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string]interface{}) (map[string]interface{}, error) {
-	// Start with the snapshot costs
-	costData, err := EstimateGcpResourceCosts(resourceData)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add cost calculations for compute instances, Cloud SQL, etc.
-	var totalResourceCost float64
-
-	// Compute Instances - calculate approximate costs
-	if instancesRaw, ok := resourceData["ComputeInstances"]; ok {
-		if instances, ok := instancesRaw.([]map[string]interface{}); ok {
-			var instanceCosts []map[string]interface{}
-
-			for _, instance := range instances {
-				// Default cost for small instance
-				hourlyCost := 0.05
-
-				// Adjust based on machine type
-				if machineType, ok := instance["MachineType"].(string); ok {
-					switch {
-					case strings.Contains(machineType, "n1-standard"):
-						hourlyCost = 0.05
-					case strings.Contains(machineType, "n2-standard"):
-						hourlyCost = 0.07
-					case strings.Contains(machineType, "e2-"):
-						hourlyCost = 0.03
-					}
-				}
-
-				monthlyCost := hourlyCost * 24 * 30
-
-				cost := map[string]interface{}{
-					"Name":        instance["Name"],
-					"Zone":        instance["Zone"],
-					"MachineType": instance["MachineType"],
-					"HourlyCost":  hourlyCost,
-					"MonthlyCost": monthlyCost,
-				}
-
-				instanceCosts = append(instanceCosts, cost)
-				totalResourceCost += monthlyCost
-			}
-
-			costData["ComputeCosts"] = instanceCosts
 		}
 	}
 

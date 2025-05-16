@@ -120,12 +120,23 @@ func getGCPProjectID() (string, error) {
 	return projectID, nil
 }
 
+// Add or update this function:
+
+// ConvertGcpDataForCostAnalysis converts the structured GCPData into a generic map for cost analysis
 func ConvertGcpDataForCostAnalysis(ctx context.Context) (map[string]interface{}, error) {
+	log.Println("Starting conversion of GCP data for cost analysis...")
+
 	// Use the existing GCP inventory collection function
 	gcpData, err := gcp.CollectGCPData(ctx)
 	if err != nil {
+		log.Printf("Failed to collect GCP data: %v", err)
 		return nil, fmt.Errorf("failed to collect GCP data: %v", err)
 	}
+
+	// Debug logs to see what data was collected
+	log.Printf("GCP data collected: %d compute instances, %d GCS buckets, %d Cloud SQL instances, %d Cloud Run services, %d Cloud Functions",
+		len(gcpData.ComputeInstances), len(gcpData.GCSBuckets), len(gcpData.CloudSQLInstances),
+		len(gcpData.CloudRunServices), len(gcpData.CloudFunctions))
 
 	// Create a generic map to hold all resource types
 	inventory := make(map[string]interface{})
@@ -143,6 +154,7 @@ func ConvertGcpDataForCostAnalysis(ctx context.Context) (map[string]interface{},
 			}
 		}
 		inventory["ComputeInstances"] = instances
+		log.Printf("Added %d GCP Compute instances to cost inventory", len(instances))
 	}
 
 	// Convert GCS Buckets to generic map entries
@@ -154,10 +166,11 @@ func ConvertGcpDataForCostAnalysis(ctx context.Context) (map[string]interface{},
 				"Location":     bucket.Location,
 				"StorageClass": bucket.StorageClass,
 				"Project":      bucket.Project,
-				"SizeGB":       100.0, // Default size estimate, would need to be calculated
+				"SizeGB":       100.0, // Default size estimate
 			}
 		}
 		inventory["GCSBuckets"] = buckets
+		log.Printf("Added %d GCP Storage buckets to cost inventory", len(buckets))
 	}
 
 	// Convert Cloud SQL Instances to generic map entries
@@ -171,52 +184,21 @@ func ConvertGcpDataForCostAnalysis(ctx context.Context) (map[string]interface{},
 				"Tier":            instance.Tier,
 				"Status":          instance.Status,
 				"Project":         instance.Project,
-				"DiskSizeGB":      100.0, // Default size estimate, would need to be calculated
+				"DiskSizeGB":      100.0, // Default size estimate
 			}
 		}
 		inventory["CloudSQLInstances"] = instances
-	}
-
-	// Convert Cloud Run Services to generic map entries
-	if len(gcpData.CloudRunServices) > 0 {
-		services := make([]map[string]interface{}, len(gcpData.CloudRunServices))
-		for i, service := range gcpData.CloudRunServices {
-			services[i] = map[string]interface{}{
-				"Name":      service.Name,
-				"Region":    service.Region,
-				"URL":       service.URL,
-				"Project":   service.Project,
-				"Replicas":  service.Replicas,
-				"Container": service.Container,
-			}
-		}
-		inventory["CloudRunServices"] = services
-	}
-
-	// Convert Cloud Functions to generic map entries
-	if len(gcpData.CloudFunctions) > 0 {
-		functions := make([]map[string]interface{}, len(gcpData.CloudFunctions))
-		for i, function := range gcpData.CloudFunctions {
-			functions[i] = map[string]interface{}{
-				"Name":            function.Name,
-				"Region":          function.Region,
-				"Runtime":         function.Runtime,
-				"Status":          function.Status,
-				"EntryPoint":      function.EntryPoint,
-				"AvailableMemory": function.AvailableMemory,
-				"Project":         function.Project,
-			}
-		}
-		inventory["CloudFunctions"] = functions
+		log.Printf("Added %d GCP Cloud SQL instances to cost inventory", len(instances))
 	}
 
 	// Include snapshot data
 	snapshotData, err := gcp.CollectSnapshotData(ctx)
 	if err != nil {
-		log.Printf("Warning: Failed to collect snapshot data: %v", err)
+		log.Printf("Warning: Failed to collect GCP snapshot data: %v", err)
 	} else {
 		for k, v := range snapshotData {
 			inventory[k] = v
+			log.Printf("Added GCP snapshot data type %s to cost inventory", k)
 		}
 	}
 

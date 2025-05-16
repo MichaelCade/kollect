@@ -79,6 +79,8 @@ function debugCostData(data) {
     console.log("--- END DEBUG ---");
 }
 
+// Update the fetchCostData function:
+
 function fetchCostData(platform) {
     showLoadingIndicator();
     
