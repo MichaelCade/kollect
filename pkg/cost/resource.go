@@ -1,6 +1,7 @@
 package cost
 
 import (
+	"log"
 	"strings"
 )
 
@@ -29,6 +30,8 @@ func (r *ResourceCostEstimator) EstimateAwsResourcesCost(resourceData map[string
 	if ec2InstancesRaw, ok := resourceData["EC2Instances"]; ok {
 		if ec2Instances, ok := ec2InstancesRaw.([]map[string]interface{}); ok {
 			var ec2Costs []map[string]interface{}
+
+			log.Printf("Calculating costs for %d EC2 instances", len(ec2Instances))
 
 			for _, instance := range ec2Instances {
 				// Default cost for small instance
@@ -63,6 +66,59 @@ func (r *ResourceCostEstimator) EstimateAwsResourcesCost(resourceData map[string
 			}
 
 			costData["EC2Costs"] = ec2Costs
+			log.Printf("Added %d EC2 instance costs", len(ec2Costs))
+		}
+	}
+
+	// S3 Buckets - calculate approximate costs
+	if s3BucketsRaw, ok := resourceData["S3Buckets"]; ok {
+		if s3Buckets, ok := s3BucketsRaw.([]map[string]interface{}); ok {
+			var s3Costs []map[string]interface{}
+
+			log.Printf("Calculating costs for %d S3 buckets", len(s3Buckets))
+
+			for _, bucket := range s3Buckets {
+				sizeGB := 100.0 // Default size
+				if size, ok := bucket["SizeGB"].(float64); ok && size > 0 {
+					sizeGB = size
+				}
+
+				storageClass := "STANDARD"
+				if sc, ok := bucket["StorageClass"].(string); ok && sc != "" {
+					storageClass = sc
+				}
+
+				// Price per GB per month
+				pricePerGB := 0.023 // Standard storage
+
+				switch storageClass {
+				case "STANDARD_IA":
+					pricePerGB = 0.0125
+				case "ONEZONE_IA":
+					pricePerGB = 0.01
+				case "GLACIER":
+					pricePerGB = 0.004
+				case "DEEP_ARCHIVE":
+					pricePerGB = 0.00099
+				}
+
+				monthlyCost := sizeGB * pricePerGB
+
+				cost := map[string]interface{}{
+					"Name":         bucket["Name"],
+					"Region":       bucket["Region"],
+					"SizeGB":       sizeGB,
+					"StorageClass": storageClass,
+					"PricePerGB":   pricePerGB,
+					"MonthlyCost":  monthlyCost,
+				}
+
+				s3Costs = append(s3Costs, cost)
+				totalResourceCost += monthlyCost
+			}
+
+			costData["S3Costs"] = s3Costs
+			log.Printf("Added %d S3 bucket costs", len(s3Costs))
 		}
 	}
 
@@ -71,6 +127,7 @@ func (r *ResourceCostEstimator) EstimateAwsResourcesCost(resourceData map[string
 		if totalCost, ok := summary["TotalMonthlyCost"].(float64); ok {
 			summary["TotalMonthlyCost"] = totalCost + totalResourceCost
 			summary["TotalComputeCost"] = totalResourceCost
+			log.Printf("Updated summary with total resource cost of $%.2f", totalResourceCost)
 		}
 	}
 

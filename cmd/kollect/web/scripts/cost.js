@@ -6,6 +6,7 @@ registerDataHandler('cost',
     },
     function(data) {
         console.log("Processing cost data:", data);
+        logAllResourceTypes(data);
         
         // Add disclaimer
         const disclaimer = data.disclaimer || "Cost estimates are approximations based on publicly available pricing information. Actual costs may vary based on your specific agreements, reserved capacity, and other factors.";
@@ -84,7 +85,8 @@ function fetchCostData(platform) {
     console.log(`Fetching cost data for platform: ${platform}`);
     
     const useMock = document.getElementById('use-mock-data')?.checked || false;
-    const url = `/api/costs?platform=${platform}${useMock ? '&mock=true' : ''}`;
+    // Add type=all to get all resource types, not just snapshots
+    const url = `/api/costs?platform=${platform}&type=all${useMock ? '&mock=true' : ''}`;
     
     console.log(`API URL: ${url}`);
     fetch(url)
@@ -184,9 +186,10 @@ function processPlatformCosts(platform, costData) {
         
         // NEW: Display S3 Bucket costs
         if (costData.S3Costs && costData.S3Costs.length > 0) {
+            console.log(`Found ${costData.S3Costs.length} S3 bucket costs`);
             createTable(`${platform} S3 Bucket Costs`, costData.S3Costs, 
-                item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Region}</td><td>${item.StorageClass}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
-                ['Bucket Name', 'Size', 'Region', 'Storage Class', 'Monthly Cost']);
+                item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Region}</td><td>${item.StorageClass}</td><td>$${item.PricePerGB.toFixed(4)}/GB</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
+                ['Bucket Name', 'Size', 'Region', 'Storage Class', 'Price per GB', 'Monthly Cost']);
         }
         
         // NEW: Display RDS Instance costs
@@ -432,6 +435,27 @@ function createCostCharts(data) {
     });
 }
 
+function logAllResourceTypes(data) {
+    console.log("--- RESOURCE TYPES IN COST DATA ---");
+    
+    // Check if we have aws/azure/gcp structure or direct structure
+    const costsData = data.costs || data;
+    
+    if (costsData.aws) {
+        console.log("AWS resource types:", Object.keys(costsData.aws).filter(k => k !== 'Summary' && k !== 'Message'));
+    }
+    
+    if (costsData.azure) {
+        console.log("Azure resource types:", Object.keys(costsData.azure).filter(k => k !== 'Summary' && k !== 'Message'));
+    }
+    
+    if (costsData.gcp) {
+        console.log("GCP resource types:", Object.keys(costsData.gcp).filter(k => k !== 'Summary' && k !== 'Message'));
+    }
+    
+    console.log("--- END RESOURCE TYPES ---");
+}
+
 function showCostExplorerModal() {
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -464,7 +488,7 @@ function showCostExplorerModal() {
             <i class="fas fa-dollar-sign"></i> Cost Explorer
         </h3>
         
-        <p style="margin-bottom: 20px;">Select which cloud platform to analyze snapshot costs:</p>
+        <p style="margin-bottom: 20px;">Select which cloud platform to analyze costs for all resources:</p>
         
         <div class="cost-platform-selection" style="margin: 20px 0;">
             <div style="background: var(--background-color); border-radius: 6px; padding: 12px; margin-bottom: 10px;">
@@ -475,33 +499,11 @@ function showCostExplorerModal() {
                     </label>
                 </div>
                 <div style="padding: 5px 0 0 25px; font-size: 0.9em; color: var(--secondary-text-color);">
-                    Estimates costs for EBS and RDS snapshots
+                    Estimates costs for EC2, S3, RDS, snapshots and more
                 </div>
             </div>
             
-            <div style="background: var(--background-color); border-radius: 6px; padding: 12px; margin-bottom: 10px;">
-                <div style="display: flex; align-items: center;">
-                    <input type="radio" id="cost-azure" name="cost-platform" value="azure" style="margin-right: 10px;">
-                    <label for="cost-azure" style="font-weight: bold; font-size: 1.1em;">
-                        <i class="fab fa-microsoft"></i> Azure
-                    </label>
-                </div>
-                <div style="padding: 5px 0 0 25px; font-size: 0.9em; color: var(--secondary-text-color);">
-                    Estimates costs for disk snapshots
-                </div>
-            </div>
-            
-            <div style="background: var(--background-color); border-radius: 6px; padding: 12px; margin-bottom: 10px;">
-                <div style="display: flex; align-items: center;">
-                    <input type="radio" id="cost-gcp" name="cost-platform" value="gcp" style="margin-right: 10px;">
-                    <label for="cost-gcp" style="font-weight: bold; font-size: 1.1em;">
-                        <i class="fab fa-google"></i> GCP
-                    </label>
-                </div>
-                <div style="padding: 5px 0 0 25px; font-size: 0.9em; color: var(--secondary-text-color);">
-                    Estimates costs for disk snapshots
-                </div>
-            </div>
+            <!-- ... other platforms ... -->
             
             <div style="background: rgba(74, 144, 226, 0.1); border-radius: 6px; padding: 12px; margin-top: 15px; margin-bottom: 10px;">
                 <div style="display: flex; align-items: center;">
@@ -511,7 +513,7 @@ function showCostExplorerModal() {
                     </label>
                 </div>
                 <div style="padding: 5px 0 0 25px; font-size: 0.9em; color: var(--secondary-text-color);">
-                    Estimates costs for all connected platforms simultaneously
+                    Estimates costs for all cloud resources across all connected platforms
                 </div>
             </div>
         </div>
@@ -540,11 +542,10 @@ function showCostExplorerModal() {
     });
     
     document.getElementById('cost-analyze-btn').addEventListener('click', () => {
-        console.log("Analyze button clicked");
-        
         const selectedPlatform = document.querySelector('input[name="cost-platform"]:checked').value;
-        console.log(`Selected platform: ${selectedPlatform}`);
+        const useMock = document.getElementById('use-mock-data').checked;
         
+        console.log(`Analyzing costs for platform: ${selectedPlatform}, mock: ${useMock}`);
         fetchCostData(selectedPlatform);
         modal.remove();
     });

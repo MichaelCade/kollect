@@ -222,6 +222,7 @@ func ConvertAwsDataForCostAnalysis(ctx context.Context) (map[string]interface{},
 			}
 		}
 		inventory["EC2Instances"] = instances
+		log.Printf("Added %d EC2 instances to cost inventory", len(instances))
 	}
 
 	// Convert S3 buckets to generic map entries
@@ -237,6 +238,7 @@ func ConvertAwsDataForCostAnalysis(ctx context.Context) (map[string]interface{},
 			}
 		}
 		inventory["S3Buckets"] = buckets
+		log.Printf("Added %d S3 buckets to cost inventory", len(buckets))
 	}
 
 	// Convert RDS instances to generic map entries
@@ -253,6 +255,7 @@ func ConvertAwsDataForCostAnalysis(ctx context.Context) (map[string]interface{},
 			}
 		}
 		inventory["RDSInstances"] = instances
+		log.Printf("Added %d RDS instances to cost inventory", len(instances))
 	}
 
 	// Convert DynamoDB tables to generic map entries
@@ -267,6 +270,7 @@ func ConvertAwsDataForCostAnalysis(ctx context.Context) (map[string]interface{},
 			}
 		}
 		inventory["DynamoDBTables"] = tables
+		log.Printf("Added %d DynamoDB tables to cost inventory", len(tables))
 	}
 
 	// Convert VPCs to generic map entries
@@ -280,6 +284,7 @@ func ConvertAwsDataForCostAnalysis(ctx context.Context) (map[string]interface{},
 			}
 		}
 		inventory["VPCs"] = vpcs
+		log.Printf("Added %d VPCs to cost inventory", len(vpcs))
 	}
 
 	// Include snapshot data
@@ -289,6 +294,7 @@ func ConvertAwsDataForCostAnalysis(ctx context.Context) (map[string]interface{},
 	} else {
 		for k, v := range snapshotData {
 			inventory[k] = v
+			log.Printf("Added snapshot data type %s to cost inventory", k)
 		}
 	}
 
