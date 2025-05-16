@@ -28,7 +28,7 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 
 		if useMock {
 			awsData = GenerateMockSnapshotData("aws")
-			log.Printf("Using mock AWS data: %+v", awsData)
+			log.Printf("Using mock AWS data")
 		} else {
 			awsData, err = aws.CollectSnapshotData(ctx)
 			if err != nil {
@@ -36,23 +36,29 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, fmt.Sprintf("Error collecting AWS snapshot data: %v", err), http.StatusInternalServerError)
 				return
 			}
-		}
 
-		log.Printf("AWS snapshot data collected with %d EBS snapshots and %d RDS snapshots",
-			countSnapshots(awsData, "EBSSnapshots"),
-			countSnapshots(awsData, "RDSSnapshots"))
+			log.Printf("AWS snapshot data collected with %d EBS snapshots and %d RDS snapshots",
+				countSnapshots(awsData, "EBSSnapshots"),
+				countSnapshots(awsData, "RDSSnapshots"))
 
-		if isEmpty(awsData) {
-			log.Printf("No AWS snapshots found, using mock data")
-			awsData = GenerateMockSnapshotData("aws")
+			// If no snapshots found, return empty data with a message instead of using mock data
+			if isEmpty(awsData) {
+				log.Printf("No AWS snapshots found")
+				costs = map[string]interface{}{
+					"Summary": map[string]interface{}{
+						"TotalSnapshotStorage": 0.0,
+						"TotalMonthlyCost":     0.0,
+						"Currency":             "USD",
+					},
+					"Message": "No AWS snapshots found. Real data is being shown.",
+				}
+				costs = map[string]interface{}{"aws": costs}
+				break
+			}
 		}
 
 		costs, err = EstimateAwsResourceCosts(awsData)
-		log.Printf("AWS costs calculated: %+v", costs)
-
-		// Wrap the costs in a platform map for the client
 		costs = map[string]interface{}{"aws": costs}
-		log.Printf("Final AWS costs object: %+v", costs)
 
 	case "azure":
 		var azureData map[string]interface{}
@@ -67,18 +73,27 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, fmt.Sprintf("Error collecting Azure snapshot data: %v", err), http.StatusInternalServerError)
 				return
 			}
-		}
 
-		log.Printf("Azure snapshot data collected with %d disk snapshots",
-			countSnapshots(azureData, "DiskSnapshots"))
+			log.Printf("Azure snapshot data collected with %d disk snapshots",
+				countSnapshots(azureData, "DiskSnapshots"))
 
-		if isEmpty(azureData) {
-			log.Printf("No Azure snapshots found, using mock data")
-			azureData = GenerateMockSnapshotData("azure")
+			// If no snapshots found, return empty data with a message instead of using mock data
+			if isEmpty(azureData) {
+				log.Printf("No Azure snapshots found")
+				costs = map[string]interface{}{
+					"Summary": map[string]interface{}{
+						"TotalSnapshotStorage": 0.0,
+						"TotalMonthlyCost":     0.0,
+						"Currency":             "USD",
+					},
+					"Message": "No Azure snapshots found. Real data is being shown.",
+				}
+				costs = map[string]interface{}{"azure": costs}
+				break
+			}
 		}
 
 		costs, err = EstimateAzureResourceCosts(azureData)
-		// Wrap the costs in a platform map for the client
 		costs = map[string]interface{}{"azure": costs}
 
 	case "gcp":
@@ -94,20 +109,30 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, fmt.Sprintf("Error collecting GCP snapshot data: %v", err), http.StatusInternalServerError)
 				return
 			}
-		}
 
-		log.Printf("GCP snapshot data collected with %d disk snapshots",
-			countSnapshots(gcpData, "DiskSnapshots"))
+			log.Printf("GCP snapshot data collected with %d disk snapshots",
+				countSnapshots(gcpData, "DiskSnapshots"))
 
-		if isEmpty(gcpData) {
-			log.Printf("No GCP snapshots found, using mock data")
-			gcpData = GenerateMockSnapshotData("gcp")
+			// If no snapshots found, return empty data with a message instead of using mock data
+			if isEmpty(gcpData) {
+				log.Printf("No GCP snapshots found")
+				costs = map[string]interface{}{
+					"Summary": map[string]interface{}{
+						"TotalSnapshotStorage": 0.0,
+						"TotalMonthlyCost":     0.0,
+						"Currency":             "USD",
+					},
+					"Message": "No GCP snapshots found. Real data is being shown.",
+				}
+				costs = map[string]interface{}{"gcp": costs}
+				break
+			}
 		}
 
 		costs, err = EstimateGcpResourceCosts(gcpData)
-		// Wrap the costs in a platform map for the client
 		costs = map[string]interface{}{"gcp": costs}
 
+		// Inside the "all" case section, modify the code to properly use mock data
 	case "all":
 		allCosts := make(map[string]interface{})
 
@@ -116,19 +141,32 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 		if useMock {
 			awsData = GenerateMockSnapshotData("aws")
 			log.Printf("Using mock AWS data for 'all' option")
+			awsCosts, _ := EstimateAwsResourceCosts(awsData)
+			allCosts["aws"] = awsCosts
 		} else {
 			awsData, err = aws.CollectSnapshotData(ctx)
 			if err != nil {
 				log.Printf("Warning: Error collecting AWS snapshots: %v", err)
-			} else if isEmpty(awsData) {
-				log.Printf("No AWS snapshots found, using mock data")
-				awsData = GenerateMockSnapshotData("aws")
-			}
-		}
+			} else {
+				log.Printf("AWS snapshot data collected with %d EBS snapshots and %d RDS snapshots",
+					countSnapshots(awsData, "EBSSnapshots"),
+					countSnapshots(awsData, "RDSSnapshots"))
 
-		if len(awsData) > 0 {
-			awsCosts, _ := EstimateAwsResourceCosts(awsData)
-			allCosts["aws"] = awsCosts
+				if !isEmpty(awsData) {
+					awsCosts, _ := EstimateAwsResourceCosts(awsData)
+					allCosts["aws"] = awsCosts
+				} else {
+					log.Printf("No AWS snapshots found")
+					allCosts["aws"] = map[string]interface{}{
+						"Summary": map[string]interface{}{
+							"TotalSnapshotStorage": 0.0,
+							"TotalMonthlyCost":     0.0,
+							"Currency":             "USD",
+						},
+						"Message": "No AWS snapshots found. Real data is being shown.",
+					}
+				}
+			}
 		}
 
 		// Azure
@@ -136,19 +174,31 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 		if useMock {
 			azureData = GenerateMockSnapshotData("azure")
 			log.Printf("Using mock Azure data for 'all' option")
+			azureCosts, _ := EstimateAzureResourceCosts(azureData)
+			allCosts["azure"] = azureCosts
 		} else {
 			azureData, err = azure.CollectSnapshotData(ctx)
 			if err != nil {
 				log.Printf("Warning: Error collecting Azure snapshots: %v", err)
-			} else if isEmpty(azureData) {
-				log.Printf("No Azure snapshots found, using mock data")
-				azureData = GenerateMockSnapshotData("azure")
-			}
-		}
+			} else {
+				log.Printf("Azure snapshot data collected with %d disk snapshots",
+					countSnapshots(azureData, "DiskSnapshots"))
 
-		if len(azureData) > 0 {
-			azureCosts, _ := EstimateAzureResourceCosts(azureData)
-			allCosts["azure"] = azureCosts
+				if !isEmpty(azureData) {
+					azureCosts, _ := EstimateAzureResourceCosts(azureData)
+					allCosts["azure"] = azureCosts
+				} else {
+					log.Printf("No Azure snapshots found")
+					allCosts["azure"] = map[string]interface{}{
+						"Summary": map[string]interface{}{
+							"TotalSnapshotStorage": 0.0,
+							"TotalMonthlyCost":     0.0,
+							"Currency":             "USD",
+						},
+						"Message": "No Azure snapshots found. Real data is being shown.",
+					}
+				}
+			}
 		}
 
 		// GCP
@@ -156,54 +206,46 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 		if useMock {
 			gcpData = GenerateMockSnapshotData("gcp")
 			log.Printf("Using mock GCP data for 'all' option")
+			gcpCosts, _ := EstimateGcpResourceCosts(gcpData)
+			allCosts["gcp"] = gcpCosts
 		} else {
 			gcpData, err = gcp.CollectSnapshotData(ctx)
 			if err != nil {
 				log.Printf("Warning: Error collecting GCP snapshots: %v", err)
-			} else if isEmpty(gcpData) {
-				log.Printf("No GCP snapshots found, using mock data")
-				gcpData = GenerateMockSnapshotData("gcp")
-			}
-		}
+			} else {
+				log.Printf("GCP snapshot data collected with %d disk snapshots",
+					countSnapshots(gcpData, "DiskSnapshots"))
 
-		if len(gcpData) > 0 {
-			gcpCosts, _ := EstimateGcpResourceCosts(gcpData)
-			allCosts["gcp"] = gcpCosts
+				if !isEmpty(gcpData) {
+					gcpCosts, _ := EstimateGcpResourceCosts(gcpData)
+					allCosts["gcp"] = gcpCosts
+				} else {
+					log.Printf("No GCP snapshots found")
+					allCosts["gcp"] = map[string]interface{}{
+						"Summary": map[string]interface{}{
+							"TotalSnapshotStorage": 0.0,
+							"TotalMonthlyCost":     0.0,
+							"Currency":             "USD",
+						},
+						"Message": "No GCP snapshots found. Real data is being shown.",
+					}
+				}
+			}
 		}
 
 		// Calculate global summary
 		var totalStorage float64
 		var totalCost float64
 
-		if awsCosts, ok := allCosts["aws"].(map[string]interface{}); ok {
-			if summary, ok := awsCosts["Summary"].(map[string]interface{}); ok {
-				if storage, ok := summary["TotalSnapshotStorage"].(float64); ok {
-					totalStorage += storage
-				}
-				if cost, ok := summary["TotalMonthlyCost"].(float64); ok {
-					totalCost += cost
-				}
-			}
-		}
-
-		if azureCosts, ok := allCosts["azure"].(map[string]interface{}); ok {
-			if summary, ok := azureCosts["Summary"].(map[string]interface{}); ok {
-				if storage, ok := summary["TotalSnapshotStorage"].(float64); ok {
-					totalStorage += storage
-				}
-				if cost, ok := summary["TotalMonthlyCost"].(float64); ok {
-					totalCost += cost
-				}
-			}
-		}
-
-		if gcpCosts, ok := allCosts["gcp"].(map[string]interface{}); ok {
-			if summary, ok := gcpCosts["Summary"].(map[string]interface{}); ok {
-				if storage, ok := summary["TotalSnapshotStorage"].(float64); ok {
-					totalStorage += storage
-				}
-				if cost, ok := summary["TotalMonthlyCost"].(float64); ok {
-					totalCost += cost
+		for _, platformCosts := range allCosts {
+			if costMap, ok := platformCosts.(map[string]interface{}); ok {
+				if summary, ok := costMap["Summary"].(map[string]interface{}); ok {
+					if storage, ok := summary["TotalSnapshotStorage"].(float64); ok {
+						totalStorage += storage
+					}
+					if cost, ok := summary["TotalMonthlyCost"].(float64); ok {
+						totalCost += cost
+					}
 				}
 			}
 		}

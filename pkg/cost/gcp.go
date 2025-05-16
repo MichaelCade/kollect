@@ -6,6 +6,57 @@ import (
 	"strings"
 )
 
+// CalculateGcpDiskSnapshotCosts calculates costs for GCP disk snapshots
+func CalculateGcpDiskSnapshotCosts(snapshots []map[string]string) []map[string]interface{} {
+	results := make([]map[string]interface{}, 0, len(snapshots))
+
+	for _, snapshot := range snapshots {
+		// Parse size
+		var sizeGB float64 = 0
+		if sizeStr, ok := snapshot["DiskSizeGB"]; ok && sizeStr != "" {
+			// Clean up the string to extract just the number
+			numStr := strings.TrimSpace(sizeStr)
+			numStr = strings.Split(numStr, " ")[0] // Take the first part before any space
+
+			// Try to parse it as a float
+			if val, err := strconv.ParseFloat(numStr, 64); err == nil {
+				sizeGB = val
+			}
+		}
+
+		// If size is still 0, use a default size
+		if sizeGB == 0 {
+			sizeGB = 100.0 // Default to 100 GB
+		}
+
+		// Determine region or use default
+		region := "us-central1" // Default region
+		if location, ok := snapshot["Location"]; ok && location != "" {
+			region = strings.ToLower(location)
+		}
+
+		// Calculate monthly cost
+		pricePerGB := GetPrice(GcpDiskSnapshotPricing, region)
+		monthlyCost := sizeGB * pricePerGB
+
+		// Create result with cost info
+		result := map[string]interface{}{
+			"Name":            snapshot["Name"],
+			"SizeGB":          sizeGB,
+			"Region":          region,
+			"Status":          snapshot["Status"],
+			"CreationTime":    snapshot["CreationTimestamp"],
+			"PricePerGBMonth": pricePerGB,
+			"MonthlyCost":     monthlyCost,
+			"MonthlyCostUSD":  fmt.Sprintf("$%.2f", monthlyCost),
+		}
+
+		results = append(results, result)
+	}
+
+	return results
+}
+
 // EstimateGcpResourceCosts calculates costs for GCP resources
 func EstimateGcpResourceCosts(resourceData map[string]interface{}) (map[string]interface{}, error) {
 	costData := make(map[string]interface{})
@@ -39,55 +90,4 @@ func EstimateGcpResourceCosts(resourceData map[string]interface{}) (map[string]i
 	}
 
 	return costData, nil
-}
-
-// CalculateGcpDiskSnapshotCosts calculates costs for GCP disk snapshots
-func CalculateGcpDiskSnapshotCosts(snapshots []map[string]string) []map[string]interface{} {
-	results := make([]map[string]interface{}, 0, len(snapshots))
-
-	for _, snapshot := range snapshots {
-		// Parse size from DiskSizeGB
-		var sizeGB float64 = 0
-		if sizeStr, ok := snapshot["DiskSizeGB"]; ok && sizeStr != "" {
-			if val, err := strconv.ParseFloat(sizeStr, 64); err == nil {
-				sizeGB = val
-			}
-		}
-
-		// Determine region by extracting from zone or location
-		region := "us-central1" // Default region
-
-		// First try to get it from Location
-		if location, ok := snapshot["Location"]; ok && location != "" {
-			region = strings.ToLower(location)
-		}
-
-		// If not found, try to extract from zone
-		if zone, ok := snapshot["Zone"]; ok && zone != "" {
-			parts := strings.Split(zone, "-")
-			if len(parts) >= 2 {
-				region = strings.Join(parts[0:2], "-")
-			}
-		}
-
-		// Calculate monthly cost
-		pricePerGB := GetPrice(GcpDiskSnapshotPricing, region)
-		monthlyCost := sizeGB * pricePerGB
-
-		// Create result with cost info
-		result := map[string]interface{}{
-			"Name":            snapshot["Name"],
-			"SizeGB":          sizeGB,
-			"Region":          region,
-			"Status":          snapshot["Status"],
-			"CreationTime":    snapshot["CreationTimestamp"],
-			"PricePerGBMonth": pricePerGB,
-			"MonthlyCost":     monthlyCost,
-			"MonthlyCostUSD":  fmt.Sprintf("$%.2f", monthlyCost),
-		}
-
-		results = append(results, result)
-	}
-
-	return results
 }
