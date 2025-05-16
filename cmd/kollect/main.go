@@ -25,6 +25,7 @@ import (
 	"github.com/michaelcade/kollect/pkg/cost"
 	"github.com/michaelcade/kollect/pkg/gcp"
 	"github.com/michaelcade/kollect/pkg/kollect"
+	"github.com/michaelcade/kollect/pkg/snapshots"
 	"github.com/michaelcade/kollect/pkg/terraform"
 	"github.com/michaelcade/kollect/pkg/veeam"
 	"golang.org/x/term"
@@ -70,7 +71,8 @@ func main() {
 
 	if *snapshotFlag {
 		fmt.Println("Collecting snapshots from all available platforms...")
-		snapshotData, err := collectAllSnapshots(context.Background())
+		kubeconfigPath := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+		snapshotData, err := snapshots.CollectAllSnapshots(context.Background(), kubeconfigPath)
 		if err != nil {
 			fmt.Printf("Error collecting snapshots: %v\n", err)
 			os.Exit(1)
@@ -1000,78 +1002,25 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		platform := r.URL.Query().Get("platform")
 
 		ctx := r.Context()
-		var snapshots interface{}
+		kubeconfigPath := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+
+		var data map[string]interface{}
 		var err error
 
-		switch platform {
-		case "kubernetes":
-			snapshots, err = kollect.CollectSnapshotData(ctx, filepath.Join(os.Getenv("HOME"), ".kube", "config"))
-		case "aws":
-			snapshots, err = aws.CollectSnapshotData(ctx)
-		case "azure":
-			snapshots, err = azure.CollectSnapshotData(ctx)
-		case "gcp":
-			snapshots, err = gcp.CollectSnapshotData(ctx)
-			// Fix for the "all" case in the snapshots API endpoint
-		case "all":
-			allSnapshots := make(map[string]interface{})
-
-			// Add debug logging
-			log.Println("Collecting snapshots from all connected platforms...")
-
-			k8sSnapshots, k8sErr := kollect.CollectSnapshotData(ctx, filepath.Join(os.Getenv("HOME"), ".kube", "config"))
-			if k8sErr != nil {
-				log.Printf("Warning: Error collecting Kubernetes snapshots: %v", k8sErr)
-			} else if k8sSnapshots != nil {
-				log.Println("Successfully collected Kubernetes snapshots")
-				allSnapshots["kubernetes"] = k8sSnapshots
-			}
-
-			awsSnapshots, awsErr := aws.CollectSnapshotData(ctx)
-			if awsErr != nil {
-				log.Printf("Warning: Error collecting AWS snapshots: %v", awsErr)
-			} else if awsSnapshots != nil {
-				log.Println("Successfully collected AWS snapshots")
-				allSnapshots["aws"] = awsSnapshots
-			}
-
-			azureSnapshots, azureErr := azure.CollectSnapshotData(ctx)
-			if azureErr != nil {
-				log.Printf("Warning: Error collecting Azure snapshots: %v", azureErr)
-			} else if azureSnapshots != nil {
-				log.Println("Successfully collected Azure snapshots")
-				allSnapshots["azure"] = azureSnapshots
-			}
-
-			gcpSnapshots, gcpErr := gcp.CollectSnapshotData(ctx)
-			if gcpErr != nil {
-				log.Printf("Warning: Error collecting GCP snapshots: %v", gcpErr)
-			} else if gcpSnapshots != nil {
-				log.Println("Successfully collected GCP snapshots")
-				allSnapshots["gcp"] = gcpSnapshots
-			}
-
-			// Set the snapshots variable with the collected data
-			snapshots = allSnapshots
-
-			// Print debug info about what was found
-			keys := make([]string, 0)
-			for k := range allSnapshots {
-				keys = append(keys, k)
-			}
-			log.Printf("All snapshots collected. Platforms found: %v", strings.Join(keys, ", "))
-		default:
-			http.Error(w, "Invalid platform specified", http.StatusBadRequest)
-			return
+		if platform == "all" {
+			data, err = snapshots.CollectAllSnapshots(ctx, kubeconfigPath)
+		} else {
+			data, err = snapshots.CollectPlatformSnapshots(ctx, platform, kubeconfigPath)
 		}
 
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Error collecting snapshot data: %v", err), http.StatusInternalServerError)
+			log.Printf("Error collecting snapshots: %v", err)
+			http.Error(w, fmt.Sprintf("Error collecting snapshots: %v", err), http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(snapshots)
+		json.NewEncoder(w).Encode(data)
 	})
 
 	http.HandleFunc("/api/gcp/connect", func(w http.ResponseWriter, r *http.Request) {
