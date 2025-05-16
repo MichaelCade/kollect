@@ -503,7 +503,29 @@ function showCostExplorerModal() {
                 </div>
             </div>
             
-            <!-- ... other platforms ... -->
+            <div style="background: var(--background-color); border-radius: 6px; padding: 12px; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center;">
+                    <input type="radio" id="cost-azure" name="cost-platform" value="azure" style="margin-right: 10px;">
+                    <label for="cost-azure" style="font-weight: bold; font-size: 1.1em;">
+                        <i class="fab fa-microsoft"></i> Azure
+                    </label>
+                </div>
+                <div style="padding: 5px 0 0 25px; font-size: 0.9em; color: var(--secondary-text-color);">
+                    Estimates costs for VMs, Storage Accounts, SQL Databases, snapshots and more
+                </div>
+            </div>
+            
+            <div style="background: var(--background-color); border-radius: 6px; padding: 12px; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center;">
+                    <input type="radio" id="cost-gcp" name="cost-platform" value="gcp" style="margin-right: 10px;">
+                    <label for="cost-gcp" style="font-weight: bold; font-size: 1.1em;">
+                        <i class="fab fa-google"></i> GCP
+                    </label>
+                </div>
+                <div style="padding: 5px 0 0 25px; font-size: 0.9em; color: var(--secondary-text-color);">
+                    Estimates costs for Compute Instances, GCS Buckets, Cloud SQL, snapshots and more
+                </div>
+            </div>
             
             <div style="background: rgba(74, 144, 226, 0.1); border-radius: 6px; padding: 12px; margin-top: 15px; margin-bottom: 10px;">
                 <div style="display: flex; align-items: center;">
