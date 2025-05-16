@@ -22,6 +22,7 @@ import (
 
 	"github.com/michaelcade/kollect/pkg/aws"
 	"github.com/michaelcade/kollect/pkg/azure"
+	"github.com/michaelcade/kollect/pkg/cost"
 	"github.com/michaelcade/kollect/pkg/gcp"
 	"github.com/michaelcade/kollect/pkg/kollect"
 	"github.com/michaelcade/kollect/pkg/terraform"
@@ -392,6 +393,8 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
+
+	http.HandleFunc("/api/costs", cost.HandleCostRequest)
 
 	http.HandleFunc("/api/check-credentials", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
