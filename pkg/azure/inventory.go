@@ -247,35 +247,27 @@ func getAzureSubscriptionID() (string, error) {
 	return subscriptionID, nil
 }
 
-// Add this function to implement Azure snapshot collection
-
-// CollectSnapshotData retrieves all snapshot-related resources from Azure
 func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 	snapshots := map[string]interface{}{}
 
-	// Get subscription ID from Azure CLI
 	subscriptionID, err := getAzureSubscriptionID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get Azure subscription ID: %v", err)
 	}
 
-	// Create a credential using DefaultAzureCredential
 	cred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create credential: %v", err)
 	}
 
-	// Get list of locations/regions available to the subscription
 	resourceClient, err := armresources.NewProvidersClient(subscriptionID, cred, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource providers client: %v", err)
 	}
 
-	// Get the compute provider to find available locations
 	provider, err := resourceClient.Get(ctx, "Microsoft.Compute", nil)
 	if err != nil {
 		log.Printf("Warning: Failed to get compute provider, using default locations: %v", err)
-		// If we can't get regions, use common regions as fallback
 		return collectSnapshotsFromDefaultRegions(ctx, subscriptionID, cred)
 	}
 
@@ -289,23 +281,19 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 		}
 	}
 
-	// If no locations found, use default regions
 	if len(locations) == 0 {
 		log.Printf("No snapshot locations found in provider, using default locations")
 		return collectSnapshotsFromDefaultRegions(ctx, subscriptionID, cred)
 	}
 
-	// Collect snapshots from each region
 	var allDiskSnapshots []map[string]string
 
 	for _, location := range locations {
 		log.Printf("Collecting disk snapshots from location: %s", location)
-		// Snapshots in Azure are already filtered by location when collecting
 		regionSnapshots, err := collectDiskSnapshotsFromRegion(ctx, subscriptionID, cred, location)
 		if err != nil {
 			log.Printf("Warning: Failed to collect disk snapshots from location %s: %v", location, err)
 		} else if len(regionSnapshots) > 0 {
-			// Add location to each snapshot if not already there
 			for i := range regionSnapshots {
 				if _, exists := regionSnapshots[i]["Location"]; !exists {
 					regionSnapshots[i]["Location"] = location
@@ -321,8 +309,6 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 
 	return snapshots, nil
 }
-
-// collectSnapshotsFromDefaultRegions uses a set of common Azure regions as fallback
 func collectSnapshotsFromDefaultRegions(ctx context.Context, subscriptionID string, cred *azidentity.DefaultAzureCredential) (map[string]interface{}, error) {
 	snapshots := map[string]interface{}{}
 	defaultRegions := []string{
@@ -339,7 +325,6 @@ func collectSnapshotsFromDefaultRegions(ctx context.Context, subscriptionID stri
 		if err != nil {
 			log.Printf("Warning: Failed to collect disk snapshots from location %s: %v", location, err)
 		} else if len(regionSnapshots) > 0 {
-			// Add location to each snapshot if not already there
 			for i := range regionSnapshots {
 				if _, exists := regionSnapshots[i]["Location"]; !exists {
 					regionSnapshots[i]["Location"] = location
@@ -356,7 +341,6 @@ func collectSnapshotsFromDefaultRegions(ctx context.Context, subscriptionID stri
 	return snapshots, nil
 }
 
-// collectDiskSnapshotsFromRegion collects snapshots from a specific region
 func collectDiskSnapshotsFromRegion(ctx context.Context, subscriptionID string, cred *azidentity.DefaultAzureCredential, location string) ([]map[string]string, error) {
 	snapshotClient, err := armcompute.NewSnapshotsClient(subscriptionID, cred, nil)
 	if err != nil {
@@ -373,7 +357,6 @@ func collectDiskSnapshotsFromRegion(ctx context.Context, subscriptionID string, 
 		}
 
 		for _, snapshot := range page.Value {
-			// Only include snapshots from the specified location
 			if snapshot.Location != nil && strings.EqualFold(*snapshot.Location, location) {
 				snapshotInfo := map[string]string{
 					"Name":              *snapshot.Name,

@@ -332,7 +332,6 @@ func fetchCloudFunctions(ctx context.Context, projectID string) ([]CloudFunction
 	return functions, nil
 }
 
-// CollectSnapshotData retrieves all snapshot-related resources from GCP
 func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 	snapshots := map[string]interface{}{}
 
@@ -341,18 +340,14 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to get current GCP project: %v", err)
 	}
 
-	// Get a list of all regions/zones where snapshots might exist
 	computeService, err := compute.NewService(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compute service: %v", err)
 	}
 
-	// In GCP, snapshots are global resources but we want to capture their regions
-	// So we'll get all regions first to have context
 	regionsList, err := computeService.Regions.List(project).Do()
 	if err != nil {
 		log.Printf("Warning: Failed to fetch GCP regions: %v", err)
-		// Use default regions as fallback
 		return collectSnapshotsFromDefaultRegions(ctx, project)
 	}
 
@@ -366,7 +361,6 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 		return collectSnapshotsFromDefaultRegions(ctx, project)
 	}
 
-	// Collect disk snapshots (these are global, but we'll track the source disk region)
 	diskSnapshots, err := collectDiskSnapshots(ctx, project, regions)
 	if err != nil {
 		log.Printf("Warning: Failed to collect disk snapshots: %v", err)
@@ -377,7 +371,6 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 	return snapshots, nil
 }
 
-// collectSnapshotsFromDefaultRegions uses common GCP regions as fallback
 func collectSnapshotsFromDefaultRegions(ctx context.Context, project string) (map[string]interface{}, error) {
 	snapshots := map[string]interface{}{}
 	defaultRegions := []string{
@@ -387,7 +380,6 @@ func collectSnapshotsFromDefaultRegions(ctx context.Context, project string) (ma
 		"australia-southeast1",
 	}
 
-	// Collect disk snapshots (these are global, but we'll track the source disk region)
 	diskSnapshots, err := collectDiskSnapshots(ctx, project, defaultRegions)
 	if err != nil {
 		log.Printf("Warning: Failed to collect disk snapshots: %v", err)
@@ -398,23 +390,19 @@ func collectSnapshotsFromDefaultRegions(ctx context.Context, project string) (ma
 	return snapshots, nil
 }
 
-// collectDiskSnapshots fetches all disk snapshots and tries to associate them with regions
 func collectDiskSnapshots(ctx context.Context, project string, regions []string) ([]map[string]string, error) {
 	computeService, err := compute.NewService(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compute service: %v", err)
 	}
 
-	// Get all disk snapshots (snapshots are global in GCP)
 	snapshotList, err := computeService.Snapshots.List(project).Do()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list snapshots: %v", err)
 	}
 
-	// Also get all disks in each region to help map snapshots to regions
 	diskRegionMap := make(map[string]string)
 
-	// Create a map of zone prefixes to regions for faster lookups
 	zoneToRegion := make(map[string]string)
 	for _, region := range regions {
 		zoneList, err := computeService.Zones.List(project).Filter(fmt.Sprintf("region eq .*/regions/%s", region)).Do()
@@ -428,7 +416,6 @@ func collectDiskSnapshots(ctx context.Context, project string, regions []string)
 		}
 	}
 
-	// Fetch disks from each zone to map them to regions
 	for zone, region := range zoneToRegion {
 		diskList, err := computeService.Disks.List(project, zone).Do()
 		if err != nil {
@@ -437,7 +424,6 @@ func collectDiskSnapshots(ctx context.Context, project string, regions []string)
 		}
 
 		for _, disk := range diskList.Items {
-			// Extract just the disk name from the URL
 			diskName := disk.Name
 			if diskName != "" {
 				diskRegionMap[diskName] = region
@@ -446,20 +432,17 @@ func collectDiskSnapshots(ctx context.Context, project string, regions []string)
 	}
 
 	var snapshots []map[string]string
-	defaultRegion := regions[0] // Use first region as default if needed
+	defaultRegion := regions[0]
 
 	for _, snapshot := range snapshotList.Items {
-		// Try to determine the region from the source disk
 		region := defaultRegion
 		if snapshot.SourceDisk != "" {
-			// Extract the disk name from the URL
 			parts := strings.Split(snapshot.SourceDisk, "/")
 			if len(parts) > 0 {
 				diskName := parts[len(parts)-1]
 				if r, ok := diskRegionMap[diskName]; ok {
 					region = r
 				} else {
-					// Try to extract region from the source disk URL
 					for _, r := range regions {
 						if strings.Contains(snapshot.SourceDisk, r) {
 							region = r
@@ -472,7 +455,7 @@ func collectDiskSnapshots(ctx context.Context, project string, regions []string)
 
 		snapshotInfo := map[string]string{
 			"Name":    snapshot.Name,
-			"Region":  region, // Use the determined region
+			"Region":  region,
 			"Status":  snapshot.Status,
 			"Project": project,
 		}
@@ -499,9 +482,7 @@ func collectDiskSnapshots(ctx context.Context, project string, regions []string)
 	return snapshots, nil
 }
 
-// Add this helper function to get the GCP project ID if it doesn't already exist
 func getGCPProjectID() (string, error) {
-	// Run gcloud to get the current project
 	cmd := exec.Command("gcloud", "config", "get-value", "project")
 	output, err := cmd.Output()
 	if err != nil {
@@ -520,7 +501,7 @@ func GetProjectID() string {
 	projectID, err := getCurrentProject()
 	if err != nil {
 		log.Printf("Warning: %v", err)
-		return "demo-project" // Return the default value
+		return "demo-project"
 	}
 	return projectID
 }

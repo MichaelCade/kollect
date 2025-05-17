@@ -78,10 +78,8 @@ func main() {
 			os.Exit(1)
 		}
 
-		// Output the snapshot data
 		outputData := *output
 		if outputData != "" {
-			// Save to file if output file is specified
 			jsonData, err := json.MarshalIndent(snapshotData, "", "  ")
 			if err != nil {
 				fmt.Printf("Error marshaling data: %v\n", err)
@@ -96,7 +94,6 @@ func main() {
 
 			fmt.Printf("Snapshot data saved to %s\n", outputData)
 		} else {
-			// Print to stdout
 			jsonData, err := json.MarshalIndent(snapshotData, "", "  ")
 			if err != nil {
 				fmt.Printf("Error marshaling data: %v\n", err)
@@ -221,14 +218,10 @@ func main() {
 
 }
 
-// collectAllSnapshots gathers snapshots from all available platforms
 func collectAllSnapshots(ctx context.Context) (map[string]interface{}, error) {
 	results := make(map[string]interface{})
-
-	// Check which platforms are available
 	credentials := checkCredentials(ctx)
 
-	// Collect Kubernetes snapshots
 	if credentials["kubernetes"] {
 		fmt.Println("Collecting Kubernetes snapshots...")
 		k8sSnapshots, err := kollect.CollectSnapshotData(ctx, filepath.Join(os.Getenv("HOME"), ".kube", "config"))
@@ -240,7 +233,6 @@ func collectAllSnapshots(ctx context.Context) (map[string]interface{}, error) {
 		}
 	}
 
-	// Collect AWS snapshots
 	if credentials["aws"] {
 		fmt.Println("Collecting AWS snapshots...")
 		awsSnapshots, err := aws.CollectSnapshotData(ctx)
@@ -252,7 +244,6 @@ func collectAllSnapshots(ctx context.Context) (map[string]interface{}, error) {
 		}
 	}
 
-	// Collect Azure snapshots
 	if credentials["azure"] {
 		fmt.Println("Collecting Azure snapshots...")
 		azureSnapshots, err := azure.CollectSnapshotData(ctx)
@@ -264,7 +255,6 @@ func collectAllSnapshots(ctx context.Context) (map[string]interface{}, error) {
 		}
 	}
 
-	// Collect GCP snapshots
 	if credentials["gcp"] {
 		fmt.Println("Collecting GCP snapshots...")
 		gcpSnapshots, err := gcp.CollectSnapshotData(ctx)
@@ -666,7 +656,7 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			return
 		}
 
-		err := r.ParseMultipartForm(10 << 20) // 10 MB max
+		err := r.ParseMultipartForm(10 << 20)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to parse form: %v", err), http.StatusBadRequest)
 			return

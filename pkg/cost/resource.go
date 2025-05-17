@@ -5,28 +5,21 @@ import (
 	"strings"
 )
 
-// ResourceCostEstimator calculates costs for cloud resources
 type ResourceCostEstimator struct {
-	// You can add configuration fields here if needed
 }
 
-// NewResourceCostEstimator creates a new resource cost estimator
 func NewResourceCostEstimator() *ResourceCostEstimator {
 	return &ResourceCostEstimator{}
 }
 
-// EstimateAwsResourcesCost estimates costs for various AWS resources
 func (r *ResourceCostEstimator) EstimateAwsResourcesCost(resourceData map[string]interface{}) (map[string]interface{}, error) {
-	// Start with the snapshot costs
 	costData, err := EstimateAwsResourceCosts(resourceData)
 	if err != nil {
 		return nil, err
 	}
 
-	// Add cost calculations for EC2 instances, EBS volumes, S3 buckets, etc.
 	var totalResourceCost float64
 
-	// EC2 Instances - calculate approximate costs
 	if ec2InstancesRaw, ok := resourceData["EC2Instances"]; ok {
 		if ec2Instances, ok := ec2InstancesRaw.([]map[string]interface{}); ok {
 			var ec2Costs []map[string]interface{}
@@ -34,10 +27,8 @@ func (r *ResourceCostEstimator) EstimateAwsResourcesCost(resourceData map[string
 			log.Printf("Calculating costs for %d EC2 instances", len(ec2Instances))
 
 			for _, instance := range ec2Instances {
-				// Default cost for small instance
 				hourlyCost := 0.05
 
-				// Adjust based on instance type
 				if instanceType, ok := instance["InstanceType"].(string); ok {
 					switch {
 					case strings.HasPrefix(instanceType, "t2."):
@@ -70,7 +61,6 @@ func (r *ResourceCostEstimator) EstimateAwsResourcesCost(resourceData map[string
 		}
 	}
 
-	// S3 Buckets - calculate approximate costs
 	if s3BucketsRaw, ok := resourceData["S3Buckets"]; ok {
 		if s3Buckets, ok := s3BucketsRaw.([]map[string]interface{}); ok {
 			var s3Costs []map[string]interface{}
@@ -78,7 +68,7 @@ func (r *ResourceCostEstimator) EstimateAwsResourcesCost(resourceData map[string
 			log.Printf("Calculating costs for %d S3 buckets", len(s3Buckets))
 
 			for _, bucket := range s3Buckets {
-				sizeGB := 100.0 // Default size
+				sizeGB := 100.0
 				if size, ok := bucket["SizeGB"].(float64); ok && size > 0 {
 					sizeGB = size
 				}
@@ -88,8 +78,7 @@ func (r *ResourceCostEstimator) EstimateAwsResourcesCost(resourceData map[string
 					storageClass = sc
 				}
 
-				// Price per GB per month
-				pricePerGB := 0.023 // Standard storage
+				pricePerGB := 0.023
 
 				switch storageClass {
 				case "STANDARD_IA":
@@ -122,7 +111,6 @@ func (r *ResourceCostEstimator) EstimateAwsResourcesCost(resourceData map[string
 		}
 	}
 
-	// Update the summary to include all resource costs
 	if summary, ok := costData["Summary"].(map[string]interface{}); ok {
 		if totalCost, ok := summary["TotalMonthlyCost"].(float64); ok {
 			summary["TotalMonthlyCost"] = totalCost + totalResourceCost
@@ -134,18 +122,14 @@ func (r *ResourceCostEstimator) EstimateAwsResourcesCost(resourceData map[string
 	return costData, nil
 }
 
-// EstimateGcpResourcesCost estimates costs for various GCP resources
 func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string]interface{}) (map[string]interface{}, error) {
-	// Start with the snapshot costs
 	costData, err := EstimateGcpResourceCosts(resourceData)
 	if err != nil {
 		return nil, err
 	}
 
-	// Add cost calculations for Compute Instances, GCS buckets, Cloud SQL, etc.
 	var totalResourceCost float64
 
-	// Compute Instances - calculate approximate costs
 	if computeInstancesRaw, ok := resourceData["ComputeInstances"]; ok {
 		if computeInstances, ok := computeInstancesRaw.([]map[string]interface{}); ok {
 			var computeCosts []map[string]interface{}
@@ -153,10 +137,8 @@ func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string
 			log.Printf("Calculating costs for %d GCP Compute instances", len(computeInstances))
 
 			for _, instance := range computeInstances {
-				// Default cost for small instance
 				hourlyCost := 0.05
 
-				// Adjust based on machine type
 				if machineType, ok := instance["MachineType"].(string); ok {
 					switch {
 					case strings.Contains(machineType, "f1-micro"):
@@ -174,13 +156,11 @@ func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string
 					}
 				}
 
-				// Adjust for regional pricing
-				zone := "us-central1-a" // Default zone
+				zone := "us-central1-a"
 				if z, ok := instance["Zone"].(string); ok && z != "" {
 					zone = z
 				}
 
-				// Premium regions cost more
 				if strings.HasPrefix(zone, "australia-") ||
 					strings.HasPrefix(zone, "europe-") ||
 					strings.HasPrefix(zone, "asia-") {
@@ -206,7 +186,6 @@ func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string
 		}
 	}
 
-	// GCS Buckets - calculate approximate costs
 	if gcsBucketsRaw, ok := resourceData["GCSBuckets"]; ok {
 		if gcsBuckets, ok := gcsBucketsRaw.([]map[string]interface{}); ok {
 			var gcsCosts []map[string]interface{}
@@ -214,7 +193,7 @@ func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string
 			log.Printf("Calculating costs for %d GCS buckets", len(gcsBuckets))
 
 			for _, bucket := range gcsBuckets {
-				sizeGB := 100.0 // Default size
+				sizeGB := 100.0
 				if size, ok := bucket["SizeGB"].(float64); ok && size > 0 {
 					sizeGB = size
 				}
@@ -224,8 +203,7 @@ func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string
 					storageClass = sc
 				}
 
-				// Price per GB per month
-				pricePerGB := 0.02 // Standard storage
+				pricePerGB := 0.02
 
 				switch storageClass {
 				case "NEARLINE":
@@ -256,7 +234,6 @@ func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string
 		}
 	}
 
-	// Cloud SQL Instances - calculate approximate costs
 	if cloudSQLInstancesRaw, ok := resourceData["CloudSQLInstances"]; ok {
 		if cloudSQLInstances, ok := cloudSQLInstancesRaw.([]map[string]interface{}); ok {
 			var sqlCosts []map[string]interface{}
@@ -264,8 +241,7 @@ func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string
 			log.Printf("Calculating costs for %d Cloud SQL instances", len(cloudSQLInstances))
 
 			for _, instance := range cloudSQLInstances {
-				// Base hourly cost for the instance
-				hourlyCost := 0.1 // Default for small instance
+				hourlyCost := 0.1
 
 				if tier, ok := instance["Tier"].(string); ok {
 					switch {
@@ -282,13 +258,12 @@ func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string
 					}
 				}
 
-				// Storage costs
-				diskSizeGB := 100.0 // Default
+				diskSizeGB := 100.0
 				if size, ok := instance["DiskSizeGB"].(float64); ok && size > 0 {
 					diskSizeGB = size
 				}
 
-				diskCostPerMonth := diskSizeGB * 0.17 // $0.17 per GB per month
+				diskCostPerMonth := diskSizeGB * 0.17
 
 				monthlyCost := (hourlyCost * 24 * 30) + diskCostPerMonth
 
@@ -311,7 +286,6 @@ func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string
 		}
 	}
 
-	// Update the summary to include all resource costs
 	if summary, ok := costData["Summary"].(map[string]interface{}); ok {
 		if totalCost, ok := summary["TotalMonthlyCost"].(float64); ok {
 			summary["TotalMonthlyCost"] = totalCost + totalResourceCost
@@ -323,27 +297,21 @@ func (r *ResourceCostEstimator) EstimateGcpResourcesCost(resourceData map[string
 	return costData, nil
 }
 
-// EstimateAzureResourcesCost estimates costs for various Azure resources
 func (r *ResourceCostEstimator) EstimateAzureResourcesCost(resourceData map[string]interface{}) (map[string]interface{}, error) {
-	// Start with the snapshot costs
 	costData, err := EstimateAzureResourceCosts(resourceData)
 	if err != nil {
 		return nil, err
 	}
 
-	// Add cost calculations for VMs, storage accounts, etc.
 	var totalResourceCost float64
 
-	// Virtual Machines - calculate approximate costs
 	if vmsRaw, ok := resourceData["VirtualMachines"]; ok {
 		if vms, ok := vmsRaw.([]map[string]interface{}); ok {
 			var vmCosts []map[string]interface{}
 
 			for _, vm := range vms {
-				// Default cost for small VM
 				hourlyCost := 0.05
 
-				// Adjust based on VM size
 				if vmSize, ok := vm["VMSize"].(string); ok {
 					switch {
 					case strings.Contains(vmSize, "Standard_B"):
@@ -374,7 +342,6 @@ func (r *ResourceCostEstimator) EstimateAzureResourcesCost(resourceData map[stri
 		}
 	}
 
-	// Update the summary to include all resource costs
 	if summary, ok := costData["Summary"].(map[string]interface{}); ok {
 		if totalCost, ok := summary["TotalMonthlyCost"].(float64); ok {
 			summary["TotalMonthlyCost"] = totalCost + totalResourceCost

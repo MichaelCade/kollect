@@ -14,13 +14,11 @@ import (
 	"time"
 )
 
-// RegionalPrice stores price information per region
 type RegionalPrice map[string]float64
 
-// PricingInfo contains metadata about the pricing data
 type PricingInfo struct {
-	Source       string    // URL or description of where the price data was obtained
-	LastVerified time.Time // When the pricing was last confirmed
+	Source       string
+	LastVerified time.Time
 }
 
 var (
@@ -92,11 +90,9 @@ var (
 		"asia-east1":           0.031,
 		"asia-southeast1":      0.031,
 		"australia-southeast1": 0.036,
-		// Default fallback
-		"default": 0.03,
+		"default":              0.03,
 	}
 
-	// Pricing metadata
 	PricingMetadata = map[string]PricingInfo{
 		"aws_ebs": {
 			Source:       "AWS Pricing API (Fallback Values)",
@@ -116,16 +112,12 @@ var (
 		},
 	}
 
-	// Mutex for pricing updates
 	pricingMutex = &sync.RWMutex{}
 
-	// Cache file path
 	pricingCachePath = filepath.Join(os.TempDir(), "kollect_pricing_cache.json")
 )
 
-// GetPrice returns the price for a given provider, service, and region
 func GetPrice(provider, service, region string) float64 {
-	// Normalize inputs
 	provider = strings.ToLower(provider)
 	service = strings.ToLower(service)
 	region = strings.ToLower(region)
@@ -155,7 +147,6 @@ func GetPrice(provider, service, region string) float64 {
 	return pricing["default"]
 }
 
-// GetPricingSource returns information about where the pricing came from
 func GetPricingSource(provider, service string) string {
 	key := fmt.Sprintf("%s_%s", provider, service)
 	pricingMutex.RLock()
@@ -167,7 +158,6 @@ func GetPricingSource(provider, service string) string {
 	return "Default values"
 }
 
-// GetPricingMetadata returns metadata about the pricing source and when it was last verified
 func GetPricingMetadata(provider, service string) PricingInfo {
 	key := fmt.Sprintf("%s_%s", provider, service)
 	pricingMutex.RLock()
@@ -182,7 +172,6 @@ func GetPricingMetadata(provider, service string) PricingInfo {
 	}
 }
 
-// GetPricingDisclaimer returns a disclaimer about the pricing data
 func GetPricingDisclaimer() string {
 	pricingMutex.RLock()
 	oldestDate := time.Now()
@@ -198,20 +187,16 @@ func GetPricingDisclaimer() string {
 		oldestDate.Format("January 2006"))
 }
 
-// RefreshPricing fetches the latest pricing information from cloud provider APIs
 func RefreshPricing(ctx context.Context) error {
 	log.Println("Starting cloud pricing data refresh from provider APIs...")
 
-	// Attempt to load from cache first to get baseline values
 	loadPricingFromCache()
 
-	// Update timestamps for tracking
 	now := time.Now()
 
 	var wg sync.WaitGroup
 	var awsErr, azureErr, gcpErr error
 
-	// AWS Pricing
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -224,7 +209,6 @@ func RefreshPricing(ctx context.Context) error {
 		}
 
 		pricingMutex.Lock()
-		// Only update if we got valid data
 		if len(ebsPricing) > 0 {
 			AwsEbsSnapshotPricing = ebsPricing
 			PricingMetadata["aws_ebs"] = PricingInfo{
@@ -242,7 +226,6 @@ func RefreshPricing(ctx context.Context) error {
 		pricingMutex.Unlock()
 	}()
 
-	// Azure Pricing
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -255,7 +238,6 @@ func RefreshPricing(ctx context.Context) error {
 		}
 
 		pricingMutex.Lock()
-		// Only update if we got valid data
 		if len(diskPricing) > 0 {
 			AzureDiskSnapshotPricing = diskPricing
 			PricingMetadata["azure_disk"] = PricingInfo{
@@ -266,7 +248,6 @@ func RefreshPricing(ctx context.Context) error {
 		pricingMutex.Unlock()
 	}()
 
-	// GCP Pricing
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -279,7 +260,6 @@ func RefreshPricing(ctx context.Context) error {
 		}
 
 		pricingMutex.Lock()
-		// Only update if we got valid data
 		if len(diskPricing) > 0 {
 			GcpDiskSnapshotPricing = diskPricing
 			PricingMetadata["gcp_disk"] = PricingInfo{
@@ -290,18 +270,14 @@ func RefreshPricing(ctx context.Context) error {
 		pricingMutex.Unlock()
 	}()
 
-	// Wait for all pricing updates to complete
 	wg.Wait()
 
-	// Save updated pricing to cache
 	savePricingToCache()
 
-	// Log a summary of pricing data
 	log.Printf("Cloud pricing data refresh completed. AWS EBS regions: %d, AWS RDS regions: %d, Azure regions: %d, GCP regions: %d",
 		len(AwsEbsSnapshotPricing), len(AwsRdsSnapshotPricing),
 		len(AzureDiskSnapshotPricing), len(GcpDiskSnapshotPricing))
 
-	// If all fetches failed, return an error
 	if awsErr != nil && azureErr != nil && gcpErr != nil {
 		return fmt.Errorf("all pricing refresh attempts failed: AWS: %v, Azure: %v, GCP: %v", awsErr, azureErr, gcpErr)
 	}
@@ -309,13 +285,10 @@ func RefreshPricing(ctx context.Context) error {
 	return nil
 }
 
-// fetchAWSPricing fetches EBS and RDS snapshot pricing from AWS
 func fetchAWSPricing(ctx context.Context) (RegionalPrice, RegionalPrice, error) {
-	// Setup initial pricing maps with default values copied from current values
 	ebsPricing := make(RegionalPrice)
 	rdsPricing := make(RegionalPrice)
 
-	// Copy current values as a starting point
 	pricingMutex.RLock()
 	for region, price := range AwsEbsSnapshotPricing {
 		ebsPricing[region] = price
@@ -339,12 +312,8 @@ func fetchAWSPricing(ctx context.Context) (RegionalPrice, RegionalPrice, error) 
 	}
 	defer resp.Body.Close()
 
-	// For AWS, we're using a successful API call but the response is too large to parse efficiently,
-	// so we're updating the metadata to reflect that we successfully contacted the API
-	// This can be expanded in the future with proper parsing
 	apiSuccess := resp.StatusCode == http.StatusOK
 
-	// Update metadata to reflect the API call status
 	pricingMutex.Lock()
 	if apiSuccess {
 		PricingMetadata["aws_ebs"] = PricingInfo{
@@ -372,9 +341,7 @@ func fetchAWSPricing(ctx context.Context) (RegionalPrice, RegionalPrice, error) 
 	return ebsPricing, rdsPricing, nil
 }
 
-// fetchAzurePricing fetches disk snapshot pricing from Azure
 func fetchAzurePricing(ctx context.Context) (RegionalPrice, error) {
-	// Use Azure Retail Prices API to get pricing data
 	url := "https://prices.azure.com/api/retail/prices?$filter=serviceName eq 'Storage' and contains(skuName, 'Snapshot')"
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -393,10 +360,8 @@ func fetchAzurePricing(ctx context.Context) (RegionalPrice, error) {
 		return nil, fmt.Errorf("unexpected status code from Azure API: %d", resp.StatusCode)
 	}
 
-	// Initialize pricing map with fallback values
 	pricing := make(RegionalPrice)
 
-	// Copy current values as a starting point
 	pricingMutex.RLock()
 	for region, price := range AzureDiskSnapshotPricing {
 		pricing[region] = price
@@ -421,23 +386,18 @@ func fetchAzurePricing(ctx context.Context) (RegionalPrice, error) {
 	apiSuccessful := false
 	count := 0
 
-	// Log the number of items returned for debugging
 	log.Printf("Azure Retail Prices API returned %d items", len(result.Items))
 
 	for _, item := range result.Items {
-		// Only use pricing for snapshots with GB/Month pricing
 		if (strings.Contains(item.ProductName, "Snapshot") || strings.Contains(item.SkuName, "Snapshot")) &&
 			(strings.Contains(item.UnitOfMeasure, "GB") || strings.Contains(item.UnitOfMeasure, "1 Month")) {
 
-			// Normalize region name for consistency
 			region := strings.ToLower(item.ArmRegionName)
 
-			// Only add if we have a valid price
 			if item.RetailPrice > 0 {
 				pricing[region] = item.RetailPrice
 				count++
 
-				// Log each found pricing for debugging
 				log.Printf("Azure pricing for %s: $%.4f per %s (Product: %s, SKU: %s)",
 					region, item.RetailPrice, item.UnitOfMeasure, item.ProductName, item.SkuName)
 			}
@@ -450,7 +410,6 @@ func fetchAzurePricing(ctx context.Context) (RegionalPrice, error) {
 		apiSuccessful = true
 	}
 
-	// Update metadata to reflect the API call status
 	pricingMutex.Lock()
 	if apiSuccessful {
 		PricingMetadata["azure_disk"] = PricingInfo{
@@ -470,20 +429,15 @@ func fetchAzurePricing(ctx context.Context) (RegionalPrice, error) {
 	return pricing, nil
 }
 
-// fetchGCPPricing fetches disk snapshot pricing from GCP
 func fetchGCPPricing(ctx context.Context) (RegionalPrice, error) {
-	// Initialize pricing map with fallback values
 	pricing := make(RegionalPrice)
 
-	// Copy current values as a starting point
 	pricingMutex.RLock()
 	for region, price := range GcpDiskSnapshotPricing {
 		pricing[region] = price
 	}
 	pricingMutex.RUnlock()
 
-	// This URL provides a JSON version of the pricing data
-	// In production, you'd use the GCP Cloud Billing API directly
 	url := "https://cloudpricingcalculator.appspot.com/static/data/pricelist.json"
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -502,21 +456,16 @@ func fetchGCPPricing(ctx context.Context) (RegionalPrice, error) {
 		return nil, fmt.Errorf("unexpected status code from GCP API: %d", resp.StatusCode)
 	}
 
-	// For GCP, we'll try to extract the specific snapshot pricing data from the response
 	apiSuccessful := false
 
-	// Create a buffer to hold the response body
 	buf := make([]byte, 1024)
 	n, err := resp.Body.Read(buf)
 
-	// Check if the response starts with correct JSON
 	if err == nil && n > 0 && strings.HasPrefix(string(buf[:n]), "{") {
 		log.Println("GCP pricing API response looks valid, attempting to parse")
 
-		// Reset the response body reader
 		resp.Body.Close()
 
-		// Make a new request for parsing
 		req, err = http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			log.Printf("Error creating second GCP request: %v", err)
@@ -530,23 +479,18 @@ func fetchGCPPricing(ctx context.Context) (RegionalPrice, error) {
 		}
 		defer resp.Body.Close()
 
-		// The full response is very large, so we'll decode just the part we need
 		decoder := json.NewDecoder(resp.Body)
 
-		// Skip to compute engine pricing
 		token, err := decoder.Token()
 		for err == nil && token != "gcp_price_list" {
 			token, err = decoder.Token()
 		}
 
-		// If we found the pricing data, try to extract snapshot prices
 		if err == nil {
-			// Try to parse the next token which should be a map
 			var gcpPriceList map[string]interface{}
 			if err := decoder.Decode(&gcpPriceList); err == nil {
 				if computeEngine, ok := gcpPriceList["compute-engine"].(map[string]interface{}); ok {
 					if snapshotPrices, ok := computeEngine["snapshot_prices_per_gb_monthly"].(map[string]interface{}); ok {
-						// Found snapshot prices
 						count := 0
 						for region, priceValue := range snapshotPrices {
 							if price, ok := priceValue.(float64); ok {
@@ -570,7 +514,6 @@ func fetchGCPPricing(ctx context.Context) (RegionalPrice, error) {
 	}
 
 updateMetadata:
-	// Update metadata to reflect the API call status
 	pricingMutex.Lock()
 	if apiSuccessful {
 		PricingMetadata["gcp_disk"] = PricingInfo{
@@ -590,7 +533,6 @@ updateMetadata:
 	return pricing, nil
 }
 
-// loadPricingFromCache loads pricing data from the cache file
 func loadPricingFromCache() {
 	data, err := ioutil.ReadFile(pricingCachePath)
 	if err != nil {
@@ -612,7 +554,6 @@ func loadPricingFromCache() {
 		return
 	}
 
-	// Only update if the cache is less than 24 hours old
 	if time.Since(cache.LastUpdate) > 24*time.Hour {
 		log.Println("Pricing cache is more than 24 hours old")
 		return
@@ -621,7 +562,6 @@ func loadPricingFromCache() {
 	pricingMutex.Lock()
 	defer pricingMutex.Unlock()
 
-	// Update pricing data from cache
 	if len(cache.AwsEbs) > 0 {
 		AwsEbsSnapshotPricing = cache.AwsEbs
 	}
@@ -643,7 +583,6 @@ func loadPricingFromCache() {
 	log.Println("Loaded pricing data from cache")
 }
 
-// savePricingToCache saves pricing data to the cache file
 func savePricingToCache() {
 	pricingMutex.RLock()
 	defer pricingMutex.RUnlock()
@@ -678,7 +617,6 @@ func savePricingToCache() {
 	log.Println("Saved pricing data to cache")
 }
 
-// HandleRefreshPricing handles requests to refresh pricing data
 func HandleRefreshPricing(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -695,7 +633,6 @@ func HandleRefreshPricing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return success with metadata about the update
 	pricingMutex.RLock()
 	metadata := make(map[string]PricingInfo)
 	for k, v := range PricingMetadata {
@@ -719,7 +656,6 @@ func HandleRefreshPricing(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// HandlePricingInfo returns the current pricing data status
 func HandlePricingInfo(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -729,13 +665,11 @@ func HandlePricingInfo(w http.ResponseWriter, r *http.Request) {
 	pricingMutex.RLock()
 	defer pricingMutex.RUnlock()
 
-	// Collect metadata
 	metadata := make(map[string]PricingInfo)
 	for k, v := range PricingMetadata {
 		metadata[k] = v
 	}
 
-	// Count regions
 	info := map[string]interface{}{
 		"metadata": metadata,
 		"regions": map[string]int{
@@ -757,10 +691,6 @@ func HandlePricingInfo(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(info)
 }
 func InitPricing() {
-	// Initialize default pricing values
-	// This will use the values already defined at the top of the file
-
-	// Initialize metadata
 	PricingMetadata = map[string]PricingInfo{
 		"aws_ebs": {
 			Source:       "AWS Pricing API (Default Values)",
@@ -780,10 +710,8 @@ func InitPricing() {
 		},
 	}
 
-	// Load cached pricing data if available
 	loadPricingFromCache()
 
-	// Start a background refresh (optional)
 	go func() {
 		ctx := context.Background()
 		RefreshPricing(ctx)

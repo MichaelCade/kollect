@@ -74,7 +74,7 @@ type VolumeSnapshotInfo struct {
 	CreationTimestamp string `json:"CreationTimestamp,omitempty"`
 	RestoreSize       string `json:"RestoreSize,omitempty"`
 	Status            bool   `json:"Status"`
-	State             string `json:"State,omitempty"` // Add this field
+	State             string `json:"State,omitempty"`
 }
 type VirtualMachineInfo struct {
 	Name        string
@@ -107,10 +107,6 @@ type CRDInfo struct {
 	Scope   string
 	Age     string
 }
-
-// Add this struct definition if it doesn't exist
-
-// VolumeSnapshotContentInfo contains information about a volume snapshot content
 type VolumeSnapshotContentInfo struct {
 	Name           string `json:"Name"`
 	Driver         string `json:"Driver,omitempty"`

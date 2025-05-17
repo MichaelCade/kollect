@@ -8,7 +8,6 @@ registerDataHandler('cost',
         console.log("Processing cost data:", data);
         logAllResourceTypes(data);
         
-        // Add disclaimer
         const disclaimer = data.disclaimer || "Cost estimates are approximations based on publicly available pricing information. Actual costs may vary based on your specific agreements, reserved capacity, and other factors.";
         
         const disclaimerDiv = document.createElement('div');
@@ -20,10 +19,8 @@ registerDataHandler('cost',
         `;
         document.getElementById('content').prepend(disclaimerDiv);
         
-        // Check if we have costs data wrapper or direct data
         let costsData = data.costs || data;
         
-        // Process cost data by platform
         if (costsData.aws) {
             processPlatformCosts('AWS', costsData.aws);
         }
@@ -36,12 +33,10 @@ registerDataHandler('cost',
             processPlatformCosts('GCP', costsData.gcp);
         }
         
-        // If there's a global summary, create a summary section
         if (costsData.GlobalSummary) {
             createGlobalSummary(costsData.GlobalSummary);
         }
         
-        // Create cost charts
         createCostCharts(costsData);
     }
 );
@@ -51,7 +46,6 @@ function debugCostData(data) {
     console.log("Raw data:", data);
     console.log("Data structure:", JSON.stringify(data, null, 2));
     
-    // Check different possible structures
     if (data.aws) {
         console.log("Found AWS data at data.aws");
     } else if (data.costs && data.costs.aws) {
@@ -79,15 +73,12 @@ function debugCostData(data) {
     console.log("--- END DEBUG ---");
 }
 
-// Update the fetchCostData function:
-
 function fetchCostData(platform) {
     showLoadingIndicator();
     
     console.log(`Fetching cost data for platform: ${platform}`);
     
     const useMock = document.getElementById('use-mock-data')?.checked || false;
-    // Add type=all to get all resource types, not just snapshots
     const url = `/api/costs?platform=${platform}&type=all${useMock ? '&mock=true' : ''}`;
     
     console.log(`API URL: ${url}`);
@@ -135,7 +126,6 @@ function fetchCostData(platform) {
 function processPlatformCosts(platform, costData) {
     console.log(`Processing ${platform} cost data:`, costData);
     
-    // Check if we have the expected cost data
     if (platform === 'AWS') {
         console.log("AWS cost data details:", {
             hasEBSSnapshots: costData.EBSSnapshotCosts ? costData.EBSSnapshotCosts.length : 'none',
@@ -145,7 +135,6 @@ function processPlatformCosts(platform, costData) {
         });
     }
 
-    // Check if we received just a Summary or a message
     if (costData.Message) {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'cost-message';
@@ -159,7 +148,6 @@ function processPlatformCosts(platform, costData) {
         return;
     }
     
-    // Display EBS Snapshot costs for AWS
     if (platform === 'AWS') {
         if (costData.EBSSnapshotCosts && costData.EBSSnapshotCosts.length > 0) {
             createTable(`${platform} EBS Snapshot Costs`, costData.EBSSnapshotCosts, 
@@ -177,7 +165,6 @@ function processPlatformCosts(platform, costData) {
             console.log("No RDS snapshot costs found");
         }
         
-        // NEW: Display EC2 Instance costs
         if (costData.EC2Costs && costData.EC2Costs.length > 0) {
             createTable(`${platform} EC2 Instance Costs`, costData.EC2Costs, 
                 item => `<td>${item.InstanceId}</td><td>${item.InstanceType}</td><td>${item.Region}</td><td>$${item.HourlyCost.toFixed(4)}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
@@ -186,7 +173,6 @@ function processPlatformCosts(platform, costData) {
             console.log("No EC2 instance costs found");
         }
         
-        // NEW: Display S3 Bucket costs
         if (costData.S3Costs && costData.S3Costs.length > 0) {
             console.log(`Found ${costData.S3Costs.length} S3 bucket costs`);
             createTable(`${platform} S3 Bucket Costs`, costData.S3Costs, 
@@ -194,7 +180,6 @@ function processPlatformCosts(platform, costData) {
                 ['Bucket Name', 'Size', 'Region', 'Storage Class', 'Price per GB', 'Monthly Cost']);
         }
         
-        // NEW: Display RDS Instance costs
         if (costData.RDSInstanceCosts && costData.RDSInstanceCosts.length > 0) {
             createTable(`${platform} RDS Instance Costs`, costData.RDSInstanceCosts, 
                 item => `<td>${item.DBInstanceIdentifier}</td><td>${item.Engine}</td><td>${item.Region}</td><td>${item.DBInstanceClass}</td><td>${item.AllocatedStorage} GB</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
@@ -202,7 +187,6 @@ function processPlatformCosts(platform, costData) {
         }
     }
     
-    // Display Disk Snapshot costs for Azure
     if (platform === 'Azure') {
         if (costData.DiskSnapshotCosts && costData.DiskSnapshotCosts.length > 0) {
             createTable(`${platform} Disk Snapshot Costs`, costData.DiskSnapshotCosts, 
@@ -210,14 +194,12 @@ function processPlatformCosts(platform, costData) {
                 ['Name', 'Size', 'Region', 'State', 'Price per GB/Month', 'Monthly Cost']);
         }
         
-        // NEW: Display VM costs
         if (costData.VMCosts && costData.VMCosts.length > 0) {
             createTable(`${platform} Virtual Machine Costs`, costData.VMCosts, 
                 item => `<td>${item.Name}</td><td>${item.ResourceGroup}</td><td>${item.Location}</td><td>${item.VMSize}</td><td>$${item.HourlyCost.toFixed(4)}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
                 ['Name', 'Resource Group', 'Location', 'VM Size', 'Hourly Cost', 'Monthly Cost']);
         }
         
-        // NEW: Display Storage Account costs
         if (costData.StorageAccountCosts && costData.StorageAccountCosts.length > 0) {
             createTable(`${platform} Storage Account Costs`, costData.StorageAccountCosts, 
                 item => `<td>${item.Name}</td><td>${item.UsedCapacityGB} GB</td><td>${item.Location}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
@@ -225,7 +207,6 @@ function processPlatformCosts(platform, costData) {
         }
     }
     
-    // Display Disk Snapshot costs for GCP
     if (platform === 'GCP') {
         if (costData.DiskSnapshotCosts && costData.DiskSnapshotCosts.length > 0) {
             createTable(`${platform} Disk Snapshot Costs`, costData.DiskSnapshotCosts, 
@@ -233,21 +214,18 @@ function processPlatformCosts(platform, costData) {
                 ['Name', 'Size', 'Region', 'Status', 'Price per GB/Month', 'Monthly Cost']);
         }
         
-        // NEW: Display Compute Instance costs
         if (costData.ComputeCosts && costData.ComputeCosts.length > 0) {
             createTable(`${platform} Compute Instance Costs`, costData.ComputeCosts, 
                 item => `<td>${item.Name}</td><td>${item.MachineType}</td><td>${item.Zone}</td><td>$${item.HourlyCost.toFixed(4)}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
                 ['Name', 'Machine Type', 'Zone', 'Hourly Cost', 'Monthly Cost']);
         }
         
-        // NEW: Display GCS Bucket costs
         if (costData.GCSCosts && costData.GCSCosts.length > 0) {
             createTable(`${platform} Cloud Storage Costs`, costData.GCSCosts, 
                 item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Location}</td><td>${item.StorageClass}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
                 ['Bucket Name', 'Size', 'Location', 'Storage Class', 'Monthly Cost']);
         }
         
-        // NEW: Display Cloud SQL costs
         if (costData.CloudSQLCosts && costData.CloudSQLCosts.length > 0) {
             createTable(`${platform} Cloud SQL Costs`, costData.CloudSQLCosts, 
                 item => `<td>${item.Name}</td><td>${item.DatabaseVersion}</td><td>${item.Region}</td><td>${item.Tier}</td><td>${item.DiskSizeGB} GB</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
@@ -255,7 +233,6 @@ function processPlatformCosts(platform, costData) {
         }
     }
     
-    // Display summary for this platform
     if (costData.Summary) {
         const summaryDiv = document.createElement('div');
         summaryDiv.className = 'cost-summary';
@@ -308,7 +285,6 @@ function createGlobalSummary(summary) {
 }
 
 function createCostCharts(data) {
-    // Create a div for the charts
     const chartsDiv = document.createElement('div');
     chartsDiv.className = 'cost-charts';
     chartsDiv.style.display = 'flex';
@@ -316,7 +292,6 @@ function createCostCharts(data) {
     chartsDiv.style.justifyContent = 'space-between';
     chartsDiv.style.marginTop = '20px';
     
-    // Add chart container divs
     chartsDiv.innerHTML = `
         <div class="chart-wrapper" style="width: 48%; height: 300px; margin-bottom: 20px;">
             <canvas id="storageByPlatformChart"></canvas>
@@ -328,7 +303,6 @@ function createCostCharts(data) {
     
     document.getElementById('content').appendChild(chartsDiv);
     
-    // Extract data for charts
     const platforms = [];
     const storageValues = [];
     const costValues = [];
@@ -351,7 +325,6 @@ function createCostCharts(data) {
         costValues.push(data.gcp.Summary.TotalMonthlyCost);
     }
     
-    // Colors for each platform
     const colors = {
         'AWS': '#FF9900',
         'Azure': '#0078D4',
@@ -360,7 +333,6 @@ function createCostCharts(data) {
     
     const platformColors = platforms.map(platform => colors[platform] || '#777777');
     
-    // Create storage chart
     const storageCtx = document.getElementById('storageByPlatformChart').getContext('2d');
     new Chart(storageCtx, {
         type: 'bar',
@@ -398,7 +370,6 @@ function createCostCharts(data) {
         }
     });
     
-    // Create cost chart
     const costCtx = document.getElementById('costByPlatformChart').getContext('2d');
     new Chart(costCtx, {
         type: 'bar',
@@ -440,7 +411,6 @@ function createCostCharts(data) {
 function logAllResourceTypes(data) {
     console.log("--- RESOURCE TYPES IN COST DATA ---");
     
-    // Check if we have aws/azure/gcp structure or direct structure
     const costsData = data.costs || data;
     
     if (costsData.aws) {
@@ -623,7 +593,6 @@ function showCostExplorerModal() {
     }
 }
 
-// Set up event listener for the Cost Explorer button
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM loaded - Cost Explorer module setting up event listener");
     

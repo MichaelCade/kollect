@@ -11,13 +11,11 @@ import (
 	"github.com/michaelcade/kollect/pkg/gcp"
 )
 
-// HandleCostRequest processes cost calculation requests for cloud resources
 func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 	platform := r.URL.Query().Get("platform")
 	useMock := r.URL.Query().Get("mock") == "true"
-	resourceType := r.URL.Query().Get("type") // Can be "snapshots", "all", "compute", etc.
+	resourceType := r.URL.Query().Get("type")
 
-	// Default to snapshots if not specified for backward compatibility
 	if resourceType == "" {
 		resourceType = "snapshots"
 	}
@@ -30,7 +28,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	switch platform {
-	// Fix the AWS case in HandleCostRequest
 
 	case "aws":
 		var awsData map[string]interface{}
@@ -38,7 +35,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 			awsData = GenerateMockResourceData("aws", resourceType)
 			log.Printf("Using mock AWS data for %s", resourceType)
 		} else {
-			// Collect real data first - this was missing!
 			if resourceType == "snapshots" {
 				awsData, err = aws.CollectSnapshotData(ctx)
 			} else {
@@ -58,7 +54,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 				countResources(awsData, "RDSInstances"),
 				countResources(awsData, "S3Buckets"))
 
-			// If no resources found, return empty data with a message
 			if isEmpty(awsData) {
 				log.Printf("No AWS resources found")
 				costs = map[string]interface{}{
@@ -74,12 +69,11 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Choose which cost estimation function to use based on the resource type
 		if resourceType == "snapshots" {
-			costs, err = EstimateAwsResourceCosts(awsData) // Original snapshot-focused function
+			costs, err = EstimateAwsResourceCosts(awsData)
 		} else {
 			estimator := NewResourceCostEstimator()
-			costs, err = estimator.EstimateAwsResourcesCost(awsData) // New comprehensive function
+			costs, err = estimator.EstimateAwsResourcesCost(awsData)
 		}
 		costs = map[string]interface{}{"aws": costs}
 
@@ -90,11 +84,9 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 			azureData = GenerateMockResourceData("azure", resourceType)
 			log.Printf("Using mock Azure data for %s", resourceType)
 		} else {
-			// For snapshot resources, use the existing snapshot collection
 			if resourceType == "snapshots" {
 				azureData, err = azure.CollectSnapshotData(ctx)
 			} else {
-				// For all other resource types, use the data converter
 				azureData, err = ConvertAzureDataForCostAnalysis(ctx)
 			}
 
@@ -110,7 +102,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 				countResources(azureData, "StorageAccounts"),
 				countResources(azureData, "SQLDatabases"))
 
-			// If no resources found, return empty data with a message
 			if isEmpty(azureData) {
 				log.Printf("No Azure resources found")
 				costs = map[string]interface{}{
@@ -126,12 +117,11 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Choose which cost estimation function to use based on the resource type
 		if resourceType == "snapshots" {
-			costs, err = EstimateAzureResourceCosts(azureData) // Original snapshot-focused function
+			costs, err = EstimateAzureResourceCosts(azureData)
 		} else {
 			estimator := NewResourceCostEstimator()
-			costs, err = estimator.EstimateAzureResourcesCost(azureData) // New comprehensive function
+			costs, err = estimator.EstimateAzureResourcesCost(azureData)
 		}
 		costs = map[string]interface{}{"azure": costs}
 
@@ -142,11 +132,9 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 			gcpData = GenerateMockResourceData("gcp", resourceType)
 			log.Printf("Using mock GCP data for %s", resourceType)
 		} else {
-			// For snapshot resources, use the existing snapshot collection
 			if resourceType == "snapshots" {
 				gcpData, err = gcp.CollectSnapshotData(ctx)
 			} else {
-				// For all resources, use the comprehensive data collector
 				gcpData, err = ConvertGcpDataForCostAnalysis(ctx)
 			}
 
@@ -162,7 +150,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 				countResources(gcpData, "CloudSQLInstances"),
 				countResources(gcpData, "GCSBuckets"))
 
-			// If no resources found, return empty data with a message
 			if isEmpty(gcpData) {
 				log.Printf("No GCP resources found")
 				costs = map[string]interface{}{
@@ -178,12 +165,11 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Choose which cost estimation function to use based on the resource type
 		if resourceType == "snapshots" {
-			costs, err = EstimateGcpResourceCosts(gcpData) // Original snapshot-focused function
+			costs, err = EstimateGcpResourceCosts(gcpData)
 		} else {
 			estimator := NewResourceCostEstimator()
-			costs, err = estimator.EstimateGcpResourcesCost(gcpData) // New comprehensive function
+			costs, err = estimator.EstimateGcpResourcesCost(gcpData)
 			log.Printf("Using ResourceCostEstimator for comprehensive GCP resource cost analysis")
 		}
 
@@ -198,7 +184,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 	case "all":
 		allCosts := make(map[string]interface{})
 
-		// AWS
 		var awsData map[string]interface{}
 		if useMock {
 			awsData = GenerateMockResourceData("aws", resourceType)
@@ -213,7 +198,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 				allCosts["aws"] = awsCosts
 			}
 		} else {
-			// Collect real data
 			if resourceType == "snapshots" {
 				awsData, err = aws.CollectSnapshotData(ctx)
 			} else {
@@ -248,7 +232,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Azure
 		var azureData map[string]interface{}
 		if useMock {
 			azureData = GenerateMockResourceData("azure", resourceType)
@@ -263,7 +246,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 				allCosts["azure"] = azureCosts
 			}
 		} else {
-			// Collect real data
 			if resourceType == "snapshots" {
 				azureData, err = azure.CollectSnapshotData(ctx)
 			} else {
@@ -298,7 +280,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// GCP
 		var gcpData map[string]interface{}
 		if useMock {
 			gcpData = GenerateMockResourceData("gcp", resourceType)
@@ -313,7 +294,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 				allCosts["gcp"] = gcpCosts
 			}
 		} else {
-			// Collect real data
 			if resourceType == "snapshots" {
 				gcpData, err = gcp.CollectSnapshotData(ctx)
 			} else {
@@ -348,19 +328,16 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// Calculate global summary - need to handle both snapshot and resource summaries
 		var totalStorage float64
 		var totalCost float64
 
 		for _, platformCosts := range allCosts {
 			if costMap, ok := platformCosts.(map[string]interface{}); ok {
 				if summary, ok := costMap["Summary"].(map[string]interface{}); ok {
-					// Add snapshot storage if available
 					if storage, ok := summary["TotalSnapshotStorage"].(float64); ok {
 						totalStorage += storage
 					}
 
-					// Always add monthly cost, which covers both snapshots and other resources
 					if cost, ok := summary["TotalMonthlyCost"].(float64); ok {
 						totalCost += cost
 					}
@@ -397,7 +374,6 @@ func HandleCostRequest(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
-// Helper function that's renamed to more accurately reflect all resources, not just snapshots
 func countResources(data map[string]interface{}, key string) int {
 	if resources, ok := data[key].([]interface{}); ok {
 		return len(resources)
@@ -411,18 +387,14 @@ func countResources(data map[string]interface{}, key string) int {
 	return 0
 }
 
-// Helper function to check if resource data is empty
 func isEmpty(data map[string]interface{}) bool {
 	if data == nil {
 		return true
 	}
 
 	for _, key := range []string{
-		// AWS
 		"EBSSnapshots", "RDSSnapshots", "EC2Instances", "RDSInstances", "S3Buckets", "DynamoDBTables", "VPCs",
-		// Azure
 		"DiskSnapshots", "VirtualMachines", "StorageAccounts", "SQLDatabases",
-		// GCP
 		"DiskSnapshots", "ComputeInstances", "GCSBuckets", "CloudSQLInstances", "CloudRunServices", "CloudFunctions"} {
 
 		if resources := countResources(data, key); resources > 0 {
@@ -433,19 +405,15 @@ func isEmpty(data map[string]interface{}) bool {
 	return true
 }
 
-// GenerateMockResourceData creates mock data for the specified platform and resource type
 func GenerateMockResourceData(platform, resourceType string) map[string]interface{} {
 	if resourceType == "snapshots" {
-		// Use the existing mock data for snapshots
 		return GenerateMockSnapshotData(platform)
 	}
 
-	// Otherwise, generate more comprehensive mock data
 	data := make(map[string]interface{})
 
 	switch platform {
 	case "aws":
-		// Add EC2 instances
 		data["EC2Instances"] = []map[string]interface{}{
 			{
 				"InstanceId":   "i-0123456789abcdef0",
@@ -463,7 +431,6 @@ func GenerateMockResourceData(platform, resourceType string) map[string]interfac
 			},
 		}
 
-		// Add RDS instances
 		data["RDSInstances"] = []map[string]interface{}{
 			{
 				"DBInstanceIdentifier": "database-1",
@@ -475,7 +442,6 @@ func GenerateMockResourceData(platform, resourceType string) map[string]interfac
 			},
 		}
 
-		// Add S3 buckets
 		data["S3Buckets"] = []map[string]interface{}{
 			{
 				"Name":         "my-important-bucket",
@@ -493,14 +459,12 @@ func GenerateMockResourceData(platform, resourceType string) map[string]interfac
 			},
 		}
 
-		// Include the snapshot data too for completeness
 		snapshots := GenerateMockSnapshotData(platform)
 		for k, v := range snapshots {
 			data[k] = v
 		}
 
 	case "azure":
-		// Add Virtual Machines
 		data["VirtualMachines"] = []map[string]interface{}{
 			{
 				"Name":          "vm-prod-app1",
@@ -518,7 +482,6 @@ func GenerateMockResourceData(platform, resourceType string) map[string]interfac
 			},
 		}
 
-		// Add Storage Accounts
 		data["StorageAccounts"] = []map[string]interface{}{
 			{
 				"Name":            "prodstorageacct",
@@ -530,7 +493,6 @@ func GenerateMockResourceData(platform, resourceType string) map[string]interfac
 			},
 		}
 
-		// Add SQL Databases
 		data["SQLDatabases"] = []map[string]interface{}{
 			{
 				"Name":          "prod-db",
@@ -544,14 +506,12 @@ func GenerateMockResourceData(platform, resourceType string) map[string]interfac
 			},
 		}
 
-		// Include the snapshot data too for completeness
 		snapshots := GenerateMockSnapshotData(platform)
 		for k, v := range snapshots {
 			data[k] = v
 		}
 
 	case "gcp":
-		// Add Compute Instances
 		data["ComputeInstances"] = []map[string]interface{}{
 			{
 				"Name":        "instance-1",
@@ -569,7 +529,6 @@ func GenerateMockResourceData(platform, resourceType string) map[string]interfac
 			},
 		}
 
-		// Add Cloud SQL Instances
 		data["CloudSQLInstances"] = []map[string]interface{}{
 			{
 				"Name":            "sql-instance-1",
@@ -582,7 +541,6 @@ func GenerateMockResourceData(platform, resourceType string) map[string]interfac
 			},
 		}
 
-		// Add GCS Buckets
 		data["GCSBuckets"] = []map[string]interface{}{
 			{
 				"Name":         "my-important-bucket",
@@ -600,7 +558,6 @@ func GenerateMockResourceData(platform, resourceType string) map[string]interfac
 			},
 		}
 
-		// Include the snapshot data too for completeness
 		snapshots := GenerateMockSnapshotData(platform)
 		for k, v := range snapshots {
 			data[k] = v

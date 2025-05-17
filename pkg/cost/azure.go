@@ -10,49 +10,39 @@ import (
 	"github.com/michaelcade/kollect/pkg/azure"
 )
 
-// CalculateAzureDiskSnapshotCosts calculates costs for Azure disk snapshots
 func CalculateAzureDiskSnapshotCosts(snapshots []map[string]string) []map[string]interface{} {
 	results := make([]map[string]interface{}, 0, len(snapshots))
 
 	for _, snapshot := range snapshots {
-		// Parse size
 		var sizeGB float64 = 0
 		if sizeStr, ok := snapshot["DiskSizeGB"]; ok && sizeStr != "" {
-			// Clean up the string to extract just the number
 			numStr := strings.TrimSpace(sizeStr)
-			numStr = strings.TrimSuffix(numStr, " GB") // Remove unit if present
-			numStr = strings.Split(numStr, " ")[0]     // Take the first part before any space
+			numStr = strings.TrimSuffix(numStr, " GB")
+			numStr = strings.Split(numStr, " ")[0]
 
-			// Try to parse it as a float
 			if val, err := strconv.ParseFloat(numStr, 64); err == nil {
 				sizeGB = val
 			}
 		}
 
-		// If size is still 0, use a default size
 		if sizeGB == 0 {
-			sizeGB = 100.0 // Default to 100 GB
+			sizeGB = 100.0
 		}
 
-		// Determine region or use default
-		region := "eastus" // Default region
+		region := "eastus"
 		if location, ok := snapshot["Location"]; ok && location != "" {
 			region = strings.ToLower(location)
 		}
 
-		// Calculate monthly cost
 		pricePerGB := GetPrice("azure", "disk_snapshot", region)
 		monthlyCost := sizeGB * pricePerGB
 
-		// Get pricing source and metadata
 		priceSource := GetPricingSource("azure", "disk_snapshot")
 		priceInfo := GetPricingMetadata("azure", "disk_snapshot")
 
-		// Log price information for debugging
 		log.Printf("Azure disk snapshot pricing for region %s: $%.4f per GB/month (Source: %s, Last verified: %s)",
 			region, pricePerGB, priceSource, priceInfo.LastVerified.Format("2006-01-02"))
 
-		// Create result with cost info
 		result := map[string]interface{}{
 			"Name":            snapshot["Name"],
 			"ResourceGroup":   snapshot["ResourceGroup"],
@@ -72,18 +62,15 @@ func CalculateAzureDiskSnapshotCosts(snapshots []map[string]string) []map[string
 	return results
 }
 
-// EstimateAzureResourceCosts calculates costs for Azure resources
 func EstimateAzureResourceCosts(resourceData map[string]interface{}) (map[string]interface{}, error) {
 	costData := make(map[string]interface{})
 
-	// Disk Snapshots
 	if diskSnapshotsRaw, ok := resourceData["DiskSnapshots"]; ok {
 		if diskSnapshots, ok := convertToSnapshotList(diskSnapshotsRaw); ok {
 			costData["DiskSnapshotCosts"] = CalculateAzureDiskSnapshotCosts(diskSnapshots)
 		}
 	}
 
-	// Calculate summary
 	var totalSnapshotStorage float64
 	var totalMonthlyCost float64
 
@@ -98,7 +85,6 @@ func EstimateAzureResourceCosts(resourceData map[string]interface{}) (map[string
 		}
 	}
 
-	// Include pricing source information in the summary
 	priceSource := GetPricingSource("azure", "disk_snapshot")
 	lastVerified := GetPricingMetadata("azure", "disk_snapshot").LastVerified.Format("2006-01-02")
 
@@ -113,22 +99,17 @@ func EstimateAzureResourceCosts(resourceData map[string]interface{}) (map[string
 	return costData, nil
 }
 
-// ConvertAzureDataForCostAnalysis converts the structured AzureData into a generic map for cost analysis
 func ConvertAzureDataForCostAnalysis(ctx context.Context) (map[string]interface{}, error) {
-	// Use the existing Azure inventory collection function
 	azureData, err := azure.CollectAzureData(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to collect Azure data: %v", err)
 	}
 
-	// Create a generic map to hold all resource types
 	inventory := make(map[string]interface{})
 
-	// Convert Azure VMs to generic map entries
 	if len(azureData.AzureVMs) > 0 {
 		vms := make([]map[string]interface{}, len(azureData.AzureVMs))
 		for i, vm := range azureData.AzureVMs {
-			// Extract resource group from ID
 			resourceGroup := "unknown"
 			if vm.ID != nil {
 				parts := strings.Split(*vm.ID, "/")
@@ -163,11 +144,9 @@ func ConvertAzureDataForCostAnalysis(ctx context.Context) (map[string]interface{
 		inventory["VirtualMachines"] = vms
 	}
 
-	// Convert Storage Accounts to generic map entries
 	if len(azureData.AzureStorageAccounts) > 0 {
 		accounts := make([]map[string]interface{}, len(azureData.AzureStorageAccounts))
 		for i, account := range azureData.AzureStorageAccounts {
-			// Extract resource group from ID
 			resourceGroup := "unknown"
 			if account.ID != nil {
 				parts := strings.Split(*account.ID, "/")
@@ -191,17 +170,15 @@ func ConvertAzureDataForCostAnalysis(ctx context.Context) (map[string]interface{
 				"Name":           name,
 				"ResourceGroup":  resourceGroup,
 				"Location":       location,
-				"UsedCapacityGB": 100.0, // Default estimate
+				"UsedCapacityGB": 100.0,
 			}
 		}
 		inventory["StorageAccounts"] = accounts
 	}
 
-	// Convert SQL Databases to generic map entries
 	if len(azureData.AzureSQLDatabases) > 0 {
 		databases := make([]map[string]interface{}, len(azureData.AzureSQLDatabases))
 		for i, db := range azureData.AzureSQLDatabases {
-			// Extract resource group from ID
 			resourceGroup := "unknown"
 			if db.ID != nil {
 				parts := strings.Split(*db.ID, "/")
@@ -230,7 +207,6 @@ func ConvertAzureDataForCostAnalysis(ctx context.Context) (map[string]interface{
 		inventory["SQLDatabases"] = databases
 	}
 
-	// Include snapshot data
 	snapshotData, err := azure.CollectSnapshotData(ctx)
 	if err != nil {
 		log.Printf("Warning: Failed to collect snapshot data: %v", err)

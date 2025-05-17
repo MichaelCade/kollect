@@ -1,6 +1,5 @@
 package cost
 
-// GenerateMockSnapshotData creates mock snapshot data for testing cost calculations
 func GenerateMockSnapshotData(platform string) map[string]interface{} {
 	switch platform {
 	case "aws":
