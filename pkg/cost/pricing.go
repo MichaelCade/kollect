@@ -56,8 +56,7 @@ var (
 		"sa-east-1":      0.115,
 		"ap-south-1":     0.105,
 		"ca-central-1":   0.105,
-		// Default fallback
-		"default": 0.095,
+		"default":        0.095,
 	}
 
 	// Azure managed disk snapshot pricing ($/GB-month)
@@ -74,8 +73,7 @@ var (
 		"eastasia":           0.05,
 		"australiaeast":      0.07,
 		"australiasoutheast": 0.07,
-		// Default fallback
-		"default": 0.05,
+		"default":            0.05,
 	}
 
 	// GCP Persistent Disk snapshot pricing ($/GB-month)
@@ -298,7 +296,6 @@ func fetchAWSPricing(ctx context.Context) (RegionalPrice, RegionalPrice, error) 
 	}
 	pricingMutex.RUnlock()
 
-	// Example: Try to get EBS pricing via AWS Pricing API
 	url := "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/index.json"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
