@@ -268,7 +268,7 @@ function createGlobalSummary(summary) {
     summaryDiv.className = 'cost-global-summary';
     summaryDiv.innerHTML = `
         <div class="summary-card" style="background-color: rgba(74, 144, 226, 0.1); border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <h3 style="margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; color: var(--accent-color);">Total Snapshot Cost Across All Platforms</h3>
+            <h3 style="margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; color: var(--accent-color);">Total Cost Across All Platforms</h3>
             <div style="display: flex; justify-content: space-between; margin-top: 10px;">
                 <div class="summary-item">
                     <div style="font-size: 0.9em; color: var(--secondary-text-color);">Total Snapshot Storage</div>
