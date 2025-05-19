@@ -501,7 +501,7 @@ func GenerateMockResourceData(platform, resourceType string) map[string]interfac
 				"Location":      "eastus",
 				"Edition":       "Standard",
 				"DTU":           100,
-				"MaxSizeBytes":  107374182400,
+				"MaxSizeBytes":  float64(107374182400),
 				"Status":        "Online",
 			},
 		}
