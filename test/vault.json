@@ -1,0 +1,167 @@
+{
+  "serverInfo": {
+    "version": "1.15.2",
+    "clusterName": "vault-cluster-8b9c78f4",
+    "clusterId": "d4e69bdc-e73f-9f36-5651-21a0b3143e51",
+    "initialized": true,
+    "sealed": false,
+    "standby": false,
+    "haEnabled": true,
+    "raftLeader": true,
+    "storageType": "raft",
+    "serverTimestamp": "2025-05-16T23:57:42Z"
+  },
+  "replicationInfo": {
+    "drEnabled": false,
+    "drMode": "disabled",
+    "drConnected": false,
+    "performanceEnabled": false,
+    "performanceMode": "disabled",
+    "performanceConnected": false
+  },
+  "authMethods": [
+    {
+      "path": "approle",
+      "type": "approle",
+      "description": "Service authentication",
+      "accessor": "auth_approle_6a54c3b9",
+      "local": false,
+      "config": {
+        "default_lease_ttl": "0s",
+        "max_lease_ttl": "0s"
+      }
+    },
+    {
+      "path": "token",
+      "type": "token",
+      "description": "token based credentials",
+      "accessor": "auth_token_8a54f930",
+      "local": false,
+      "config": {
+        "default_lease_ttl": "0s",
+        "max_lease_ttl": "0s"
+      }
+    },
+    {
+      "path": "userpass",
+      "type": "userpass",
+      "description": "Username and password authentication",
+      "accessor": "auth_userpass_1a2b3c4d",
+      "local": false,
+      "config": {
+        "default_lease_ttl": "0s",
+        "max_lease_ttl": "0s"
+      }
+    }
+  ],
+  "secretEngines": [
+    {
+      "path": "cubbyhole",
+      "type": "cubbyhole",
+      "description": "per-token private secret storage",
+      "accessor": "cubbyhole_12345678",
+      "local": true,
+      "options": {}
+    },
+    {
+      "path": "identity",
+      "type": "identity",
+      "description": "identity store",
+      "accessor": "identity_12345678",
+      "local": false,
+      "options": {}
+    },
+    {
+      "path": "kv",
+      "type": "kv",
+      "description": "General purpose secret store",
+      "accessor": "kv_87654321",
+      "local": false,
+      "version": 2,
+      "options": {
+        "version": "2"
+      }
+    },
+    {
+      "path": "sys",
+      "type": "system",
+      "description": "system endpoints used for control, policy and debugging",
+      "accessor": "system_abcdef12",
+      "local": false,
+      "options": {}
+    },
+    {
+      "path": "pki",
+      "type": "pki",
+      "description": "PKI certificate management",
+      "accessor": "pki_34567890",
+      "local": false,
+      "options": {}
+    },
+    {
+      "path": "database",
+      "type": "database",
+      "description": "Database credentials management",
+      "accessor": "database_abcdef12",
+      "local": false,
+      "options": {}
+    }
+  ],
+  "policies": [
+    {
+      "name": "default",
+      "type": "acl"
+    },
+    {
+      "name": "root",
+      "type": "acl"
+    },
+    {
+      "name": "app-policy",
+      "type": "acl",
+      "rules": "path \"kv/data/app/*\" {\n  capabilities = [\"read\", \"list\"]\n}\n\npath \"database/creds/app-role\" {\n  capabilities = [\"read\"]\n}\n"
+    },
+    {
+      "name": "admin-policy",
+      "type": "acl",
+      "rules": "path \"*\" {\n  capabilities = [\"create\", \"read\", \"update\", \"delete\", \"list\", \"sudo\"]\n}\n"
+    }
+  ],
+  "auditDevices": [
+    {
+      "path": "file",
+      "type": "file",
+      "description": "File system audit device",
+      "options": {
+        "file_path": "/var/log/vault/audit.log"
+      }
+    }
+  ],
+  "secretStats": {
+    "kv_secrets_count": 52
+  },
+  "performanceInfo": {
+    "vault.expire.num_leases": 12,
+    "vault.token.count.by_auth.token.total": 5,
+    "vault.token.count.by_auth.userpass.total": 3,
+    "vault.token.count.by_auth.approle.total": 7,
+    "vault.token.count.by_ttl.1h.total": 4,
+    "vault.token.count.by_ttl.24h.total": 6,
+    "vault.token.count.by_ttl.no_expiry.total": 5
+  },
+  "entityCount": 8,
+  "groupCount": 2,
+  "tokenCount": 15,
+  "licenseInfo": {
+    "expiration_time": "2026-05-16T00:00:00Z",
+    "features": [
+      "Performance Standby",
+      "DR Replication",
+      "MFA",
+      "Sentinel",
+      "Namespaces"
+    ],
+    "license_id": "demo-license-id",
+    "start_time": "2025-01-01T00:00:00Z"
+  }
+}

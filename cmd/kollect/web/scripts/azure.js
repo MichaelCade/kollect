@@ -207,7 +207,7 @@ function showAzureCredentialsModal() {
                     <p style="margin-top: 0;">This option uses credentials and settings from your Azure CLI.</p>
                     <div class="form-group" style="margin-top: 15px;">
                         <label for="azure-subscription-selector" style="font-weight: bold; margin-bottom: 5px;">Select Azure Subscription:</label>
-                        <select id="azure-subscription-selector" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                        <select id="azure-subscription-selector" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;">
                             <option value="">Loading subscriptions...</option>
                         </select>
                     </div>
@@ -222,19 +222,19 @@ function showAzureCredentialsModal() {
                 <div id="azure-manual-config-form" class="source-form" style="display: none; margin-top: 12px; margin-left: 25px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
                     <div class="form-group">
                         <label for="azure-tenant-id" style="font-weight: bold; margin-bottom: 5px;">Tenant ID:</label>
-                        <input type="text" id="azure-tenant-id" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;" placeholder="00000000-0000-0000-0000-000000000000">
+                        <input type="text" id="azure-tenant-id" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;" placeholder="00000000-0000-0000-0000-000000000000">
                     </div>
                     <div class="form-group" style="margin-top: 15px;">
                         <label for="azure-client-id" style="font-weight: bold; margin-bottom: 5px;">Client ID:</label>
-                        <input type="text" id="azure-client-id" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;" placeholder="00000000-0000-0000-0000-000000000000">
+                        <input type="text" id="azure-client-id" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;" placeholder="00000000-0000-0000-0000-000000000000">
                     </div>
                     <div class="form-group" style="margin-top: 15px;">
                         <label for="azure-client-secret" style="font-weight: bold; margin-bottom: 5px;">Client Secret:</label>
-                        <input type="password" id="azure-client-secret" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;" placeholder="Your client secret">
+                        <input type="password" id="azure-client-secret" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;" placeholder="Your client secret">
                     </div>
                     <div class="form-group" style="margin-top: 15px;">
                         <label for="azure-subscription-id" style="font-weight: bold; margin-bottom: 5px;">Subscription ID:</label>
-                        <input type="text" id="azure-subscription-id" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;" placeholder="00000000-0000-0000-0000-000000000000">
+                        <input type="text" id="azure-subscription-id" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;" placeholder="00000000-0000-0000-0000-000000000000">
                     </div>
                     <p class="tip" style="margin-top: 15px; font-size: 0.85em; color: var(--secondary-text-color); font-style: italic;">
                         Note: Credentials are used for the current session only and are never stored.

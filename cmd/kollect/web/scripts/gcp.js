@@ -139,7 +139,7 @@ function showGCPCredentialsModal() {
                     <p style="margin-top: 0;">This option uses credentials and settings from your gcloud CLI configuration.</p>
                     <div class="form-group" style="margin-top: 15px;">
                         <label for="gcp-project-selector" style="font-weight: bold; margin-bottom: 5px;">Select GCP Project:</label>
-                        <select id="gcp-project-selector" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                        <select id="gcp-project-selector" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;">
                             <option value="">Loading projects...</option>
                         </select>
                     </div>
@@ -153,7 +153,7 @@ function showGCPCredentialsModal() {
                 </label>
                 <div id="gcp-service_account-config-form" class="source-form" style="display: none; margin-top: 12px; margin-left: 25px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
                     <div class="form-group">
-                        <button id="browse-gcp-key" class="btn" style="background-color: var(--accent-color); color: white; padding: 8px 15px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold;">
+                        <button id="browse-gcp-key" class="btn" style="background-color: var(--accent-color); color: white; padding: 8px 15px; border-radius: 4px; box-sizing: border-box; border: none; cursor: pointer; font-weight: bold;">
                             <i class="fas fa-folder-open"></i> Browse Key File
                         </button>
                         <span id="selected-key-name" style="margin-left: 10px; font-style: italic;"></span>

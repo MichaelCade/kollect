@@ -29,10 +29,10 @@
                         <button id="aws-button" title="AWS"><img src="images/aws.svg" alt="AWS"></button>
                         <button id="azure-button" title="Azure"><img src="images/azure.svg" alt="Azure"></button>
                         <button id="google-button" title="Google Cloud"><img src="images/gcp.svg" alt="Google"></button>
-                        <button id="terraform-button" title="Terraform"><img src="images/terraform.svg" alt="Terraform"></button>
+                        <button id="terraform-button" title="HashiCorp Terraform"><img src="images/terraform.svg" alt="Terraform"></button>
                         <button id="veeam-button" title="Veeam"><img src="images/veeam-black.png" alt="Veeam"></button>
                         <button id="docker-button" title="Docker - Not yet Implemented"><img src="images/docker.png" alt="Docker"></button>
-                        <button id="vault-button" title="Vault - Not yet Implemented"><img src="images/vault.png" alt="Vault"></button>
+                        <button id="vault-button" title="HashiCorp Vault"><img src="images/vault.png" alt="Vault"></button>
                     </div>
                 </div>
                 
@@ -109,6 +109,7 @@
     <script src="scripts/veeam.js"></script>
     <script src="scripts/snapshot.js"></script>
     <script src="scripts/cost.js"></script>
+    <script src="scripts/vault.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('theme-toggle').addEventListener('click', () => {
@@ -148,8 +149,9 @@
                 console.log('Connection status:', data);
                 
                 for (const [platform, isConnected] of Object.entries(data)) {
-                const buttonId = platform === 'gcp' ? 'google-button' : `${platform}-button`;
-                const button = document.getElementById(buttonId);
+                    const buttonId = platform === 'gcp' ? 'google-button' : 
+                                    (platform === 'vault' ? 'vault-button' : `${platform}-button`);
+                    const button = document.getElementById(buttonId);
                 
                 if (button) {
                     const existingBadges = button.querySelectorAll('.connection-badge');

@@ -239,7 +239,7 @@ function showKubernetesConnectionModal() {
                     <p style="margin-top: 0;">Using default kubeconfig at: <code>~/.kube/config</code></p>
                     <div class="form-group" style="margin-top: 15px;">
                         <label for="default-context-selector" style="font-weight: bold; margin-bottom: 5px;">Select Context:</label>
-                        <select id="default-context-selector" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                        <select id="default-context-selector" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;">
                             <option value="">Loading contexts...</option>
                         </select>
                     </div>
@@ -253,14 +253,14 @@ function showKubernetesConnectionModal() {
                 </label>
                 <div id="custom-kubeconfig-form" class="source-form" style="display: none; margin-top: 12px; margin-left: 25px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
                     <div class="form-group">
-                        <button id="browse-kubeconfig" class="btn" style="background-color: var(--accent-color); color: white; padding: 8px 15px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold;">
+                        <button id="browse-kubeconfig" class="btn" style="background-color: var(--accent-color); color: white; padding: 8px 15px; border-radius: 4px; box-sizing: border-box; border: none; cursor: pointer; font-weight: bold;">
                             <i class="fas fa-folder-open"></i> Browse File
                         </button>
                         <span id="selected-kubeconfig-name" style="margin-left: 10px; font-style: italic;"></span>
                     </div>
                     <div class="form-group" style="margin-top: 15px;">
                         <label for="custom-context-selector" style="font-weight: bold; margin-bottom: 5px;">Select Context:</label>
-                        <select id="custom-context-selector" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;" disabled>
+                        <select id="custom-context-selector" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;" disabled>
                             <option value="">Select a kubeconfig file first</option>
                         </select>
                     </div>

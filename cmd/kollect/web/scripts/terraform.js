@@ -136,15 +136,15 @@ document.getElementById('terraform-button')?.addEventListener('click', () => {
                 <div id="s3-form" class="source-form" style="display: none; margin-top: 12px; margin-left: 25px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
                     <div class="form-group">
                         <label for="s3-bucket">Bucket:</label>
-                        <input type="text" id="s3-bucket" placeholder="my-terraform-states" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color);">
+                        <input type="text" id="s3-bucket" placeholder="my-terraform-states" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color); box-sizing: border-box;">
                     </div>
                     <div class="form-group">
                         <label for="s3-key">Key:</label>
-                        <input type="text" id="s3-key" placeholder="env/prod/terraform.tfstate" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color);">
+                        <input type="text" id="s3-key" placeholder="env/prod/terraform.tfstate" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color); box-sizing: border-box;">
                     </div>
                     <div class="form-group">
                         <label for="s3-region">Region:</label>
-                        <input type="text" id="s3-region" value="us-east-1" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color);">
+                        <input type="text" id="s3-region" value="us-east-1" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color); box-sizing: border-box;">
                     </div>
                 </div>
             </div>
@@ -155,15 +155,15 @@ document.getElementById('terraform-button')?.addEventListener('click', () => {
                 <div id="azure-form" class="source-form" style="display: none; margin-top: 12px; margin-left: 25px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
                     <div class="form-group">
                         <label for="azure-account">Storage Account:</label>
-                        <input type="text" id="azure-account" placeholder="mystorageaccount" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color);">
+                        <input type="text" id="azure-account" placeholder="mystorageaccount" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color); box-sizing: border-box;">
                     </div>
                     <div class="form-group">
                         <label for="azure-container">Container:</label>
-                        <input type="text" id="azure-container" placeholder="tfstate" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color);">
+                        <input type="text" id="azure-container" placeholder="tfstate" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color); box-sizing: border-box;">
                     </div>
                     <div class="form-group">
                         <label for="azure-blob">Blob Name:</label>
-                        <input type="text" id="azure-blob" placeholder="prod.terraform.tfstate" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color);">
+                        <input type="text" id="azure-blob" placeholder="prod.terraform.tfstate" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color); box-sizing: border-box;">
                     </div>
                 </div>
             </div>
@@ -174,11 +174,11 @@ document.getElementById('terraform-button')?.addEventListener('click', () => {
                 <div id="gcs-form" class="source-form" style="display: none; margin-top: 12px; margin-left: 25px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
                     <div class="form-group">
                         <label for="gcs-bucket">Bucket:</label>
-                        <input type="text" id="gcs-bucket" placeholder="my-tf-states" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color);">
+                        <input type="text" id="gcs-bucket" placeholder="my-tf-states" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color); box-sizing: border-box;">
                     </div>
                     <div class="form-group">
                         <label for="gcs-object">Object:</label>
-                        <input type="text" id="gcs-object" placeholder="prod/terraform.tfstate" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color);">
+                        <input type="text" id="gcs-object" placeholder="prod/terraform.tfstate" style="width: 100%; padding: 8px; background: var(--input-bg-color, var(--background-color)); color: var(--text-color); border: 1px solid var(--border-color); box-sizing: border-box;">
                     </div>
                 </div>
             </div>

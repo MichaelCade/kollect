@@ -224,7 +224,9 @@ function loadTestJson(platform) {
         'aws': 'aws',
         'azure': 'azure',
         'gcp': 'gcp',
-        'veeam': 'veeam'
+        'veeam': 'veeam',
+        'vault': 'vault' 
+
     };
     
     const filePrefix = fileMap[platform] || platform;
@@ -287,6 +289,48 @@ function loadTerraformState(source) {
     }
 }
 
+function checkVaultCliStatus() {
+    return fetch('/api/vault/cli-status')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            const vaultButton = document.getElementById('vault-button');
+            if (vaultButton) {
+                const existingBadges = vaultButton.querySelectorAll('.connection-badge');
+                existingBadges.forEach(badge => badge.remove());
+                
+                if (data.installed) {
+                    vaultButton.classList.add('connected');
+                    vaultButton.classList.remove('not-connected');
+                    
+                    const badge = document.createElement('span');
+                    badge.className = 'connection-badge connected';
+                    vaultButton.appendChild(badge);
+                    
+                    vaultButton.title = `HashiCorp Vault (CLI detected v${data.version || 'unknown'})`;
+                } else {
+                    vaultButton.classList.add('not-connected');
+                    vaultButton.classList.remove('connected');
+                    
+                    const badge = document.createElement('span');
+                    badge.className = 'connection-badge not-connected';
+                    vaultButton.appendChild(badge);
+                    
+                    vaultButton.title = 'HashiCorp Vault (CLI not detected)';
+                }
+            }
+            return data;
+        })
+        .catch(error => {
+            console.error("Error checking Vault CLI status:", error);
+            return { installed: false, error: error.message };
+        });
+}
+
 function enhanceConnectionButtons() {
     console.log("Enhancing connection buttons with loading indicators");
     
@@ -333,6 +377,17 @@ function enhanceConnectionButtons() {
             }
         };
     }
+
+    const vaultConnectBtn = document.getElementById('vault-connect-btn');
+    if (vaultConnectBtn) {
+        const originalClickHandler = vaultConnectBtn.onclick;
+        vaultConnectBtn.onclick = function(event) {
+            showLoadingIndicator();
+            if (originalClickHandler) {
+                originalClickHandler.call(this, event);
+            }
+        };
+    }
     
     const tfConnectBtns = document.querySelectorAll('[id$="-terraform-connect-btn"]');
     tfConnectBtns.forEach(btn => {
@@ -363,6 +418,8 @@ document.addEventListener('htmx:afterSwap', (event) => {
 document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM Loaded - Setting up event listeners");
     
+    checkVaultCliStatus();
+
     const toggleTablesButton = document.getElementById('toggle-tables');
     if (toggleTablesButton) {
         console.log("Found toggle-tables button");
