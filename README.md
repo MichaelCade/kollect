@@ -11,6 +11,7 @@ Kollect is a tool for collecting and displaying data from Kubernetes clusters, A
 - Collects data from Veeam Backup & Replication servers (Backup Jobs, Repositories, Proxies, Scale-out Repositories)
 - Inventory data from a Terraform state file (.tfstate / .json) (Local, AWS S3, Azure Blob, Google Cloud Storage)
 - Snapshot Hunter feature to collect snapshots from all available platforms (Kubernetes, AWS, Azure, GCP) with a single command
+- Cost Explorer has been implemented to see how much those snapshots across your cloud environments (AWS, Azure, GCP) are costing you! 
 - Displays data in a web interface
 - Supports exporting data as a JSON file
 
@@ -141,6 +142,12 @@ The Snapshot Hunter feature collects:
 - GCP Disk Snapshots 
 
 You can test this feature by importing the snapshots.json file found in the test folder within the repository. 
+
+## Cost Explorer 
+
+The cost explorer feature is only available today through the browser by hitting the dollar button and then selecting the platform(s) you wish to explore your snapshots, costing APIs are called from all three public clouds if available when the program first launches. 
+
+A future enhancement of the cost explorer will be to provide cost against all resources (watch this space)
 
 ### Building the Project
 

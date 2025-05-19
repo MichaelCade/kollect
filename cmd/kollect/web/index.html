@@ -14,37 +14,57 @@
     </head>
     <body>
         <div class="container">
-        <img src="dark_Kollect.png" alt="Logo" class="logo" id="logo">
-        <button id="theme-toggle"><i class="fas fa-sun"></i></button>
-        <div class="button-container">
-            <div class="inventory-buttons">
-                <button id="kubernetes-button"><img src="images/kubernetes.svg" alt="Kubernetes"></button>
-                <button id="aws-button"><img src="images/aws.svg" alt="AWS"></button>
-                <button id="azure-button"><img src="images/azure.svg" alt="Azure"></button>
-                <button id="google-button"><img src="images/gcp.svg" alt="Google"></button>
-                <button id="terraform-button"><img src="images/terraform.svg" alt="Terraform"></button>
-                <button id="veeam-button"><img src="images/veeam-black.png" alt="Veeam"></button>
-                <button id="snapshot-button"><i class="fas fa-clone" style="font-size: 24px;"></i></button>
+            <img src="dark_Kollect.png" alt="Logo" class="logo" id="logo">
+            
+            <!-- Theme Toggle Button -->
+            <div class="theme-section">
+                <button id="theme-toggle" title="Toggle Light/Dark Theme"><i class="fas fa-sun"></i></button>
             </div>
             
-            <div class="utility-buttons">
-                <div class="nav-controls">
-                    <button id="toggle-tables" class="control-button" data-collapsed="true" title="Expand All Tables">
-                        <i class="fas fa-expand-alt"></i>
-                    </button>
+            <div class="button-container">
+                <!-- Platform Buttons -->
+                <div class="button-section">
+                    <div class="inventory-buttons">
+                        <button id="kubernetes-button" title="Kubernetes"><img src="images/kubernetes.svg" alt="Kubernetes"></button>
+                        <button id="aws-button" title="AWS"><img src="images/aws.svg" alt="AWS"></button>
+                        <button id="azure-button" title="Azure"><img src="images/azure.svg" alt="Azure"></button>
+                        <button id="google-button" title="Google Cloud"><img src="images/gcp.svg" alt="Google"></button>
+                        <button id="terraform-button" title="Terraform"><img src="images/terraform.svg" alt="Terraform"></button>
+                        <button id="veeam-button" title="Veeam"><img src="images/veeam-black.png" alt="Veeam"></button>
+                        <button id="docker-button" title="Docker - Not yet Implemented"><img src="images/docker.png" alt="Docker"></button>
+                        <button id="vault-button" title="Vault - Not yet Implemented"><img src="images/vault.png" alt="Vault"></button>
+                    </div>
                 </div>
                 
-                <div class="import-export-buttons">
-                    <div class="export-button">
-                        <button id="export-button" title="Export Data"><i class="fas fa-download"></i></button>
-                    </div>
-                    <div class="import-button">
-                        <input type="file" id="import-file" style="display: none;" />
-                        <button id="import-button" title="Import Data"><i class="fas fa-upload"></i></button>
+                <!-- Details Buttons -->
+                <div class="button-section">
+                    <div class="details-buttons">
+                        <button id="snapshot-button" title="Snapshot Hunter - Find and manage snapshots across platforms"><i class="fas fa-clone" style="font-size: 24px;"></i></button>
+                        <button id="cost-button" title="Cost Explorer - Analyze and estimate cloud resource costs"><i class="fas fa-dollar-sign" style="font-size: 24px;"></i></button>
                     </div>
                 </div>
-            </div>
-        </div>
+                
+                <!-- Utility Buttons -->
+                <div class="button-section">
+                    <div class="utility-buttons">
+                        <button id="toggle-tables" class="utility-button" data-collapsed="true" title="Expand All Tables">
+                            <i class="fas fa-expand-alt"></i>
+                        </button>
+                        
+                        <button id="export-button" class="utility-button" title="Export Data">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        
+                        <button id="import-button" class="utility-button" title="Import Data">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                        <input type="file" id="import-file" style="display: none;" />
+                        
+                        <button id="github-button" class="utility-button" title="View on GitHub">
+                            <i class="fab fa-github" style="font-size: 24px;"></i>
+                        </button>
+                    </div>
+                </div>
         <div id="hidden-content" hx-get="/api/data" hx-trigger="load" hx-target="#hidden-content" hx-swap="innerHTML" style="display: none;"></div>
         <div id="content" class="table-container">
             <!-- Tables will be added here by JavaScript -->
@@ -88,6 +108,7 @@
     <script src="scripts/terraform.js"></script>
     <script src="scripts/veeam.js"></script>
     <script src="scripts/snapshot.js"></script>
+    <script src="scripts/cost.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('theme-toggle').addEventListener('click', () => {
@@ -194,6 +215,12 @@
     document.addEventListener('DOMContentLoaded', () => {
         
         checkPlatformConnections();
+    });
+</script>
+<script>
+    document.getElementById('github-button')?.addEventListener('click', (event) => {
+        const repoUrl = 'https://github.com/michaelcade/kollect';
+        window.open(repoUrl, '_blank', 'noopener,noreferrer');
     });
 </script>
 </body>

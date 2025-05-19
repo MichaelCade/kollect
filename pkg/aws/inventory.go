@@ -303,18 +303,52 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to load AWS config: %v", err)
 	}
 
-	ebsSnapshots, err := collectEBSSnapshots(ctx, cfg)
+	ec2Client := ec2.NewFromConfig(cfg)
+	regionsOutput, err := ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
-		log.Printf("Warning: Failed to collect EBS snapshots: %v", err)
-	} else {
-		snapshots["EBSSnapshots"] = ebsSnapshots
+		return nil, fmt.Errorf("unable to describe regions: %v", err)
 	}
 
-	rdsSnapshots, err := collectRDSSnapshots(ctx, cfg)
-	if err != nil {
-		log.Printf("Warning: Failed to collect RDS snapshots: %v", err)
-	} else {
-		snapshots["RDSSnapshots"] = rdsSnapshots
+	var allEBSSnapshots []map[string]string
+	var allRDSSnapshots []map[string]string
+
+	for _, region := range regionsOutput.Regions {
+		regionName := *region.RegionName
+		log.Printf("Collecting snapshot data from region: %s", regionName)
+
+		regionCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(regionName))
+		if err != nil {
+			log.Printf("Warning: Failed to load config for region %s: %v", regionName, err)
+			continue
+		}
+
+		ebsSnapshots, err := collectEBSSnapshots(ctx, regionCfg)
+		if err != nil {
+			log.Printf("Warning: Failed to collect EBS snapshots from region %s: %v", regionName, err)
+		} else {
+			for i := range ebsSnapshots {
+				ebsSnapshots[i]["Region"] = regionName
+			}
+			allEBSSnapshots = append(allEBSSnapshots, ebsSnapshots...)
+		}
+
+		rdsSnapshots, err := collectRDSSnapshots(ctx, regionCfg)
+		if err != nil {
+			log.Printf("Warning: Failed to collect RDS snapshots from region %s: %v", regionName, err)
+		} else {
+			for i := range rdsSnapshots {
+				rdsSnapshots[i]["Region"] = regionName
+			}
+			allRDSSnapshots = append(allRDSSnapshots, rdsSnapshots...)
+		}
+	}
+
+	if len(allEBSSnapshots) > 0 {
+		snapshots["EBSSnapshots"] = allEBSSnapshots
+	}
+
+	if len(allRDSSnapshots) > 0 {
+		snapshots["RDSSnapshots"] = allRDSSnapshots
 	}
 
 	return snapshots, nil

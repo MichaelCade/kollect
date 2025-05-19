@@ -102,8 +102,7 @@ button {
 }
 
 /* Platform buttons (AWS, Azure, K8s, etc.) */
-.inventory-buttons button, 
-.platform-button {
+.inventory-buttons button {
     width: 60px;
     height: 60px;
     border-radius: 8px;
@@ -115,28 +114,44 @@ button {
     overflow: visible; /* Allow badges to overflow */
 }
 
-/* Utility buttons (Expand/Collapse, Theme, Import/Export) */
-#theme-toggle, 
-.control-button, 
-.export-button button, 
-.import-button button {
+/* Details buttons (Snapshot Hunter, Cost Explorer) */
+.details-buttons button {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: visible;
+    background-color: var(--secondary-bg-color);
+}
+
+/* Utility buttons (Expand/Collapse, Export, Import, GitHub) */
+.utility-buttons button {
     width: 55px;
     height: 55px;
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin: 0 5px;
     padding: 0;
+    background-color: var(--secondary-bg-color);
 }
 
+/* Theme toggle button */
 #theme-toggle {
+    width: 55px;
+    height: 55px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     margin: 15px auto; /* Center horizontally with auto margins */
-    display: flex;     /* Ensure proper centering of icon */
 }
 
-/* Action buttons (in forms, etc.) */
-.details-button, 
+/* Action buttons (in forms, modals, etc.) */
 .btn {
     padding: 8px 15px;
     border-radius: 4px;
@@ -148,20 +163,14 @@ button {
     color: white;
 }
 
-/* Hover effects for all buttons */
-button:hover,
-.inventory-buttons button:hover,
-.platform-button:hover,
-.control-button:hover,
-#theme-toggle:hover,
-.export-button button:hover,
-.import-button button:hover {
+/* Universal button hover effects */
+button:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px var(--button-shadow-color);
     background-color: var(--button-hover-bg);
 }
 
-/* Platform button styles */
+/* Platform button image styles */
 .inventory-buttons button img {
     width: 32px;
     height: 32px;
@@ -186,32 +195,105 @@ button:hover,
     margin-top: 10px;
 }
 
-.inventory-buttons {
+.button-section {
+    margin-bottom: 15px;
     display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin: 20px 0;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
 }
 
-.import-export-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin: 10px 0;
-}
-
+/* Button group layouts */
+.inventory-buttons,
+.details-buttons,
 .utility-buttons {
     display: flex;
     justify-content: center;
     gap: 15px;
-    margin: 10px 0;
+    margin: 15px 0;
+    flex-wrap: wrap;
 }
 
-.nav-controls {
-    margin: 10px 0;
+/* Theme section */
+.theme-section {
     display: flex;
-    justify-content: center; /* Ensure center alignment */
+    justify-content: center;
+    margin: 15px 0;
+}
+
+/* Connection status styles for platform buttons */
+.inventory-buttons button.connected {
+    box-shadow: 0 0 10px 1px var(--connected-glow);
+    background-color: var(--connected-bg);
+    border-color: var(--connected-border);
+}
+
+.inventory-buttons button.not-connected {
+    opacity: 0.85;
+    filter: grayscale(20%);
+}
+
+.connection-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--card-bg);
+    z-index: 10;
+}
+
+.connection-badge.connected {
+    background-color: #2ed573;
+    box-shadow: 0 0 5px rgba(46, 213, 115, 0.7);
+}
+
+.connection-badge.not-connected {
+    background-color: #ff4757;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .inventory-buttons button,
+    .details-buttons button,
+    .utility-buttons button,
+    #theme-toggle {
+        width: 50px;
+        height: 50px;
+        padding: 10px;
+    }
+    
+    .inventory-buttons button img {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+@media (max-width: 480px) {
+    .inventory-buttons button,
+    .details-buttons button,
+    .utility-buttons button,
+    #theme-toggle {
+        width: 45px;
+        height: 45px;
+        padding: 8px;
+    }
+    
+    .inventory-buttons button img {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .details-buttons button,
+    .inventory-buttons button,
+    .utility-buttons button {
+        width: 50px;
+        height: 50px;
+        padding: 10px;
+    }
 }
 
 /* ===== Connection Status ===== */
@@ -340,7 +422,7 @@ th {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* Fix: This was incorrectly set as #333(0, 0, 0, 0.5) */
+    background-color: rgba(0, 0, 0, 0.5);
     z-index: 2000;
     margin-top: 0;
 }
