@@ -287,16 +287,18 @@ function createGlobalSummary(summary) {
 function createCostCharts(data) {
     const chartsDiv = document.createElement('div');
     chartsDiv.className = 'cost-charts';
-    chartsDiv.style.display = 'flex';
-    chartsDiv.style.flexWrap = 'wrap';
-    chartsDiv.style.justifyContent = 'space-between';
+    
+    // Use proper CSS grid instead of flexbox to ensure charts are side by side
+    chartsDiv.style.display = 'grid';
+    chartsDiv.style.gridTemplateColumns = 'repeat(auto-fit, minmax(450px, 1fr))';
+    chartsDiv.style.gap = '20px';
     chartsDiv.style.marginTop = '20px';
     
     chartsDiv.innerHTML = `
-        <div class="chart-wrapper" style="width: 48%; height: 300px; margin-bottom: 20px;">
+        <div class="chart-wrapper" style="height: 300px; margin-bottom: 20px;">
             <canvas id="storageByPlatformChart"></canvas>
         </div>
-        <div class="chart-wrapper" style="width: 48%; height: 300px; margin-bottom: 20px;">
+        <div class="chart-wrapper" style="height: 300px; margin-bottom: 20px;">
             <canvas id="costByPlatformChart"></canvas>
         </div>
     `;
