@@ -86,46 +86,74 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 
 	projectID, err := getCurrentProject()
 	if err != nil {
-		log.Printf("Warning: %v", err)
-
+		log.Printf("Warning: %v", formatAPIError(err))
 	}
 
 	instances, err := fetchComputeInstances(ctx, projectID)
 	if err != nil {
-		log.Printf("Warning: Failed to fetch compute instances: %v", err)
+		log.Printf("Warning: Failed to fetch compute instances: %v", formatAPIError(err))
 	} else {
 		data.ComputeInstances = instances
 	}
 
 	buckets, err := fetchGCSBuckets(ctx, projectID)
 	if err != nil {
-		log.Printf("Warning: Failed to fetch GCS buckets: %v", err)
+		log.Printf("Warning: Failed to fetch GCS buckets: %v", formatAPIError(err))
 	} else {
 		data.GCSBuckets = buckets
 	}
 
 	sqlInstances, err := fetchCloudSQLInstances(ctx, projectID)
 	if err != nil {
-		log.Printf("Warning: Failed to fetch Cloud SQL instances: %v", err)
+		log.Printf("Warning: Failed to fetch Cloud SQL instances: %v", formatAPIError(err))
 	} else {
 		data.CloudSQLInstances = sqlInstances
 	}
 
 	runServices, err := fetchCloudRunServices(ctx, projectID)
 	if err != nil {
-		log.Printf("Warning: Failed to fetch Cloud Run services: %v", err)
+		log.Printf("Warning: Failed to fetch Cloud Run services: %v", formatAPIError(err))
 	} else {
 		data.CloudRunServices = runServices
 	}
 
 	functions, err := fetchCloudFunctions(ctx, projectID)
 	if err != nil {
-		log.Printf("Warning: Failed to fetch Cloud Functions: %v", err)
+		log.Printf("Warning: Failed to fetch Cloud Functions: %v", formatAPIError(err))
 	} else {
 		data.CloudFunctions = functions
 	}
 
 	return data, nil
+}
+
+// formatAPIError shortens Google API errors to just the essential information
+func formatAPIError(err error) string {
+	errorStr := err.Error()
+
+	// Check if this is an API not enabled error
+	if strings.Contains(errorStr, "has not been used in project") && strings.Contains(errorStr, "or it is disabled") {
+		parts := strings.Split(errorStr, ":")
+		if len(parts) >= 3 {
+			apiName := strings.TrimSpace(parts[2])
+			if strings.Contains(apiName, "API") {
+				// Find the API name (e.g., "Cloud SQL Admin API")
+				apiNameEnd := strings.Index(apiName, "has not been used")
+				if apiNameEnd > 0 {
+					apiName = strings.TrimSpace(apiName[:apiNameEnd])
+					return fmt.Sprintf("%s is not enabled for this project", apiName)
+				}
+			}
+		}
+		return "API not enabled for this project"
+	}
+
+	// If it's another kind of error or we couldn't parse properly
+	if len(errorStr) > 150 {
+		return errorStr[:150] + "... (truncated)"
+	}
+
+	return errorStr
 }
 
 func getCurrentProject() (string, error) {
@@ -162,7 +190,7 @@ func fetchComputeInstances(ctx context.Context, projectID string) ([]ComputeInst
 	for _, zone := range zonesResp.Items {
 		instancesResp, err := computeService.Instances.List(projectID, zone.Name).Do()
 		if err != nil {
-			return nil, fmt.Errorf("failed to list instances in zone %s: %v", zone.Name, err)
+			continue // Skip zones with errors rather than failing completely
 		}
 
 		for _, instance := range instancesResp.Items {
@@ -332,132 +360,80 @@ func fetchCloudFunctions(ctx context.Context, projectID string) ([]CloudFunction
 	return functions, nil
 }
 
+// CollectSnapshotData collects all disk snapshots in a GCP project
 func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 	snapshots := map[string]interface{}{}
 
 	project, err := getCurrentProject()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get current GCP project: %v", err)
+		return nil, fmt.Errorf("failed to get current GCP project: %v", formatAPIError(err))
 	}
 
-	computeService, err := compute.NewService(ctx)
+	diskSnapshots, err := collectDiskSnapshots(ctx, project)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create compute service: %v", err)
-	}
-
-	regionsList, err := computeService.Regions.List(project).Do()
-	if err != nil {
-		log.Printf("Warning: Failed to fetch GCP regions: %v", err)
-		return collectSnapshotsFromDefaultRegions(ctx, project)
-	}
-
-	var regions []string
-	for _, region := range regionsList.Items {
-		regions = append(regions, region.Name)
-	}
-
-	if len(regions) == 0 {
-		log.Printf("No regions found in GCP project, using default regions")
-		return collectSnapshotsFromDefaultRegions(ctx, project)
-	}
-
-	diskSnapshots, err := collectDiskSnapshots(ctx, project, regions)
-	if err != nil {
-		log.Printf("Warning: Failed to collect disk snapshots: %v", err)
+		log.Printf("Warning: Failed to collect disk snapshots: %v", formatAPIError(err))
 	} else if len(diskSnapshots) > 0 {
 		snapshots["DiskSnapshots"] = diskSnapshots
+		log.Printf("Found %d GCP disk snapshots", len(diskSnapshots))
+	} else {
+		log.Printf("No GCP disk snapshots found")
 	}
 
 	return snapshots, nil
 }
 
-func collectSnapshotsFromDefaultRegions(ctx context.Context, project string) (map[string]interface{}, error) {
-	snapshots := map[string]interface{}{}
-	defaultRegions := []string{
-		"us-central1", "us-east1", "us-west1", "us-west2", "us-east4",
-		"europe-west1", "europe-west2", "europe-west3", "europe-west4",
-		"asia-east1", "asia-southeast1", "asia-northeast1",
-		"australia-southeast1",
-	}
-
-	diskSnapshots, err := collectDiskSnapshots(ctx, project, defaultRegions)
-	if err != nil {
-		log.Printf("Warning: Failed to collect disk snapshots: %v", err)
-	} else if len(diskSnapshots) > 0 {
-		snapshots["DiskSnapshots"] = diskSnapshots
-	}
-
-	return snapshots, nil
-}
-
-func collectDiskSnapshots(ctx context.Context, project string, regions []string) ([]map[string]string, error) {
+// collectDiskSnapshots gets all disk snapshots in a project
+func collectDiskSnapshots(ctx context.Context, project string) ([]map[string]string, error) {
 	computeService, err := compute.NewService(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compute service: %v", err)
 	}
 
+	// Get all snapshots (this returns all snapshots regardless of region)
 	snapshotList, err := computeService.Snapshots.List(project).Do()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list snapshots: %v", err)
 	}
 
-	diskRegionMap := make(map[string]string)
+	log.Printf("Found %d GCP snapshots", len(snapshotList.Items))
 
-	zoneToRegion := make(map[string]string)
-	for _, region := range regions {
-		zoneList, err := computeService.Zones.List(project).Filter(fmt.Sprintf("region eq .*/regions/%s", region)).Do()
-		if err != nil {
-			log.Printf("Warning: Failed to list zones for region %s: %v", region, err)
-			continue
-		}
+	// Map to store disk details
+	diskDetails := make(map[string]string)
 
-		for _, zone := range zoneList.Items {
-			zoneToRegion[zone.Name] = region
-		}
-	}
-
-	for zone, region := range zoneToRegion {
-		diskList, err := computeService.Disks.List(project, zone).Do()
-		if err != nil {
-			log.Printf("Warning: Failed to list disks in zone %s: %v", zone, err)
-			continue
-		}
-
-		for _, disk := range diskList.Items {
-			diskName := disk.Name
-			if diskName != "" {
-				diskRegionMap[diskName] = region
-			}
-		}
-	}
-
+	// Create snapshot info objects
 	var snapshots []map[string]string
-	defaultRegion := regions[0]
-
 	for _, snapshot := range snapshotList.Items {
-		region := defaultRegion
+		location := "global" // Default location
+
+		// Try to determine location from source disk if possible
 		if snapshot.SourceDisk != "" {
-			parts := strings.Split(snapshot.SourceDisk, "/")
-			if len(parts) > 0 {
-				diskName := parts[len(parts)-1]
-				if r, ok := diskRegionMap[diskName]; ok {
-					region = r
-				} else {
-					for _, r := range regions {
-						if strings.Contains(snapshot.SourceDisk, r) {
-							region = r
-							break
+			// If we don't already have this disk's details, try to get them
+			diskName := getDiskNameFromURL(snapshot.SourceDisk)
+			if _, exists := diskDetails[diskName]; !exists {
+				// Extract zone from disk URL if possible
+				zone := getZoneFromDiskURL(snapshot.SourceDisk)
+				if zone != "" {
+					// If we extracted a zone, try to get the region from it
+					if strings.Count(zone, "-") >= 2 {
+						// Most zones follow the pattern: region-letter, e.g., us-central1-a
+						regionParts := strings.Split(zone, "-")
+						if len(regionParts) >= 3 {
+							// Remove the last segment (the zone letter)
+							location = strings.Join(regionParts[:len(regionParts)-1], "-")
+							diskDetails[diskName] = location
 						}
 					}
 				}
+			} else {
+				location = diskDetails[diskName]
 			}
 		}
 
 		snapshotInfo := map[string]string{
-			"Name":    snapshot.Name,
-			"Region":  region,
-			"Status":  snapshot.Status,
-			"Project": project,
+			"Name":     snapshot.Name,
+			"Location": location,
+			"Status":   snapshot.Status,
+			"Project":  project,
 		}
 
 		if snapshot.DiskSizeGb > 0 {
@@ -469,7 +445,7 @@ func collectDiskSnapshots(ctx context.Context, project string, regions []string)
 		}
 
 		if snapshot.SourceDisk != "" {
-			snapshotInfo["SourceDisk"] = snapshot.SourceDisk
+			snapshotInfo["SourceDisk"] = getDiskNameFromURL(snapshot.SourceDisk)
 		}
 
 		if snapshot.StorageBytes > 0 {
@@ -482,25 +458,32 @@ func collectDiskSnapshots(ctx context.Context, project string, regions []string)
 	return snapshots, nil
 }
 
-func getGCPProjectID() (string, error) {
-	cmd := exec.Command("gcloud", "config", "get-value", "project")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to get project ID from gcloud: %v", err)
+// Helper function to extract disk name from a URL
+func getDiskNameFromURL(diskURL string) string {
+	parts := strings.Split(diskURL, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
 	}
+	return ""
+}
 
-	projectID := strings.TrimSpace(string(output))
-	if projectID == "" {
-		return "", fmt.Errorf("no project ID configured in gcloud")
+// Helper function to extract zone from a disk URL
+func getZoneFromDiskURL(diskURL string) string {
+	// URL format is typically like:
+	// https://www.googleapis.com/compute/v1/projects/[PROJECT]/zones/[ZONE]/disks/[DISK]
+	parts := strings.Split(diskURL, "/")
+	for i, part := range parts {
+		if part == "zones" && i+1 < len(parts) {
+			return parts[i+1]
+		}
 	}
-
-	return projectID, nil
+	return ""
 }
 
 func GetProjectID() string {
 	projectID, err := getCurrentProject()
 	if err != nil {
-		log.Printf("Warning: %v", err)
+		log.Printf("Warning: %v", formatAPIError(err))
 		return "demo-project"
 	}
 	return projectID

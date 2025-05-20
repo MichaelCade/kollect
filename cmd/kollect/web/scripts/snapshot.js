@@ -28,10 +28,25 @@ registerDataHandler('snapshot',
                 ['Snapshot ID', 'DB Instance', 'Type', 'Status', 'Engine', 'Size', 'Creation Time', 'Encrypted']);
         }
         
+        if (data.azure) {
+            console.log("Azure data found:", data.azure);
+            if (data.azure.DiskSnapshots) {
+                console.log("Azure DiskSnapshots found:", data.azure.DiskSnapshots);
+                console.log("DiskSnapshots length:", data.azure.DiskSnapshots.length);
+                if (data.azure.DiskSnapshots.length > 0) {
+                    console.log("First snapshot item:", data.azure.DiskSnapshots[0]);
+                }
+            } else {
+                console.log("No Azure DiskSnapshots found in data");
+            }
+        } else {
+            console.log("No Azure data found");
+        }
+
         if (data.azure && data.azure.DiskSnapshots && data.azure.DiskSnapshots.length > 0) {
             createTable('Azure Disk Snapshots', data.azure.DiskSnapshots, azureDiskSnapshotRowTemplate, 
                 ['Name', 'Location', 'Size', 'State', 'Creation Time']);
-        }
+         }
         
         if (data.gcp && data.gcp.DiskSnapshots && data.gcp.DiskSnapshots.length > 0) {
             createTable('GCP Disk Snapshots', data.gcp.DiskSnapshots, gcpDiskSnapshotRowTemplate, 
@@ -96,8 +111,37 @@ function awsRdsSnapshotRowTemplate(item) {
     return `<td>${item.SnapshotId}</td><td>${item.DBInstanceId}</td><td>${item.SnapshotType}</td><td>${item.Status}</td><td>${item.Engine}</td><td>${item.AllocatedStorage}</td><td>${item.CreationTime}</td><td>${encrypted}</td>`;
 }
 
+// Update the azureDiskSnapshotRowTemplate function with better error handling and logging
+
 function azureDiskSnapshotRowTemplate(item) {
-    return `<td>${item.Name}</td><td>${item.Location}</td><td>${item.SizeGB || "-"} GB</td><td>${item.State || item.ProvisioningState}</td><td>${item.CreationTime || "-"}</td>`;
+    console.log("Azure snapshot item:", item);
+    
+    // Handle missing properties gracefully
+    const name = item.Name || "Unknown";
+    const location = item.Location || "-";
+    
+    // Size formatting with fallbacks
+    let sizeDisplay = "-";
+    if (item.SizeGB) {
+        sizeDisplay = `${item.SizeGB} GB`;
+    } else if (item.DiskSizeGB) {
+        sizeDisplay = `${item.DiskSizeGB} GB`;
+    }
+    
+    // Status/State handling with fallbacks
+    let state = "-";
+    if (item.State) {
+        state = item.State;
+    } else if (item.ProvisioningState) {
+        state = item.ProvisioningState;
+    } else if (item.Status) {
+        state = item.Status;
+    }
+    
+    // Time formatting with fallbacks
+    const creationTime = item.CreationTime || item.TimeCreated || "-";
+    
+    return `<td>${name}</td><td>${location}</td><td>${sizeDisplay}</td><td>${state}</td><td>${creationTime}</td>`;
 }
 
 function gcpDiskSnapshotRowTemplate(item) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -298,57 +299,84 @@ func CollectAWSData(ctx context.Context) (AWSData, error) {
 func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 	snapshots := map[string]interface{}{}
 
+	// Get the default region from config or environment
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %v", err)
 	}
 
+	// Describe all available regions first
 	ec2Client := ec2.NewFromConfig(cfg)
 	regionsOutput, err := ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
-		return nil, fmt.Errorf("unable to describe regions: %v", err)
+		return nil, fmt.Errorf("unable to describe AWS regions: %v", err)
 	}
+
+	log.Printf("Collecting AWS snapshots from %d regions...", len(regionsOutput.Regions))
 
 	var allEBSSnapshots []map[string]string
 	var allRDSSnapshots []map[string]string
 
+	// Create a wait group to process regions concurrently
+	var wg sync.WaitGroup
+	var mutex sync.Mutex
+
+	// Process each region
 	for _, region := range regionsOutput.Regions {
 		regionName := *region.RegionName
-		log.Printf("Collecting snapshot data from region: %s", regionName)
 
-		regionCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(regionName))
-		if err != nil {
-			log.Printf("Warning: Failed to load config for region %s: %v", regionName, err)
-			continue
-		}
+		wg.Add(1)
+		go func(regionName string) {
+			defer wg.Done()
 
-		ebsSnapshots, err := collectEBSSnapshots(ctx, regionCfg)
-		if err != nil {
-			log.Printf("Warning: Failed to collect EBS snapshots from region %s: %v", regionName, err)
-		} else {
-			for i := range ebsSnapshots {
-				ebsSnapshots[i]["Region"] = regionName
+			regionCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(regionName))
+			if err != nil {
+				log.Printf("Warning: Failed to load config for region %s: %v", regionName, err)
+				return
 			}
-			allEBSSnapshots = append(allEBSSnapshots, ebsSnapshots...)
-		}
 
-		rdsSnapshots, err := collectRDSSnapshots(ctx, regionCfg)
-		if err != nil {
-			log.Printf("Warning: Failed to collect RDS snapshots from region %s: %v", regionName, err)
-		} else {
-			for i := range rdsSnapshots {
-				rdsSnapshots[i]["Region"] = regionName
+			// Get EBS snapshots
+			ebsSnapshots, err := collectEBSSnapshots(ctx, regionCfg)
+			if err == nil && len(ebsSnapshots) > 0 {
+				for i := range ebsSnapshots {
+					ebsSnapshots[i]["Region"] = regionName
+				}
+
+				mutex.Lock()
+				allEBSSnapshots = append(allEBSSnapshots, ebsSnapshots...)
+				mutex.Unlock()
 			}
-			allRDSSnapshots = append(allRDSSnapshots, rdsSnapshots...)
-		}
+
+			// Get RDS snapshots
+			rdsSnapshots, err := collectRDSSnapshots(ctx, regionCfg)
+			if err == nil && len(rdsSnapshots) > 0 {
+				for i := range rdsSnapshots {
+					rdsSnapshots[i]["Region"] = regionName
+				}
+
+				mutex.Lock()
+				allRDSSnapshots = append(allRDSSnapshots, rdsSnapshots...)
+				mutex.Unlock()
+			}
+		}(regionName)
 	}
 
+	// Wait for all region processing to complete
+	wg.Wait()
+
+	// Add the snapshots to the result
 	if len(allEBSSnapshots) > 0 {
 		snapshots["EBSSnapshots"] = allEBSSnapshots
+		log.Printf("Found %d AWS EBS snapshots across all regions", len(allEBSSnapshots))
+	} else {
+		log.Printf("No AWS EBS snapshots found in any region")
 	}
 
 	if len(allRDSSnapshots) > 0 {
 		snapshots["RDSSnapshots"] = allRDSSnapshots
+		log.Printf("Found %d AWS RDS snapshots across all regions", len(allRDSSnapshots))
+	} else {
+		log.Printf("No AWS RDS snapshots found in any region")
 	}
 
 	return snapshots, nil
