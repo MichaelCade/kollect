@@ -7,9 +7,11 @@ registerDataHandler('cost',
     function(data) {
         console.log("Processing cost data:", data);
         logAllResourceTypes(data);
+
+        window.currentCostData = data.costs || data;
         
         const disclaimer = data.disclaimer || "Cost estimates are approximations based on publicly available pricing information. Actual costs may vary based on your specific agreements, reserved capacity, and other factors.";
-        
+                
         const disclaimerDiv = document.createElement('div');
         disclaimerDiv.className = 'cost-disclaimer';
         disclaimerDiv.innerHTML = `
@@ -148,8 +150,23 @@ function processPlatformCosts(platform, costData) {
         return;
     }
     
+    // Calculate additional cost categories
+    let storageCost = 0;
+    let dataServicesCost = 0;
+    let snapshotCost = 0;
+    let computeCost = 0;
+        
     if (platform === 'AWS') {
         if (costData.EBSSnapshotCosts && costData.EBSSnapshotCosts.length > 0) {
+            costData.EBSSnapshotCosts.forEach(item => {
+                // Properly parse the cost, checking different formats
+                if (item.MonthlyCost !== undefined) {
+                    snapshotCost += parseFloat(item.MonthlyCost) || 0;
+                } else if (item.MonthlyCostUSD !== undefined) {
+                    snapshotCost += parseFloat(item.MonthlyCostUSD.replace('$', '')) || 0;
+                }
+            });
+            
             createTable(`${platform} EBS Snapshot Costs`, costData.EBSSnapshotCosts, 
                 item => `<td>${item.SnapshotId}</td><td>${item.VolumeId || 'N/A'}</td><td>${item.SizeGB} GB</td><td>${item.Region}</td><td>$${item.PricePerGBMonth.toFixed(3)}</td><td>${item.MonthlyCostUSD}</td>`,
                 ['Snapshot ID', 'Volume ID', 'Size', 'Region', 'Price per GB/Month', 'Monthly Cost']);
@@ -158,6 +175,15 @@ function processPlatformCosts(platform, costData) {
         }
         
         if (costData.RDSSnapshotCosts && costData.RDSSnapshotCosts.length > 0) {
+            costData.RDSSnapshotCosts.forEach(item => {
+                // Properly parse the cost, checking different formats
+                if (item.MonthlyCost !== undefined) {
+                    snapshotCost += parseFloat(item.MonthlyCost) || 0;
+                } else if (item.MonthlyCostUSD !== undefined) {
+                    snapshotCost += parseFloat(item.MonthlyCostUSD.replace('$', '')) || 0;
+                }
+            });
+            
             createTable(`${platform} RDS Snapshot Costs`, costData.RDSSnapshotCosts, 
                 item => `<td>${item.SnapshotId}</td><td>${item.Engine || 'N/A'}</td><td>${item.SizeGB} GB</td><td>${item.Region}</td><td>$${item.PricePerGBMonth.toFixed(3)}</td><td>${item.MonthlyCostUSD}</td>`,
                 ['Snapshot ID', 'Engine', 'Size', 'Region', 'Price per GB/Month', 'Monthly Cost']);
@@ -166,6 +192,10 @@ function processPlatformCosts(platform, costData) {
         }
         
         if (costData.EC2Costs && costData.EC2Costs.length > 0) {
+            costData.EC2Costs.forEach(item => {
+                computeCost += item.MonthlyCost || 0;
+            });
+            
             createTable(`${platform} EC2 Instance Costs`, costData.EC2Costs, 
                 item => `<td>${item.InstanceId}</td><td>${item.InstanceType}</td><td>${item.Region}</td><td>$${item.HourlyCost.toFixed(4)}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
                 ['Instance ID', 'Instance Type', 'Region', 'Hourly Cost', 'Monthly Cost']);
@@ -174,6 +204,10 @@ function processPlatformCosts(platform, costData) {
         }
         
         if (costData.S3Costs && costData.S3Costs.length > 0) {
+            costData.S3Costs.forEach(item => {
+                storageCost += item.MonthlyCost || 0;
+            });
+            
             console.log(`Found ${costData.S3Costs.length} S3 bucket costs`);
             createTable(`${platform} S3 Bucket Costs`, costData.S3Costs, 
                 item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Region}</td><td>${item.StorageClass}</td><td>$${item.PricePerGB.toFixed(4)}/GB</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
@@ -181,6 +215,10 @@ function processPlatformCosts(platform, costData) {
         }
         
         if (costData.RDSInstanceCosts && costData.RDSInstanceCosts.length > 0) {
+            costData.RDSInstanceCosts.forEach(item => {
+                dataServicesCost += item.MonthlyCost || 0;
+            });
+            
             createTable(`${platform} RDS Instance Costs`, costData.RDSInstanceCosts, 
                 item => `<td>${item.DBInstanceIdentifier}</td><td>${item.Engine}</td><td>${item.Region}</td><td>${item.DBInstanceClass}</td><td>${item.AllocatedStorage} GB</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
                 ['Instance ID', 'Engine', 'Region', 'Instance Class', 'Storage', 'Monthly Cost']);
@@ -189,18 +227,35 @@ function processPlatformCosts(platform, costData) {
     
     if (platform === 'Azure') {
         if (costData.DiskSnapshotCosts && costData.DiskSnapshotCosts.length > 0) {
+            costData.DiskSnapshotCosts.forEach(item => {
+                // Properly parse the cost, checking different formats
+                if (item.MonthlyCost !== undefined) {
+                    snapshotCost += parseFloat(item.MonthlyCost) || 0;
+                } else if (item.MonthlyCostUSD !== undefined) {
+                    snapshotCost += parseFloat(item.MonthlyCostUSD.replace('$', '')) || 0;
+                }
+            });
+            
             createTable(`${platform} Disk Snapshot Costs`, costData.DiskSnapshotCosts, 
                 item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Location}</td><td>${item.State || 'N/A'}</td><td>$${item.PricePerGBMonth.toFixed(3)}</td><td>${item.MonthlyCostUSD}</td>`,
                 ['Name', 'Size', 'Region', 'State', 'Price per GB/Month', 'Monthly Cost']);
         }
         
         if (costData.VMCosts && costData.VMCosts.length > 0) {
+            costData.VMCosts.forEach(item => {
+                computeCost += item.MonthlyCost || 0;
+            });
+            
             createTable(`${platform} Virtual Machine Costs`, costData.VMCosts, 
                 item => `<td>${item.Name}</td><td>${item.ResourceGroup}</td><td>${item.Location}</td><td>${item.VMSize}</td><td>$${item.HourlyCost.toFixed(4)}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
                 ['Name', 'Resource Group', 'Location', 'VM Size', 'Hourly Cost', 'Monthly Cost']);
         }
         
         if (costData.StorageAccountCosts && costData.StorageAccountCosts.length > 0) {
+            costData.StorageAccountCosts.forEach(item => {
+                storageCost += item.MonthlyCost || 0;
+            });
+            
             createTable(`${platform} Storage Account Costs`, costData.StorageAccountCosts, 
                 item => `<td>${item.Name}</td><td>${item.UsedCapacityGB} GB</td><td>${item.Location}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
                 ['Name', 'Used Capacity', 'Location', 'Monthly Cost']);
@@ -209,31 +264,62 @@ function processPlatformCosts(platform, costData) {
     
     if (platform === 'GCP') {
         if (costData.DiskSnapshotCosts && costData.DiskSnapshotCosts.length > 0) {
+            costData.DiskSnapshotCosts.forEach(item => {
+                // Properly parse the cost, checking different formats
+                if (item.MonthlyCost !== undefined) {
+                    snapshotCost += parseFloat(item.MonthlyCost) || 0;
+                } else if (item.MonthlyCostUSD !== undefined) {
+                    snapshotCost += parseFloat(item.MonthlyCostUSD.replace('$', '')) || 0;
+                }
+            });
+            
             createTable(`${platform} Disk Snapshot Costs`, costData.DiskSnapshotCosts, 
                 item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Region}</td><td>${item.Status || 'N/A'}</td><td>$${item.PricePerGBMonth.toFixed(3)}</td><td>${item.MonthlyCostUSD}</td>`,
                 ['Name', 'Size', 'Region', 'Status', 'Price per GB/Month', 'Monthly Cost']);
         }
         
         if (costData.ComputeCosts && costData.ComputeCosts.length > 0) {
+            costData.ComputeCosts.forEach(item => {
+                computeCost += item.MonthlyCost || 0;
+            });
+            
             createTable(`${platform} Compute Instance Costs`, costData.ComputeCosts, 
                 item => `<td>${item.Name}</td><td>${item.MachineType}</td><td>${item.Zone}</td><td>$${item.HourlyCost.toFixed(4)}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
                 ['Name', 'Machine Type', 'Zone', 'Hourly Cost', 'Monthly Cost']);
         }
         
         if (costData.GCSCosts && costData.GCSCosts.length > 0) {
+            costData.GCSCosts.forEach(item => {
+                storageCost += item.MonthlyCost || 0;
+            });
+            
             createTable(`${platform} Cloud Storage Costs`, costData.GCSCosts, 
                 item => `<td>${item.Name}</td><td>${item.SizeGB} GB</td><td>${item.Location}</td><td>${item.StorageClass}</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
                 ['Bucket Name', 'Size', 'Location', 'Storage Class', 'Monthly Cost']);
         }
         
         if (costData.CloudSQLCosts && costData.CloudSQLCosts.length > 0) {
+            costData.CloudSQLCosts.forEach(item => {
+                dataServicesCost += item.MonthlyCost || 0;
+            });
+            
             createTable(`${platform} Cloud SQL Costs`, costData.CloudSQLCosts, 
                 item => `<td>${item.Name}</td><td>${item.DatabaseVersion}</td><td>${item.Region}</td><td>${item.Tier}</td><td>${item.DiskSizeGB} GB</td><td>$${item.MonthlyCost.toFixed(2)}</td>`,
                 ['Name', 'Version', 'Region', 'Tier', 'Disk Size', 'Monthly Cost']);
         }
     }
     
+    // Save these values in the summary for the global summary to use
     if (costData.Summary) {
+        costData.Summary.SnapshotCost = snapshotCost;
+        costData.Summary.StorageCost = storageCost;
+        costData.Summary.DataServicesCost = dataServicesCost;
+        
+        // If TotalComputeCost isn't set from backend, use our calculated value
+        if (!costData.Summary.TotalComputeCost && computeCost > 0) {
+            costData.Summary.TotalComputeCost = computeCost;
+        }
+        
         const summaryDiv = document.createElement('div');
         summaryDiv.className = 'cost-summary';
         summaryDiv.innerHTML = `
@@ -244,15 +330,36 @@ function processPlatformCosts(platform, costData) {
                         <div style="font-size: 0.9em; color: var(--secondary-text-color);">Total Snapshot Storage</div>
                         <div style="font-size: 1.5em; font-weight: bold;">${costData.Summary.TotalSnapshotStorage.toFixed(2)} GB</div>
                     </div>
-                    ${costData.Summary.TotalComputeCost ? `
+                    
+                    <div class="summary-item" style="margin-bottom: 10px; min-width: 180px;">
+                        <div style="font-size: 0.9em; color: var(--secondary-text-color);">Snapshot Cost</div>
+                        <div style="font-size: 1.5em; font-weight: bold;">$${snapshotCost.toFixed(2)}</div>
+                    </div>
+                    
+                    ${(costData.Summary.TotalComputeCost || computeCost > 0) ? `
                     <div class="summary-item" style="margin-bottom: 10px; min-width: 180px;">
                         <div style="font-size: 0.9em; color: var(--secondary-text-color);">Compute Resources Cost</div>
-                        <div style="font-size: 1.5em; font-weight: bold;">$${costData.Summary.TotalComputeCost.toFixed(2)}</div>
+                        <div style="font-size: 1.5em; font-weight: bold;">$${(costData.Summary.TotalComputeCost || computeCost).toFixed(2)}</div>
                     </div>
                     ` : ''}
+                    
+                    ${storageCost > 0 ? `
                     <div class="summary-item" style="margin-bottom: 10px; min-width: 180px;">
+                        <div style="font-size: 0.9em; color: var(--secondary-text-color);">Storage Cost</div>
+                        <div style="font-size: 1.5em; font-weight: bold;">$${storageCost.toFixed(2)}</div>
+                    </div>
+                    ` : ''}
+                    
+                    ${dataServicesCost > 0 ? `
+                    <div class="summary-item" style="margin-bottom: 10px; min-width: 180px;">
+                        <div style="font-size: 0.9em; color: var(--secondary-text-color);">Data Services Cost</div>
+                        <div style="font-size: 1.5em; font-weight: bold;">$${dataServicesCost.toFixed(2)}</div>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="summary-item" style="margin-bottom: 10px; min-width: 180px; border-top: 1px dashed var(--border-color); padding-top: 10px; margin-top: 5px;">
                         <div style="font-size: 0.9em; color: var(--secondary-text-color);">Estimated Total Monthly Cost</div>
-                        <div style="font-size: 1.5em; font-weight: bold;">$${costData.Summary.TotalMonthlyCost.toFixed(2)}</div>
+                        <div style="font-size: 1.5em; font-weight: bold; color: var(--accent-color);">$${costData.Summary.TotalMonthlyCost.toFixed(2)}</div>
                     </div>
                 </div>
             </div>
@@ -264,17 +371,112 @@ function processPlatformCosts(platform, costData) {
 }
 
 function createGlobalSummary(summary) {
+    // Calculate global totals for the new categories
+    let totalSnapshotCost = 0;
+    let totalStorageCost = 0;
+    let totalComputeCost = 0;
+    let totalDataServicesCost = 0;
+    
+    // Debug output to check what's in the summary
+    console.log("Creating global summary from:", summary);
+    
+    // The backend doesn't provide _sources, so we need to collect the data ourselves
+    // from the individual platform data in the parent object
+    const parentData = window.currentCostData || {};
+    
+    // Track if we have any platforms with each type of cost
+    let hasComputeCost = false;
+    let hasStorageCost = false;
+    let hasDataServicesCost = false;
+    
+    // Process each platform's data
+    if (parentData.aws && parentData.aws.Summary) {
+        console.log("Collecting data from AWS summary:", parentData.aws.Summary);
+        totalSnapshotCost += parseFloat(parentData.aws.Summary.SnapshotCost || 0);
+        totalStorageCost += parseFloat(parentData.aws.Summary.StorageCost || 0);
+        totalComputeCost += parseFloat(parentData.aws.Summary.TotalComputeCost || 0);
+        totalDataServicesCost += parseFloat(parentData.aws.Summary.DataServicesCost || 0);
+        
+        if (parentData.aws.Summary.TotalComputeCost) hasComputeCost = true;
+        if (parentData.aws.Summary.StorageCost) hasStorageCost = true;
+        if (parentData.aws.Summary.DataServicesCost) hasDataServicesCost = true;
+    }
+    
+    if (parentData.azure && parentData.azure.Summary) {
+        console.log("Collecting data from Azure summary:", parentData.azure.Summary);
+        totalSnapshotCost += parseFloat(parentData.azure.Summary.SnapshotCost || 0);
+        totalStorageCost += parseFloat(parentData.azure.Summary.StorageCost || 0);
+        totalComputeCost += parseFloat(parentData.azure.Summary.TotalComputeCost || 0);
+        totalDataServicesCost += parseFloat(parentData.azure.Summary.DataServicesCost || 0);
+        
+        if (parentData.azure.Summary.TotalComputeCost) hasComputeCost = true;
+        if (parentData.azure.Summary.StorageCost) hasStorageCost = true;
+        if (parentData.azure.Summary.DataServicesCost) hasDataServicesCost = true;
+    }
+    
+    if (parentData.gcp && parentData.gcp.Summary) {
+        console.log("Collecting data from GCP summary:", parentData.gcp.Summary);
+        totalSnapshotCost += parseFloat(parentData.gcp.Summary.SnapshotCost || 0);
+        totalStorageCost += parseFloat(parentData.gcp.Summary.StorageCost || 0);
+        totalComputeCost += parseFloat(parentData.gcp.Summary.TotalComputeCost || 0);
+        totalDataServicesCost += parseFloat(parentData.gcp.Summary.DataServicesCost || 0);
+        
+        if (parentData.gcp.Summary.TotalComputeCost) hasComputeCost = true;
+        if (parentData.gcp.Summary.StorageCost) hasStorageCost = true;
+        if (parentData.gcp.Summary.DataServicesCost) hasDataServicesCost = true;
+    }
+    
+    // Debug output of calculated totals
+    console.log("Calculated global cost totals:", {
+        totalSnapshotCost,
+        totalStorageCost,
+        totalComputeCost,
+        totalDataServicesCost
+    });
+    
+    // Ensure we display sections if costs are present
+    if (totalComputeCost > 0) hasComputeCost = true;
+    if (totalStorageCost > 0) hasStorageCost = true;
+    if (totalDataServicesCost > 0) hasDataServicesCost = true;
+    
     const summaryDiv = document.createElement('div');
     summaryDiv.className = 'cost-global-summary';
     summaryDiv.innerHTML = `
         <div class="summary-card" style="background-color: rgba(74, 144, 226, 0.1); border-radius: 8px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             <h3 style="margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; color: var(--accent-color);">Total Cost Across All Platforms</h3>
-            <div style="display: flex; justify-content: space-between; margin-top: 10px;">
-                <div class="summary-item">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; margin-top: 10px; gap: 15px;">
+                <div class="summary-item" style="min-width: 180px;">
                     <div style="font-size: 0.9em; color: var(--secondary-text-color);">Total Snapshot Storage</div>
-                    <div style="font-size: 1.8em; font-weight: bold;">${summary.TotalSnapshotStorage.toFixed(2)} GB</div>
+                    <div style="font-size: 1.5em; font-weight: bold;">${summary.TotalSnapshotStorage.toFixed(2)} GB</div>
                 </div>
-                <div class="summary-item">
+                
+                <div class="summary-item" style="min-width: 180px;">
+                    <div style="font-size: 0.9em; color: var(--secondary-text-color);">Snapshot Cost</div>
+                    <div style="font-size: 1.5em; font-weight: bold;">$${totalSnapshotCost.toFixed(2)}</div>
+                </div>
+                
+                ${hasComputeCost || totalComputeCost > 0 ? `
+                <div class="summary-item" style="min-width: 180px;">
+                    <div style="font-size: 0.9em; color: var(--secondary-text-color);">Compute Resources Cost</div>
+                    <div style="font-size: 1.5em; font-weight: bold;">$${totalComputeCost.toFixed(2)}</div>
+                </div>
+                ` : ''}
+                
+                ${hasStorageCost || totalStorageCost > 0 ? `
+                <div class="summary-item" style="min-width: 180px;">
+                    <div style="font-size: 0.9em; color: var(--secondary-text-color);">Storage Cost</div>
+                    <div style="font-size: 1.5em; font-weight: bold;">$${totalStorageCost.toFixed(2)}</div>
+                </div>
+                ` : ''}
+                
+                ${hasDataServicesCost || totalDataServicesCost > 0 ? `
+                <div class="summary-item" style="min-width: 180px;">
+                    <div style="font-size: 0.9em; color: var(--secondary-text-color);">Data Services Cost</div>
+                    <div style="font-size: 1.5em; font-weight: bold;">$${totalDataServicesCost.toFixed(2)}</div>
+                </div>
+                ` : ''}
+                
+                <div class="summary-item" style="min-width: 180px; border-top: 1px dashed var(--border-color); padding-top: 10px; margin-top: 5px;">
                     <div style="font-size: 0.9em; color: var(--secondary-text-color);">Estimated Monthly Cost</div>
                     <div style="font-size: 1.8em; font-weight: bold; color: var(--accent-color);">$${summary.TotalMonthlyCost.toFixed(2)}</div>
                 </div>
