@@ -503,10 +503,17 @@ function createCostCharts(data) {
         <div class="chart-wrapper" style="height: 300px; margin-bottom: 20px;">
             <canvas id="costByPlatformChart"></canvas>
         </div>
+        <div class="chart-wrapper" style="height: 300px; margin-bottom: 20px;">
+            <canvas id="costBreakdownChart"></canvas>
+        </div>
+        <div class="chart-wrapper" style="height: 300px; margin-bottom: 20px;">
+            <canvas id="costTrendChart"></canvas>
+        </div>
     `;
     
     document.getElementById('content').appendChild(chartsDiv);
     
+    // Existing code for platforms, storageValues, and costValues...
     const platforms = [];
     const storageValues = [];
     const costValues = [];
@@ -537,79 +544,294 @@ function createCostCharts(data) {
     
     const platformColors = platforms.map(platform => colors[platform] || '#777777');
     
-    const storageCtx = document.getElementById('storageByPlatformChart').getContext('2d');
-    new Chart(storageCtx, {
-        type: 'bar',
-        data: {
-            labels: platforms,
-            datasets: [{
-                label: 'Snapshot Storage (GB)',
-                data: storageValues,
-                backgroundColor: platformColors,
-                borderColor: platformColors,
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Snapshot Storage by Platform',
-                    font: {
-                        size: 16
-                    }
-                }
+    // Create snapshot storage chart
+    const storageCtx = document.getElementById('storageByPlatformChart');
+    if (storageCtx) {
+        new Chart(storageCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: platforms,
+                datasets: [{
+                    label: 'Snapshot Storage (GB)',
+                    data: storageValues,
+                    backgroundColor: platformColors,
+                    borderColor: platformColors,
+                    borderWidth: 1
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
                     title: {
                         display: true,
-                        text: 'Storage (GB)'
+                        text: 'Snapshot Storage by Platform',
+                        font: {
+                            size: 16
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Storage (GB)'
+                        }
                     }
                 }
             }
-        }
-    });
+        });
+    }
     
-    const costCtx = document.getElementById('costByPlatformChart').getContext('2d');
-    new Chart(costCtx, {
-        type: 'bar',
-        data: {
-            labels: platforms,
-            datasets: [{
-                label: 'Monthly Cost (USD)',
-                data: costValues,
-                backgroundColor: platformColors,
-                borderColor: platformColors,
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Monthly Cost by Platform',
-                    font: {
-                        size: 16
-                    }
-                }
+    // Create monthly cost chart
+    const costCtx = document.getElementById('costByPlatformChart');
+    if (costCtx) {
+        new Chart(costCtx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: platforms,
+                datasets: [{
+                    label: 'Monthly Cost (USD)',
+                    data: costValues,
+                    backgroundColor: platformColors,
+                    borderColor: platformColors,
+                    borderWidth: 1
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
                     title: {
                         display: true,
-                        text: 'Cost (USD)'
+                        text: 'Monthly Cost by Platform',
+                        font: {
+                            size: 16
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Cost (USD)'
+                        }
                     }
                 }
             }
+        });
+    }
+    
+    // Gather cost breakdowns by type
+    const serviceCategories = ['Snapshots', 'Compute', 'Storage', 'Data Services'];
+    const serviceCategoryColors = ['#8BC34A', '#FF5722', '#03A9F4', '#9C27B0'];
+    
+    // Calculate total cost by category
+    let snapshotsTotal = 0;
+    let computeTotal = 0;
+    let storageTotal = 0;
+    let dataServicesTotal = 0;
+    
+    for (const platform of ['aws', 'azure', 'gcp']) {
+        if (data[platform] && data[platform].Summary) {
+            snapshotsTotal += parseFloat(data[platform].Summary.SnapshotCost || 0);
+            computeTotal += parseFloat(data[platform].Summary.TotalComputeCost || 0);
+            storageTotal += parseFloat(data[platform].Summary.StorageCost || 0);
+            dataServicesTotal += parseFloat(data[platform].Summary.DataServicesCost || 0);
         }
-    });
+    }
+    
+    const costBreakdownValues = [
+        snapshotsTotal, 
+        computeTotal, 
+        storageTotal, 
+        dataServicesTotal
+    ];
+    
+    // Create cost breakdown chart
+    const costBreakdownCtx = document.getElementById('costBreakdownChart');
+    if (costBreakdownCtx) {
+        new Chart(costBreakdownCtx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: serviceCategories,
+                datasets: [{
+                    data: costBreakdownValues,
+                    backgroundColor: serviceCategoryColors,
+                    borderColor: 'white',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Cost Distribution by Service Type',
+                        font: {
+                            size: 16
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total ? Math.round((value / total) * 100) : 0;
+                                return `${context.label}: $${value.toFixed(2)} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Simulate cost trend data (in a real app, this would come from historical data)
+    const costTrendCtx = document.getElementById('costTrendChart');
+    if (costTrendCtx) {
+        // Generate some sample months - in a real app this would come from your backend
+        const months = [];
+        const today = new Date();
+        for (let i = 5; i >= 0; i--) {
+            const month = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            months.push(month.toLocaleString('default', { month: 'short' }));
+        }
+        
+        // Create simulated trend data
+        let awsTrend = [];
+        let azureTrend = [];
+        let gcpTrend = [];
+        
+        // Use the current costs as the final point in the trend
+        const awsCost = data.aws && data.aws.Summary ? data.aws.Summary.TotalMonthlyCost : 0;
+        const azureCost = data.azure && data.azure.Summary ? data.azure.Summary.TotalMonthlyCost : 0;
+        const gcpCost = data.gcp && data.gcp.Summary ? data.gcp.Summary.TotalMonthlyCost : 0;
+        
+        // Generate some plausible trend data - this would be real data in production
+        if (awsCost) {
+            awsTrend = [
+                Math.max(0, awsCost * 0.85 + Math.random() * 10),
+                Math.max(0, awsCost * 0.90 + Math.random() * 10),
+                Math.max(0, awsCost * 0.95 + Math.random() * 10),
+                Math.max(0, awsCost * 0.97 + Math.random() * 10),
+                Math.max(0, awsCost * 0.99 + Math.random() * 10),
+                awsCost
+            ];
+        }
+        
+        if (azureCost) {
+            azureTrend = [
+                Math.max(0, azureCost * 0.88 + Math.random() * 10),
+                Math.max(0, azureCost * 0.92 + Math.random() * 10),
+                Math.max(0, azureCost * 0.94 + Math.random() * 10),
+                Math.max(0, azureCost * 0.96 + Math.random() * 10),
+                Math.max(0, azureCost * 0.98 + Math.random() * 10),
+                azureCost
+            ];
+        }
+        
+        if (gcpCost) {
+            gcpTrend = [
+                Math.max(0, gcpCost * 0.82 + Math.random() * 10),
+                Math.max(0, gcpCost * 0.87 + Math.random() * 10),
+                Math.max(0, gcpCost * 0.91 + Math.random() * 10),
+                Math.max(0, gcpCost * 0.94 + Math.random() * 10),
+                Math.max(0, gcpCost * 0.97 + Math.random() * 10),
+                gcpCost
+            ];
+        }
+        
+        // Create trend datasets
+        const trendDatasets = [];
+        
+        if (awsCost) {
+            trendDatasets.push({
+                label: 'AWS',
+                data: awsTrend,
+                borderColor: colors.AWS,
+                backgroundColor: hexToRgba(colors.AWS, 0.1),
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            });
+        }
+        
+        if (azureCost) {
+            trendDatasets.push({
+                label: 'Azure',
+                data: azureTrend,
+                borderColor: colors.Azure,
+                backgroundColor: hexToRgba(colors.Azure, 0.1),
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            });
+        }
+        
+        if (gcpCost) {
+            trendDatasets.push({
+                label: 'GCP',
+                data: gcpTrend,
+                borderColor: colors.GCP,
+                backgroundColor: hexToRgba(colors.GCP, 0.1),
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            });
+        }
+        
+        new Chart(costTrendCtx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: trendDatasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Cost Trend (6 Month Estimate)',
+                        font: {
+                            size: 16
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Cost (USD)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Helper function to convert hex colors to rgba for transparency
+function hexToRgba(hex, alpha) {
+    // Remove # if present
+    hex = hex.replace('#', '');
+    
+    // Parse the hex values
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    
+    // Return rgba string
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function logAllResourceTypes(data) {
