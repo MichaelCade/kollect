@@ -27,6 +27,7 @@ import (
 	"github.com/michaelcade/kollect/pkg/kollect"
 	"github.com/michaelcade/kollect/pkg/snapshots"
 	"github.com/michaelcade/kollect/pkg/terraform"
+	"github.com/michaelcade/kollect/pkg/vault"
 	"github.com/michaelcade/kollect/pkg/veeam"
 	"golang.org/x/term"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,6 +58,8 @@ func main() {
 	terraformGCSBucket := flag.String("terraform-gcs", "", "GCS bucket and object (format: bucket/object)")
 	kubeContext := flag.String("kube-context", "", "Kubernetes context to use")
 	snapshotFlag := flag.Bool("snapshots", false, "Collect snapshots from all available platforms")
+	vaultAddr := flag.String("vault-addr", "", "Vault server address")
+	vaultToken := flag.String("vault-token", "", "Vault token")
 	help := flag.Bool("help", false, "Show help message")
 
 	flag.Parse()
@@ -196,6 +199,26 @@ func main() {
 		data, err = veeam.CollectVeeamData(ctx, *baseURL, *username, *password, true)
 	default:
 		log.Fatalf("Invalid inventory type: %s", *inventoryType)
+	case "vault":
+		vaultAddress := *vaultAddr
+		vaultTokenVal := *vaultToken
+		vaultIgnoreSSL := false
+
+		if vaultAddress == "" {
+			vaultAddress = os.Getenv("VAULT_ADDR")
+			if vaultAddress == "" {
+				vaultAddress = promptUser("Enter Vault server address (e.g. http://localhost:8200): ")
+			}
+		}
+
+		if vaultTokenVal == "" {
+			vaultTokenVal = os.Getenv("VAULT_TOKEN")
+			if vaultTokenVal == "" {
+				vaultTokenVal = getSensitiveInput("Enter Vault token: ")
+			}
+		}
+
+		data, err = vault.CollectVaultData(ctx, vaultAddress, vaultTokenVal, vaultIgnoreSSL)
 	}
 	if err != nil {
 		log.Fatalf("Error collecting data: %v", err)
@@ -606,6 +629,126 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		json.NewEncoder(w).Encode(map[string]string{
 			"status":  "success",
 			"message": "Successfully connected to Veeam server",
+		})
+	})
+
+	http.HandleFunc("/api/vault/cli-status", func(w http.ResponseWriter, r *http.Request) {
+		cmd := exec.Command("vault", "version")
+		output, err := cmd.CombinedOutput()
+
+		status := map[string]interface{}{
+			"installed": err == nil,
+		}
+
+		if err == nil {
+			versionStr := strings.TrimSpace(string(output))
+			versionParts := strings.Split(versionStr, " ")
+			if len(versionParts) >= 2 {
+				status["version"] = versionParts[1]
+			}
+
+			// Check if authenticated
+			checkCmd := exec.Command("vault", "token", "lookup")
+			checkErr := checkCmd.Run()
+			status["authenticated"] = checkErr == nil
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(status)
+	})
+
+	http.HandleFunc("/api/vault/connect", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var params struct {
+			Type            string `json:"type"`
+			Server          string `json:"server"`
+			Token           string `json:"token"`
+			Username        string `json:"username"`
+			Password        string `json:"password"`
+			AuthPath        string `json:"authPath"`
+			Insecure        bool   `json:"insecure"`
+			IncludePolicies bool   `json:"includePolicies"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		ctx := r.Context()
+		var vaultToken string
+		vaultAddr := params.Server
+
+		// Get token based on auth type
+		if params.Type == "token" {
+			if params.Server == "" || params.Token == "" {
+				http.Error(w, "Server and token are required for token authentication", http.StatusBadRequest)
+				return
+			}
+			vaultToken = params.Token
+		} else if params.Type == "userpass" {
+			if params.Server == "" || params.Username == "" || params.Password == "" {
+				http.Error(w, "Server, username, and password are required for userpass authentication", http.StatusBadRequest)
+				return
+			}
+
+			// We should implement userpass authentication in the vault package
+			// For now, return an error
+			http.Error(w, "Userpass authentication not yet implemented", http.StatusNotImplemented)
+			return
+		} else if params.Type == "cli" {
+			// Use the VAULT_TOKEN environment variable or ~/.vault-token file
+			homeDir, err := os.UserHomeDir()
+			if err == nil {
+				tokenFile := filepath.Join(homeDir, ".vault-token")
+				if tokenBytes, err := os.ReadFile(tokenFile); err == nil {
+					vaultToken = strings.TrimSpace(string(tokenBytes))
+				}
+			}
+
+			if vaultToken == "" {
+				vaultToken = os.Getenv("VAULT_TOKEN")
+			}
+
+			if vaultToken == "" {
+				http.Error(w, "Could not find Vault token in environment or token file", http.StatusUnauthorized)
+				return
+			}
+
+			if vaultAddr == "" {
+				vaultAddr = os.Getenv("VAULT_ADDR")
+				if vaultAddr == "" {
+					vaultAddr = "http://127.0.0.1:8200"
+				}
+			}
+		}
+
+		// Test credentials
+		hasCredentials, err := vault.CheckCredentials(ctx, vaultAddr, vaultToken, params.Insecure)
+		if err != nil || !hasCredentials {
+			http.Error(w, fmt.Sprintf("Error connecting to Vault: %v", err), http.StatusUnauthorized)
+			return
+		}
+
+		// Collect data
+		vaultData, err := vault.CollectVaultData(ctx, vaultAddr, vaultToken, params.Insecure)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error collecting Vault data: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		dataMutex.Lock()
+		data = vaultData
+		dataMutex.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "Successfully connected to Vault",
 		})
 	})
 

@@ -743,7 +743,7 @@ function showVeeamConnectionModal() {
                 <label for="veeam-server" style="font-weight: bold; margin-bottom: 5px;">Server IP/Hostname:</label>
                 <div style="display: flex; align-items: center;">
                     <span style="background: var(--secondary-bg-color); padding: 8px; border-radius: 4px 0 0 4px; border: 1px solid var(--border-color); border-right: none;">https://</span>
-                    <input type="text" id="veeam-server" placeholder="vbr-server.example.com" style="flex-grow: 1; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 0;">
+                    <input type="text" id="veeam-server" placeholder="vbr-server.example.com" style="flex-grow: 1; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 0; box-sizing: border-box;">
                     <span style="background: var(--secondary-bg-color); padding: 8px; border-radius: 0 4px 4px 0; border: 1px solid var(--border-color); border-left: none;">:9419</span>
                 </div>
                 <small style="color: var(--text-color); opacity: 0.7; font-size: 0.8em; margin-top: 3px;">Default port is 9419 for Veeam REST API</small>
@@ -751,12 +751,12 @@ function showVeeamConnectionModal() {
             
             <div class="form-group" style="margin-top: 15px;">
                 <label for="veeam-username" style="font-weight: bold; margin-bottom: 5px;">Username:</label>
-                <input type="text" id="veeam-username" placeholder="Username with admin rights" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                <input type="text" id="veeam-username" placeholder="Username with admin rights" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;">
             </div>
             
             <div class="form-group" style="margin-top: 15px;">
                 <label for="veeam-password" style="font-weight: bold; margin-bottom: 5px;">Password:</label>
-                <input type="password" id="veeam-password" placeholder="Enter password" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                <input type="password" id="veeam-password" placeholder="Enter password" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;">
             </div>
             
             <div class="form-group" style="margin-top: 10px;">

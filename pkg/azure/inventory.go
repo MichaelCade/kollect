@@ -247,6 +247,9 @@ func getAzureSubscriptionID() (string, error) {
 	return subscriptionID, nil
 }
 
+// CollectSnapshotData collects all Azure disk snapshots across the subscription
+// This is an optimized version that doesn't try to filter by region, since the
+// Azure SDK returns all snapshots regardless and filtering is done client-side
 func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 	snapshots := map[string]interface{}{}
 
@@ -260,88 +263,26 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to create credential: %v", err)
 	}
 
-	resourceClient, err := armresources.NewProvidersClient(subscriptionID, cred, nil)
+	log.Printf("Collecting Azure disk snapshots...")
+	diskSnapshots, err := collectAllSnapshots(ctx, subscriptionID, cred)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create resource providers client: %v", err)
+		return nil, fmt.Errorf("failed to collect disk snapshots: %v", err)
 	}
 
-	provider, err := resourceClient.Get(ctx, "Microsoft.Compute", nil)
-	if err != nil {
-		log.Printf("Warning: Failed to get compute provider, using default locations: %v", err)
-		return collectSnapshotsFromDefaultRegions(ctx, subscriptionID, cred)
-	}
-
-	var locations []string
-	for _, resourceType := range provider.ResourceTypes {
-		if *resourceType.ResourceType == "snapshots" {
-			for _, location := range resourceType.Locations {
-				locations = append(locations, *location)
-			}
-			break
-		}
-	}
-
-	if len(locations) == 0 {
-		log.Printf("No snapshot locations found in provider, using default locations")
-		return collectSnapshotsFromDefaultRegions(ctx, subscriptionID, cred)
-	}
-
-	var allDiskSnapshots []map[string]string
-
-	for _, location := range locations {
-		log.Printf("Collecting disk snapshots from location: %s", location)
-		regionSnapshots, err := collectDiskSnapshotsFromRegion(ctx, subscriptionID, cred, location)
-		if err != nil {
-			log.Printf("Warning: Failed to collect disk snapshots from location %s: %v", location, err)
-		} else if len(regionSnapshots) > 0 {
-			for i := range regionSnapshots {
-				if _, exists := regionSnapshots[i]["Location"]; !exists {
-					regionSnapshots[i]["Location"] = location
-				}
-			}
-			allDiskSnapshots = append(allDiskSnapshots, regionSnapshots...)
-		}
-	}
-
-	if len(allDiskSnapshots) > 0 {
-		snapshots["DiskSnapshots"] = allDiskSnapshots
-	}
-
-	return snapshots, nil
-}
-func collectSnapshotsFromDefaultRegions(ctx context.Context, subscriptionID string, cred *azidentity.DefaultAzureCredential) (map[string]interface{}, error) {
-	snapshots := map[string]interface{}{}
-	defaultRegions := []string{
-		"eastus", "eastus2", "westus", "westus2", "centralus",
-		"northeurope", "westeurope", "uksouth", "southeastasia",
-		"eastasia", "australiaeast", "japaneast",
-	}
-
-	var allDiskSnapshots []map[string]string
-
-	for _, location := range defaultRegions {
-		log.Printf("Collecting disk snapshots from default location: %s", location)
-		regionSnapshots, err := collectDiskSnapshotsFromRegion(ctx, subscriptionID, cred, location)
-		if err != nil {
-			log.Printf("Warning: Failed to collect disk snapshots from location %s: %v", location, err)
-		} else if len(regionSnapshots) > 0 {
-			for i := range regionSnapshots {
-				if _, exists := regionSnapshots[i]["Location"]; !exists {
-					regionSnapshots[i]["Location"] = location
-				}
-			}
-			allDiskSnapshots = append(allDiskSnapshots, regionSnapshots...)
-		}
-	}
-
-	if len(allDiskSnapshots) > 0 {
-		snapshots["DiskSnapshots"] = allDiskSnapshots
+	// Update the return map with the snapshots we found
+	if len(diskSnapshots) > 0 {
+		snapshots["DiskSnapshots"] = diskSnapshots
+		log.Printf("Successfully collected %d Azure disk snapshots", len(diskSnapshots))
+	} else {
+		log.Printf("No Azure disk snapshots found")
 	}
 
 	return snapshots, nil
 }
 
-func collectDiskSnapshotsFromRegion(ctx context.Context, subscriptionID string, cred *azidentity.DefaultAzureCredential, location string) ([]map[string]string, error) {
+// collectAllSnapshots retrieves all Azure disk snapshots in a subscription
+// This is a simplified version of the previous collectAllSnapshotsDirectly function
+func collectAllSnapshots(ctx context.Context, subscriptionID string, cred *azidentity.DefaultAzureCredential) ([]map[string]string, error) {
 	snapshotClient, err := armcompute.NewSnapshotsClient(subscriptionID, cred, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create snapshots client: %v", err)
@@ -350,60 +291,48 @@ func collectDiskSnapshotsFromRegion(ctx context.Context, subscriptionID string, 
 	pager := snapshotClient.NewListPager(nil)
 
 	var snapshots []map[string]string
+	var totalSnapshotsFound int
+
 	for pager.More() {
 		page, err := pager.NextPage(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get next page of snapshots: %v", err)
 		}
 
-		for _, snapshot := range page.Value {
-			if snapshot.Location != nil && strings.EqualFold(*snapshot.Location, location) {
-				snapshotInfo := map[string]string{
-					"Name":              *snapshot.Name,
-					"Location":          location,
-					"ProvisioningState": string(*snapshot.Properties.ProvisioningState),
+		totalSnapshotsFound += len(page.Value)
+
+		// For debugging, print a few snapshots with locations
+		for i, snapshot := range page.Value {
+			if i < 5 { // Print at most 5 for debugging
+				name := "nil"
+				if snapshot.Name != nil {
+					name = *snapshot.Name
 				}
 
-				if snapshot.ID != nil {
-					snapshotInfo["ID"] = *snapshot.ID
+				location := "nil"
+				if snapshot.Location != nil {
+					location = *snapshot.Location
 				}
 
-				if snapshot.Properties.TimeCreated != nil {
-					snapshotInfo["TimeCreated"] = snapshot.Properties.TimeCreated.Format(time.RFC3339)
-				}
-
-				if snapshot.Properties.DiskSizeGB != nil {
-					snapshotInfo["DiskSizeGB"] = fmt.Sprintf("%d", *snapshot.Properties.DiskSizeGB)
-				}
-
-				snapshots = append(snapshots, snapshotInfo)
+				log.Printf("Debug - Found Snapshot: %s in %s", name, location)
 			}
 		}
-	}
-
-	return snapshots, nil
-}
-
-func collectDiskSnapshots(ctx context.Context, subscriptionID string, cred *azidentity.DefaultAzureCredential) ([]map[string]string, error) {
-	snapshotsClient, err := armcompute.NewSnapshotsClient(subscriptionID, cred, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create snapshots client: %v", err)
-	}
-
-	pager := snapshotsClient.NewListPager(nil)
-	snapshots := []map[string]string{}
-
-	for pager.More() {
-		page, err := pager.NextPage(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get next page: %v", err)
-		}
 
 		for _, snapshot := range page.Value {
+			if snapshot.Name == nil {
+				continue
+			}
+
 			snapshotInfo := map[string]string{
-				"Name":     *snapshot.Name,
-				"ID":       *snapshot.ID,
-				"Location": *snapshot.Location,
+				"Name": *snapshot.Name,
+			}
+
+			if snapshot.Location != nil {
+				snapshotInfo["Location"] = *snapshot.Location
+			}
+
+			if snapshot.ID != nil {
+				snapshotInfo["ID"] = *snapshot.ID
 			}
 
 			if snapshot.Properties != nil {
@@ -416,7 +345,7 @@ func collectDiskSnapshots(ctx context.Context, subscriptionID string, cred *azid
 				}
 
 				if snapshot.Properties.ProvisioningState != nil {
-					snapshotInfo["ProvisioningState"] = *snapshot.Properties.ProvisioningState
+					snapshotInfo["ProvisioningState"] = string(*snapshot.Properties.ProvisioningState)
 				}
 
 				if snapshot.Properties.DiskState != nil {
@@ -428,5 +357,6 @@ func collectDiskSnapshots(ctx context.Context, subscriptionID string, cred *azid
 		}
 	}
 
+	log.Printf("Found %d total snapshots in Azure", totalSnapshotsFound)
 	return snapshots, nil
 }

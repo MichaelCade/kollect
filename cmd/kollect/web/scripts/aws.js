@@ -139,7 +139,7 @@ function showAWSCredentialsModal() {
                     <p style="margin-top: 0;">This option uses credentials from your AWS CLI configuration at <code>~/.aws/credentials</code> and <code>~/.aws/config</code>.</p>
                     <div class="form-group" style="margin-top: 15px;">
                         <label for="aws-profile-selector" style="font-weight: bold; margin-bottom: 5px;">Select AWS Profile:</label>
-                        <select id="aws-profile-selector" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                        <select id="aws-profile-selector" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;">
                             <option value="default">default</option>
                         </select>
                     </div>
@@ -154,15 +154,15 @@ function showAWSCredentialsModal() {
                 <div id="aws-manual-config-form" class="source-form" style="display: none; margin-top: 12px; margin-left: 25px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">
                     <div class="form-group">
                         <label for="aws-access-key" style="font-weight: bold; margin-bottom: 5px;">Access Key ID:</label>
-                        <input type="text" id="aws-access-key" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;" placeholder="AKIAIOSFODNN7EXAMPLE">
+                        <input type="text" id="aws-access-key" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;" placeholder="AKIAIOSFODNN7EXAMPLE">
                     </div>
                     <div class="form-group" style="margin-top: 15px;">
                         <label for="aws-secret-key" style="font-weight: bold; margin-bottom: 5px;">Secret Access Key:</label>
-                        <input type="password" id="aws-secret-key" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;" placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY">
+                        <input type="password" id="aws-secret-key" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;" placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY">
                     </div>
                     <div class="form-group" style="margin-top: 15px;">
                         <label for="aws-region" style="font-weight: bold; margin-bottom: 5px;">AWS Region:</label>
-                        <input type="text" id="aws-region" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;" value="us-east-1" placeholder="us-east-1">
+                        <input type="text" id="aws-region" style="width: 100%; padding: 8px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box;" value="us-east-1" placeholder="us-east-1">
                     </div>
                     <p class="tip" style="margin-top: 15px; font-size: 0.85em; color: var(--secondary-text-color); font-style: italic;">
                     </p>
