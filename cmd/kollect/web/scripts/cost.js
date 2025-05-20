@@ -150,7 +150,6 @@ function processPlatformCosts(platform, costData) {
         return;
     }
     
-    // Calculate additional cost categories
     let storageCost = 0;
     let dataServicesCost = 0;
     let snapshotCost = 0;
@@ -159,7 +158,6 @@ function processPlatformCosts(platform, costData) {
     if (platform === 'AWS') {
         if (costData.EBSSnapshotCosts && costData.EBSSnapshotCosts.length > 0) {
             costData.EBSSnapshotCosts.forEach(item => {
-                // Properly parse the cost, checking different formats
                 if (item.MonthlyCost !== undefined) {
                     snapshotCost += parseFloat(item.MonthlyCost) || 0;
                 } else if (item.MonthlyCostUSD !== undefined) {
@@ -176,7 +174,6 @@ function processPlatformCosts(platform, costData) {
         
         if (costData.RDSSnapshotCosts && costData.RDSSnapshotCosts.length > 0) {
             costData.RDSSnapshotCosts.forEach(item => {
-                // Properly parse the cost, checking different formats
                 if (item.MonthlyCost !== undefined) {
                     snapshotCost += parseFloat(item.MonthlyCost) || 0;
                 } else if (item.MonthlyCostUSD !== undefined) {
@@ -228,7 +225,6 @@ function processPlatformCosts(platform, costData) {
     if (platform === 'Azure') {
         if (costData.DiskSnapshotCosts && costData.DiskSnapshotCosts.length > 0) {
             costData.DiskSnapshotCosts.forEach(item => {
-                // Properly parse the cost, checking different formats
                 if (item.MonthlyCost !== undefined) {
                     snapshotCost += parseFloat(item.MonthlyCost) || 0;
                 } else if (item.MonthlyCostUSD !== undefined) {
@@ -265,7 +261,6 @@ function processPlatformCosts(platform, costData) {
     if (platform === 'GCP') {
         if (costData.DiskSnapshotCosts && costData.DiskSnapshotCosts.length > 0) {
             costData.DiskSnapshotCosts.forEach(item => {
-                // Properly parse the cost, checking different formats
                 if (item.MonthlyCost !== undefined) {
                     snapshotCost += parseFloat(item.MonthlyCost) || 0;
                 } else if (item.MonthlyCostUSD !== undefined) {
@@ -309,13 +304,11 @@ function processPlatformCosts(platform, costData) {
         }
     }
     
-    // Save these values in the summary for the global summary to use
     if (costData.Summary) {
         costData.Summary.SnapshotCost = snapshotCost;
         costData.Summary.StorageCost = storageCost;
         costData.Summary.DataServicesCost = dataServicesCost;
         
-        // If TotalComputeCost isn't set from backend, use our calculated value
         if (!costData.Summary.TotalComputeCost && computeCost > 0) {
             costData.Summary.TotalComputeCost = computeCost;
         }
@@ -371,25 +364,19 @@ function processPlatformCosts(platform, costData) {
 }
 
 function createGlobalSummary(summary) {
-    // Calculate global totals for the new categories
     let totalSnapshotCost = 0;
     let totalStorageCost = 0;
     let totalComputeCost = 0;
     let totalDataServicesCost = 0;
     
-    // Debug output to check what's in the summary
     console.log("Creating global summary from:", summary);
     
-    // The backend doesn't provide _sources, so we need to collect the data ourselves
-    // from the individual platform data in the parent object
     const parentData = window.currentCostData || {};
     
-    // Track if we have any platforms with each type of cost
     let hasComputeCost = false;
     let hasStorageCost = false;
     let hasDataServicesCost = false;
     
-    // Process each platform's data
     if (parentData.aws && parentData.aws.Summary) {
         console.log("Collecting data from AWS summary:", parentData.aws.Summary);
         totalSnapshotCost += parseFloat(parentData.aws.Summary.SnapshotCost || 0);
@@ -426,7 +413,6 @@ function createGlobalSummary(summary) {
         if (parentData.gcp.Summary.DataServicesCost) hasDataServicesCost = true;
     }
     
-    // Debug output of calculated totals
     console.log("Calculated global cost totals:", {
         totalSnapshotCost,
         totalStorageCost,
@@ -434,7 +420,6 @@ function createGlobalSummary(summary) {
         totalDataServicesCost
     });
     
-    // Ensure we display sections if costs are present
     if (totalComputeCost > 0) hasComputeCost = true;
     if (totalStorageCost > 0) hasStorageCost = true;
     if (totalDataServicesCost > 0) hasDataServicesCost = true;
@@ -490,7 +475,6 @@ function createCostCharts(data) {
     const chartsDiv = document.createElement('div');
     chartsDiv.className = 'cost-charts';
     
-    // Use proper CSS grid instead of flexbox to ensure charts are side by side
     chartsDiv.style.display = 'grid';
     chartsDiv.style.gridTemplateColumns = 'repeat(auto-fit, minmax(450px, 1fr))';
     chartsDiv.style.gap = '20px';
@@ -513,7 +497,6 @@ function createCostCharts(data) {
     
     document.getElementById('content').appendChild(chartsDiv);
     
-    // Existing code for platforms, storageValues, and costValues...
     const platforms = [];
     const storageValues = [];
     const costValues = [];
@@ -544,7 +527,6 @@ function createCostCharts(data) {
     
     const platformColors = platforms.map(platform => colors[platform] || '#777777');
     
-    // Create snapshot storage chart
     const storageCtx = document.getElementById('storageByPlatformChart');
     if (storageCtx) {
         new Chart(storageCtx.getContext('2d'), {
@@ -584,7 +566,6 @@ function createCostCharts(data) {
         });
     }
     
-    // Create monthly cost chart
     const costCtx = document.getElementById('costByPlatformChart');
     if (costCtx) {
         new Chart(costCtx.getContext('2d'), {
@@ -624,11 +605,9 @@ function createCostCharts(data) {
         });
     }
     
-    // Gather cost breakdowns by type
     const serviceCategories = ['Snapshots', 'Compute', 'Storage', 'Data Services'];
     const serviceCategoryColors = ['#8BC34A', '#FF5722', '#03A9F4', '#9C27B0'];
     
-    // Calculate total cost by category
     let snapshotsTotal = 0;
     let computeTotal = 0;
     let storageTotal = 0;
@@ -650,7 +629,6 @@ function createCostCharts(data) {
         dataServicesTotal
     ];
     
-    // Create cost breakdown chart
     const costBreakdownCtx = document.getElementById('costBreakdownChart');
     if (costBreakdownCtx) {
         new Chart(costBreakdownCtx.getContext('2d'), {
@@ -690,10 +668,8 @@ function createCostCharts(data) {
         });
     }
     
-    // Simulate cost trend data (in a real app, this would come from historical data)
     const costTrendCtx = document.getElementById('costTrendChart');
     if (costTrendCtx) {
-        // Generate some sample months - in a real app this would come from your backend
         const months = [];
         const today = new Date();
         for (let i = 5; i >= 0; i--) {
@@ -701,17 +677,14 @@ function createCostCharts(data) {
             months.push(month.toLocaleString('default', { month: 'short' }));
         }
         
-        // Create simulated trend data
         let awsTrend = [];
         let azureTrend = [];
         let gcpTrend = [];
         
-        // Use the current costs as the final point in the trend
         const awsCost = data.aws && data.aws.Summary ? data.aws.Summary.TotalMonthlyCost : 0;
         const azureCost = data.azure && data.azure.Summary ? data.azure.Summary.TotalMonthlyCost : 0;
         const gcpCost = data.gcp && data.gcp.Summary ? data.gcp.Summary.TotalMonthlyCost : 0;
         
-        // Generate some plausible trend data - this would be real data in production
         if (awsCost) {
             awsTrend = [
                 Math.max(0, awsCost * 0.85 + Math.random() * 10),
@@ -745,7 +718,6 @@ function createCostCharts(data) {
             ];
         }
         
-        // Create trend datasets
         const trendDatasets = [];
         
         if (awsCost) {
@@ -820,17 +792,13 @@ function createCostCharts(data) {
     }
 }
 
-// Helper function to convert hex colors to rgba for transparency
 function hexToRgba(hex, alpha) {
-    // Remove # if present
     hex = hex.replace('#', '');
     
-    // Parse the hex values
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
     
-    // Return rgba string
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 

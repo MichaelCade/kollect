@@ -111,16 +111,12 @@ function awsRdsSnapshotRowTemplate(item) {
     return `<td>${item.SnapshotId}</td><td>${item.DBInstanceId}</td><td>${item.SnapshotType}</td><td>${item.Status}</td><td>${item.Engine}</td><td>${item.AllocatedStorage}</td><td>${item.CreationTime}</td><td>${encrypted}</td>`;
 }
 
-// Update the azureDiskSnapshotRowTemplate function with better error handling and logging
-
 function azureDiskSnapshotRowTemplate(item) {
     console.log("Azure snapshot item:", item);
     
-    // Handle missing properties gracefully
     const name = item.Name || "Unknown";
     const location = item.Location || "-";
     
-    // Size formatting with fallbacks
     let sizeDisplay = "-";
     if (item.SizeGB) {
         sizeDisplay = `${item.SizeGB} GB`;
@@ -128,7 +124,6 @@ function azureDiskSnapshotRowTemplate(item) {
         sizeDisplay = `${item.DiskSizeGB} GB`;
     }
     
-    // Status/State handling with fallbacks
     let state = "-";
     if (item.State) {
         state = item.State;
@@ -138,7 +133,6 @@ function azureDiskSnapshotRowTemplate(item) {
         state = item.Status;
     }
     
-    // Time formatting with fallbacks
     const creationTime = item.CreationTime || item.TimeCreated || "-";
     
     return `<td>${name}</td><td>${location}</td><td>${sizeDisplay}</td><td>${state}</td><td>${creationTime}</td>`;

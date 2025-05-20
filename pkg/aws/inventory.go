@@ -299,13 +299,11 @@ func CollectAWSData(ctx context.Context) (AWSData, error) {
 func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 	snapshots := map[string]interface{}{}
 
-	// Get the default region from config or environment
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load AWS config: %v", err)
 	}
 
-	// Describe all available regions first
 	ec2Client := ec2.NewFromConfig(cfg)
 	regionsOutput, err := ec2Client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{})
 	if err != nil {
@@ -317,11 +315,9 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 	var allEBSSnapshots []map[string]string
 	var allRDSSnapshots []map[string]string
 
-	// Create a wait group to process regions concurrently
 	var wg sync.WaitGroup
 	var mutex sync.Mutex
 
-	// Process each region
 	for _, region := range regionsOutput.Regions {
 		regionName := *region.RegionName
 
@@ -335,7 +331,6 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 				return
 			}
 
-			// Get EBS snapshots
 			ebsSnapshots, err := collectEBSSnapshots(ctx, regionCfg)
 			if err == nil && len(ebsSnapshots) > 0 {
 				for i := range ebsSnapshots {
@@ -347,7 +342,6 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 				mutex.Unlock()
 			}
 
-			// Get RDS snapshots
 			rdsSnapshots, err := collectRDSSnapshots(ctx, regionCfg)
 			if err == nil && len(rdsSnapshots) > 0 {
 				for i := range rdsSnapshots {
@@ -361,10 +355,8 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 		}(regionName)
 	}
 
-	// Wait for all region processing to complete
 	wg.Wait()
 
-	// Add the snapshots to the result
 	if len(allEBSSnapshots) > 0 {
 		snapshots["EBSSnapshots"] = allEBSSnapshots
 		log.Printf("Found %d AWS EBS snapshots across all regions", len(allEBSSnapshots))

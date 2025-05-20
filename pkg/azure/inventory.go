@@ -246,10 +246,6 @@ func getAzureSubscriptionID() (string, error) {
 
 	return subscriptionID, nil
 }
-
-// CollectSnapshotData collects all Azure disk snapshots across the subscription
-// This is an optimized version that doesn't try to filter by region, since the
-// Azure SDK returns all snapshots regardless and filtering is done client-side
 func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 	snapshots := map[string]interface{}{}
 
@@ -269,7 +265,6 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("failed to collect disk snapshots: %v", err)
 	}
 
-	// Update the return map with the snapshots we found
 	if len(diskSnapshots) > 0 {
 		snapshots["DiskSnapshots"] = diskSnapshots
 		log.Printf("Successfully collected %d Azure disk snapshots", len(diskSnapshots))
@@ -279,9 +274,6 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 
 	return snapshots, nil
 }
-
-// collectAllSnapshots retrieves all Azure disk snapshots in a subscription
-// This is a simplified version of the previous collectAllSnapshotsDirectly function
 func collectAllSnapshots(ctx context.Context, subscriptionID string, cred *azidentity.DefaultAzureCredential) ([]map[string]string, error) {
 	snapshotClient, err := armcompute.NewSnapshotsClient(subscriptionID, cred, nil)
 	if err != nil {
@@ -301,9 +293,8 @@ func collectAllSnapshots(ctx context.Context, subscriptionID string, cred *azide
 
 		totalSnapshotsFound += len(page.Value)
 
-		// For debugging, print a few snapshots with locations
 		for i, snapshot := range page.Value {
-			if i < 5 { // Print at most 5 for debugging
+			if i < 5 {
 				name := "nil"
 				if snapshot.Name != nil {
 					name = *snapshot.Name

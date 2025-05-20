@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/vault/api"
 )
 
-// VaultData contains all the collected information from a Vault server
 type VaultData struct {
 	ServerInfo      ServerInfo             `json:"serverInfo"`
 	ReplicationInfo ReplicationInfo        `json:"replicationInfo"`
@@ -27,7 +26,6 @@ type VaultData struct {
 	LicenseInfo     map[string]interface{} `json:"licenseInfo,omitempty"`
 }
 
-// ServerInfo contains the general server information
 type ServerInfo struct {
 	Version         string    `json:"version"`
 	ClusterName     string    `json:"clusterName"`
@@ -42,7 +40,6 @@ type ServerInfo struct {
 	ServerTimestamp time.Time `json:"serverTimestamp"`
 }
 
-// ReplicationInfo contains the replication configuration details
 type ReplicationInfo struct {
 	DREnabled            bool                   `json:"drEnabled"`
 	DRMode               string                 `json:"drMode"`
@@ -54,7 +51,6 @@ type ReplicationInfo struct {
 	StateRaw             map[string]interface{} `json:"stateRaw,omitempty"`
 }
 
-// AuthMethodInfo contains information about an authentication method
 type AuthMethodInfo struct {
 	Path        string            `json:"path"`
 	Type        string            `json:"type"`
@@ -64,7 +60,6 @@ type AuthMethodInfo struct {
 	Config      map[string]string `json:"config,omitempty"`
 }
 
-// SecretEngineInfo contains information about a secret engine
 type SecretEngineInfo struct {
 	Path        string            `json:"path"`
 	Type        string            `json:"type"`
@@ -75,7 +70,6 @@ type SecretEngineInfo struct {
 	Options     map[string]string `json:"options,omitempty"`
 }
 
-// PolicyInfo contains information about a policy
 type PolicyInfo struct {
 	Name  string `json:"name"`
 	Type  string `json:"type"`
@@ -116,7 +110,6 @@ func CheckCredentials(ctx context.Context, addr, token string, insecure bool) (b
 		client.SetToken(token)
 	}
 
-	// Try to access /sys/health which requires minimal permissions
 	_, err = client.Sys().Health()
 	if err != nil {
 		return false, fmt.Errorf("failed to access vault: %w", err)
@@ -125,7 +118,6 @@ func CheckCredentials(ctx context.Context, addr, token string, insecure bool) (b
 	return true, nil
 }
 
-// CollectVaultData collects comprehensive data from a Vault server
 func CollectVaultData(ctx context.Context, addr, token string, insecure bool) (VaultData, error) {
 	var data VaultData
 
@@ -149,42 +141,35 @@ func CollectVaultData(ctx context.Context, addr, token string, insecure bool) (V
 		client.SetToken(token)
 	}
 
-	// Check if the server is sealed - we can't collect much if it is
 	health, err := client.Sys().Health()
 	if err != nil {
 		return data, fmt.Errorf("failed to get vault health: %w", err)
 	}
 
-	// Collect server info
 	data.ServerInfo, err = collectServerInfo(client, health)
 	if err != nil {
 		log.Printf("Warning: Failed to collect full server info: %v", err)
 	}
 
-	// If sealed, return with limited info
 	if health.Sealed {
 		return data, nil
 	}
 
-	// Collect replication info
 	data.ReplicationInfo, err = collectReplicationInfo(client)
 	if err != nil {
 		log.Printf("Warning: Failed to collect replication info: %v", err)
 	}
 
-	// Collect auth methods with pagination for large deployments
 	data.AuthMethods, err = collectAuthMethods(client)
 	if err != nil {
 		log.Printf("Warning: Failed to collect auth methods: %v", err)
 	}
 
-	// Collect secret engines with pagination for large deployments
 	data.SecretEngines, err = collectSecretEngines(client)
 	if err != nil {
 		log.Printf("Warning: Failed to collect secret engines: %v", err)
 	}
 
-	// Collect policies (limited to first 1000)
 	data.Policies, err = collectPolicies(client)
 	if err != nil {
 		log.Printf("Warning: Failed to collect policies: %v", err)
@@ -276,7 +261,6 @@ func collectReplicationInfo(client *api.Client) (ReplicationInfo, error) {
 		}
 	}
 
-	// Performance replication details
 	if perf, ok := statusRaw.Data["performance"]; ok && perf != nil {
 		if perfMap, ok := perf.(map[string]interface{}); ok {
 			if mode, ok := perfMap["mode"]; ok {
@@ -297,7 +281,6 @@ func collectReplicationInfo(client *api.Client) (ReplicationInfo, error) {
 	return info, nil
 }
 
-// collectAuthMethods gathers authentication methods
 func collectAuthMethods(client *api.Client) ([]AuthMethodInfo, error) {
 	var methods []AuthMethodInfo
 
@@ -316,8 +299,6 @@ func collectAuthMethods(client *api.Client) ([]AuthMethodInfo, error) {
 			Config:      make(map[string]string),
 		}
 
-		// Attempt to get config details for each auth method
-		// This may fail due to permissions, so we'll continue on error
 		configPath := fmt.Sprintf("sys/auth/%s/tune", method.Path)
 		config, err := client.Logical().Read(configPath)
 		if err == nil && config != nil && config.Data != nil {
@@ -334,7 +315,6 @@ func collectAuthMethods(client *api.Client) ([]AuthMethodInfo, error) {
 	return methods, nil
 }
 
-// collectSecretEngines gathers secret engines
 func collectSecretEngines(client *api.Client) ([]SecretEngineInfo, error) {
 	var engines []SecretEngineInfo
 
@@ -359,7 +339,6 @@ func collectSecretEngines(client *api.Client) ([]SecretEngineInfo, error) {
 			}
 		}
 
-		// Set version for KV store
 		if mount.Type == "kv" {
 			if v, ok := mount.Options["version"]; ok {
 				if v == "2" {
@@ -376,18 +355,15 @@ func collectSecretEngines(client *api.Client) ([]SecretEngineInfo, error) {
 	return engines, nil
 }
 
-// collectPolicies gathers policies
 func collectPolicies(client *api.Client) ([]PolicyInfo, error) {
 	var policies []PolicyInfo
 
-	// List ACL policies
 	policyNames, err := client.Sys().ListPolicies()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list policies: %w", err)
 	}
 
 	for _, name := range policyNames {
-		// Skip the default policy to avoid unnecessary details
 		if name == "default" || name == "root" {
 			policies = append(policies, PolicyInfo{
 				Name: name,
@@ -413,8 +389,6 @@ func collectPolicies(client *api.Client) ([]PolicyInfo, error) {
 		})
 	}
 
-	// Try to list RGP and EGP policies (Enterprise only)
-	// These may fail on OSS version - that's expected
 	rgpNames, err := client.Logical().List("sys/policies/rgp")
 	if err == nil && rgpNames != nil && rgpNames.Data != nil {
 		if keys, ok := rgpNames.Data["keys"].([]interface{}); ok {
@@ -446,11 +420,9 @@ func collectPolicies(client *api.Client) ([]PolicyInfo, error) {
 	return policies, nil
 }
 
-// collectNamespaces gathers namespaces (Enterprise only)
 func collectNamespaces(client *api.Client) ([]NamespaceInfo, error) {
 	var namespaces []NamespaceInfo
 
-	// This will fail on OSS version - that's expected
 	namespacesRaw, err := client.Logical().List("sys/namespaces")
 	if err != nil {
 		return nil, fmt.Errorf("failed to list namespaces: %w", err)
@@ -467,7 +439,6 @@ func collectNamespaces(client *api.Client) ([]NamespaceInfo, error) {
 				Path: strings.TrimSuffix(path, "/"),
 			}
 
-			// Try to get more details about the namespace
 			nsInfo, err := client.Logical().Read(fmt.Sprintf("sys/namespaces/%s", path))
 			if err == nil && nsInfo != nil && nsInfo.Data != nil {
 				if desc, ok := nsInfo.Data["description"]; ok && desc != nil {
@@ -485,7 +456,6 @@ func collectNamespaces(client *api.Client) ([]NamespaceInfo, error) {
 	return namespaces, nil
 }
 
-// collectAuditDevices gathers audit devices
 func collectAuditDevices(client *api.Client) ([]AuditDeviceInfo, error) {
 	var devices []AuditDeviceInfo
 
@@ -512,17 +482,14 @@ func collectAuditDevices(client *api.Client) ([]AuditDeviceInfo, error) {
 	return devices, nil
 }
 
-// identityCounts stores entity and group counts
 type identityCounts struct {
 	EntityCount int
 	GroupCount  int
 }
 
-// collectIdentityCount attempts to get the number of entities and groups
 func collectIdentityCount(client *api.Client) (identityCounts, error) {
 	var counts identityCounts
 
-	// This requires a high privilege token, so it may fail
 	entityList, err := client.Logical().List("identity/entity/id")
 	if err == nil && entityList != nil && entityList.Data != nil {
 		if keys, ok := entityList.Data["keys"].([]interface{}); ok {
@@ -540,9 +507,7 @@ func collectIdentityCount(client *api.Client) (identityCounts, error) {
 	return counts, nil
 }
 
-// collectLicenseInfo gathers license information (Enterprise only)
 func collectLicenseInfo(client *api.Client) (map[string]interface{}, error) {
-	// This will fail on OSS version - that's expected
 	licenseStatus, err := client.Logical().Read("sys/license/status")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read license status: %w", err)
@@ -555,11 +520,9 @@ func collectLicenseInfo(client *api.Client) (map[string]interface{}, error) {
 	return licenseStatus.Data, nil
 }
 
-// collectPerformanceInfo gathers performance metrics
 func collectPerformanceInfo(client *api.Client) (map[string]interface{}, error) {
 	perfInfo := make(map[string]interface{})
 
-	// This requires a high privilege token, so it may fail
 	metrics, err := client.Logical().Read("sys/metrics")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read metrics: %w", err)
@@ -569,15 +532,12 @@ func collectPerformanceInfo(client *api.Client) (map[string]interface{}, error) 
 		return perfInfo, nil
 	}
 
-	// Extract key metrics that are useful for inventory purposes
-	// Gauges
 	if gauges, ok := metrics.Data["Gauges"].([]interface{}); ok {
 		for _, g := range gauges {
 			if gauge, ok := g.(map[string]interface{}); ok {
 				name, ok1 := gauge["Name"].(string)
 				value, ok2 := gauge["Value"].(float64)
 				if ok1 && ok2 {
-					// Store only select important metrics
 					if strings.Contains(name, "vault.token.count") ||
 						strings.Contains(name, "vault.expire.num_leases") ||
 						strings.Contains(name, "vault.raft.") ||
@@ -589,7 +549,6 @@ func collectPerformanceInfo(client *api.Client) (map[string]interface{}, error) 
 		}
 	}
 
-	// Counters
 	if counters, ok := metrics.Data["Counters"].([]interface{}); ok {
 		for _, c := range counters {
 			if counter, ok := c.(map[string]interface{}); ok {
@@ -597,7 +556,6 @@ func collectPerformanceInfo(client *api.Client) (map[string]interface{}, error) 
 				count, ok2 := counter["Count"].(float64)
 				rate, ok3 := counter["Rate"].(float64)
 				if ok1 && (ok2 || ok3) {
-					// Store only select important metrics
 					if strings.Contains(name, "vault.route.") ||
 						strings.Contains(name, "vault.audit.") ||
 						strings.Contains(name, "vault.core.") {

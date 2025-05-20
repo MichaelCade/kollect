@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -37,8 +36,7 @@ var (
 		"sa-east-1":      0.065,
 		"ap-south-1":     0.055,
 		"ca-central-1":   0.055,
-		// Default fallback
-		"default": 0.05,
+		"default":        0.05,
 	}
 
 	// AWS RDS snapshot pricing ($/GB-month)
@@ -429,14 +427,12 @@ func fetchAzurePricing(ctx context.Context) (RegionalPrice, error) {
 func fetchGCPPricing(ctx context.Context) (RegionalPrice, error) {
 	pricing := make(RegionalPrice)
 
-	// Copy our fallback values first
 	pricingMutex.RLock()
 	for region, price := range GcpDiskSnapshotPricing {
 		pricing[region] = price
 	}
 	pricingMutex.RUnlock()
 
-	// Create a simple function to handle the fallback logic
 	updateMetadataAndReturn := func() (RegionalPrice, error) {
 		pricingMutex.Lock()
 		PricingMetadata["gcp_disk"] = PricingInfo{
@@ -450,13 +446,9 @@ func fetchGCPPricing(ctx context.Context) (RegionalPrice, error) {
 		return pricing, nil
 	}
 
-	// GCP's pricing API is not easily accessible programmatically
-	// Instead, we'll use our hardcoded values which are reasonably accurate
 	log.Println("GCP pricing is based on standard published rates from Google Cloud documentation")
 
-	// Verify that our pricing data has reasonable values
 	if len(pricing) >= 8 {
-		// We have a good set of pricing data
 		pricingMutex.Lock()
 		PricingMetadata["gcp_disk"] = PricingInfo{
 			Source:       "GCP Standard Pricing (from documentation)",
@@ -468,12 +460,11 @@ func fetchGCPPricing(ctx context.Context) (RegionalPrice, error) {
 		return pricing, nil
 	}
 
-	// If we don't have enough regions, use fallback
 	return updateMetadataAndReturn()
 }
 
 func loadPricingFromCache() {
-	data, err := ioutil.ReadFile(pricingCachePath)
+	data, err := os.ReadFile(pricingCachePath)
 	if err != nil {
 		log.Printf("Could not read pricing cache: %v", err)
 		return
@@ -548,7 +539,7 @@ func savePricingToCache() {
 		return
 	}
 
-	if err := ioutil.WriteFile(pricingCachePath, data, 0644); err != nil {
+	if err := os.WriteFile(pricingCachePath, data, 0644); err != nil {
 		log.Printf("Could not write pricing cache: %v", err)
 		return
 	}
@@ -658,7 +649,6 @@ func InitPricing() {
 	}()
 }
 
-// logPricingEntry logs pricing information only if debugging is enabled
 func logPricingEntry(provider string, region string, price float64, details string) {
 	if os.Getenv("KOLLECT_DEBUG_PRICING") == "true" {
 		log.Printf("%s pricing for %s: $%.4f per GB/month (%s)", provider, region, price, details)

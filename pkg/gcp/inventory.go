@@ -127,17 +127,14 @@ func CollectGCPData(ctx context.Context) (GCPData, error) {
 	return data, nil
 }
 
-// formatAPIError shortens Google API errors to just the essential information
 func formatAPIError(err error) string {
 	errorStr := err.Error()
 
-	// Check if this is an API not enabled error
 	if strings.Contains(errorStr, "has not been used in project") && strings.Contains(errorStr, "or it is disabled") {
 		parts := strings.Split(errorStr, ":")
 		if len(parts) >= 3 {
 			apiName := strings.TrimSpace(parts[2])
 			if strings.Contains(apiName, "API") {
-				// Find the API name (e.g., "Cloud SQL Admin API")
 				apiNameEnd := strings.Index(apiName, "has not been used")
 				if apiNameEnd > 0 {
 					apiName = strings.TrimSpace(apiName[:apiNameEnd])
@@ -148,7 +145,6 @@ func formatAPIError(err error) string {
 		return "API not enabled for this project"
 	}
 
-	// If it's another kind of error or we couldn't parse properly
 	if len(errorStr) > 150 {
 		return errorStr[:150] + "... (truncated)"
 	}
@@ -190,7 +186,7 @@ func fetchComputeInstances(ctx context.Context, projectID string) ([]ComputeInst
 	for _, zone := range zonesResp.Items {
 		instancesResp, err := computeService.Instances.List(projectID, zone.Name).Do()
 		if err != nil {
-			continue // Skip zones with errors rather than failing completely
+			continue
 		}
 
 		for _, instance := range instancesResp.Items {
@@ -360,7 +356,6 @@ func fetchCloudFunctions(ctx context.Context, projectID string) ([]CloudFunction
 	return functions, nil
 }
 
-// CollectSnapshotData collects all disk snapshots in a GCP project
 func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 	snapshots := map[string]interface{}{}
 
@@ -382,14 +377,12 @@ func CollectSnapshotData(ctx context.Context) (map[string]interface{}, error) {
 	return snapshots, nil
 }
 
-// collectDiskSnapshots gets all disk snapshots in a project
 func collectDiskSnapshots(ctx context.Context, project string) ([]map[string]string, error) {
 	computeService, err := compute.NewService(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create compute service: %v", err)
 	}
 
-	// Get all snapshots (this returns all snapshots regardless of region)
 	snapshotList, err := computeService.Snapshots.List(project).Do()
 	if err != nil {
 		return nil, fmt.Errorf("failed to list snapshots: %v", err)
@@ -397,28 +390,20 @@ func collectDiskSnapshots(ctx context.Context, project string) ([]map[string]str
 
 	log.Printf("Found %d GCP snapshots", len(snapshotList.Items))
 
-	// Map to store disk details
 	diskDetails := make(map[string]string)
 
-	// Create snapshot info objects
 	var snapshots []map[string]string
 	for _, snapshot := range snapshotList.Items {
-		location := "global" // Default location
+		location := "global"
 
-		// Try to determine location from source disk if possible
 		if snapshot.SourceDisk != "" {
-			// If we don't already have this disk's details, try to get them
 			diskName := getDiskNameFromURL(snapshot.SourceDisk)
 			if _, exists := diskDetails[diskName]; !exists {
-				// Extract zone from disk URL if possible
 				zone := getZoneFromDiskURL(snapshot.SourceDisk)
 				if zone != "" {
-					// If we extracted a zone, try to get the region from it
 					if strings.Count(zone, "-") >= 2 {
-						// Most zones follow the pattern: region-letter, e.g., us-central1-a
 						regionParts := strings.Split(zone, "-")
 						if len(regionParts) >= 3 {
-							// Remove the last segment (the zone letter)
 							location = strings.Join(regionParts[:len(regionParts)-1], "-")
 							diskDetails[diskName] = location
 						}
@@ -458,7 +443,6 @@ func collectDiskSnapshots(ctx context.Context, project string) ([]map[string]str
 	return snapshots, nil
 }
 
-// Helper function to extract disk name from a URL
 func getDiskNameFromURL(diskURL string) string {
 	parts := strings.Split(diskURL, "/")
 	if len(parts) > 0 {
@@ -467,10 +451,7 @@ func getDiskNameFromURL(diskURL string) string {
 	return ""
 }
 
-// Helper function to extract zone from a disk URL
 func getZoneFromDiskURL(diskURL string) string {
-	// URL format is typically like:
-	// https://www.googleapis.com/compute/v1/projects/[PROJECT]/zones/[ZONE]/disks/[DISK]
 	parts := strings.Split(diskURL, "/")
 	for i, part := range parts {
 		if part == "zones" && i+1 < len(parts) {

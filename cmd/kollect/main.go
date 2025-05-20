@@ -647,7 +647,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 				status["version"] = versionParts[1]
 			}
 
-			// Check if authenticated
 			checkCmd := exec.Command("vault", "token", "lookup")
 			checkErr := checkCmd.Run()
 			status["authenticated"] = checkErr == nil
@@ -683,7 +682,6 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		var vaultToken string
 		vaultAddr := params.Server
 
-		// Get token based on auth type
 		if params.Type == "token" {
 			if params.Server == "" || params.Token == "" {
 				http.Error(w, "Server and token are required for token authentication", http.StatusBadRequest)
@@ -696,12 +694,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 				return
 			}
 
-			// We should implement userpass authentication in the vault package
-			// For now, return an error
 			http.Error(w, "Userpass authentication not yet implemented", http.StatusNotImplemented)
 			return
 		} else if params.Type == "cli" {
-			// Use the VAULT_TOKEN environment variable or ~/.vault-token file
 			homeDir, err := os.UserHomeDir()
 			if err == nil {
 				tokenFile := filepath.Join(homeDir, ".vault-token")
@@ -727,14 +722,12 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			}
 		}
 
-		// Test credentials
 		hasCredentials, err := vault.CheckCredentials(ctx, vaultAddr, vaultToken, params.Insecure)
 		if err != nil || !hasCredentials {
 			http.Error(w, fmt.Sprintf("Error connecting to Vault: %v", err), http.StatusUnauthorized)
 			return
 		}
 
-		// Collect data
 		vaultData, err := vault.CollectVaultData(ctx, vaultAddr, vaultToken, params.Insecure)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Error collecting Vault data: %v", err), http.StatusInternalServerError)

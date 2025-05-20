@@ -1,11 +1,9 @@
-// vault.js - HashiCorp Vault Explorer
+// vault.js
 
-// vault.js - HashiCorp Vault Explorer
 
 registerDataHandler('vault', 
     function(data) {
         console.log("Testing if data is Vault data:", data);
-        // Check for properties using the correct case (camelCase as in vault.json)
         const isVaultData = !!(data.serverInfo || data.authMethods || data.secretEngines || 
                               data.policies || data.auditDevices || data.replicationInfo);
         console.log("Is Vault data?", isVaultData);
