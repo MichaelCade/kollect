@@ -39,7 +39,11 @@ jobs:
         run: |
           mkdir -p build-artifacts-${{ github.run_id }}
           cd cmd/kollect
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../../build-artifacts-${{ github.run_id }}/kollect-${{ matrix.goos }}-${{ matrix.goarch }}
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../../build-artifacts-${{ github.run_id }}/kollect-${{ matrix.goos }}-${{ matrix.goarch }}.exe
+          else
+            GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o ../../build-artifacts-${{ github.run_id }}/kollect-${{ matrix.goos }}-${{ matrix.goarch }}
+          fi
 
       - name: List build artifacts
         run: ls -la build-artifacts-${{ github.run_id }}
