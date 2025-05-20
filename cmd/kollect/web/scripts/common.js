@@ -419,6 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log("DOM Loaded - Setting up event listeners");
     
     checkVaultCliStatus();
+    setupExportButton();
 
     const toggleTablesButton = document.getElementById('toggle-tables');
     if (toggleTablesButton) {
@@ -480,24 +481,78 @@ document.addEventListener('DOMContentLoaded', () => {
     enhanceConnectionButtons();
 });
 
-document.getElementById('export-button')?.addEventListener('click', () => {
-    showLoadingIndicator();
-    fetch('/api/data')
-        .then(response => response.json())
-        .then(data => {
-            const dataStr = JSON.stringify(data, null, 2);
-            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            
-            const exportFileDefaultName = 'kollect_data.json';
-            
-            const linkElement = document.createElement('a');
-            linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
-            linkElement.click();
-        })
-        .catch(error => console.error('Error exporting data:', error))
-        .finally(() => hideLoadingIndicator());
-});
+function setupExportButton() {
+    const exportButton = document.getElementById('export-button');
+    if (!exportButton) return;
+    
+    exportButton.addEventListener('click', () => {
+        console.log("Export button clicked");
+        showLoadingIndicator();
+        
+        fetch('/api/data')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Make sure we have data
+                if (!data || Object.keys(data).length === 0) {
+                    throw new Error("No data available to export");
+                }
+                
+                console.log(`Exporting data with keys: ${Object.keys(data)}`);
+                
+                // Format the data for download
+                const dataStr = JSON.stringify(data, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                const dataUrl = URL.createObjectURL(dataBlob);
+                
+                // Generate filename based on platform type if possible
+                let exportFilename = 'kollect_data.json';
+                
+                // Try to detect the platform type for a more specific filename
+                if (data.serverInfo && data.secretEngines) {
+                    exportFilename = 'kollect_vault_data.json';
+                } else if (data.Nodes || data.Namespaces) {
+                    exportFilename = 'kollect_kubernetes_data.json';
+                } else if (data.EC2Instances) {
+                    exportFilename = 'kollect_aws_data.json';
+                } else if (data.AzureResourceGroups) {
+                    exportFilename = 'kollect_azure_data.json';
+                } else if (data.ComputeInstances) {
+                    exportFilename = 'kollect_gcp_data.json';
+                } else if (data.VeeamServerInfo) {
+                    exportFilename = 'kollect_veeam_data.json';
+                }
+                
+                // Create and trigger download
+                const downloadLink = document.createElement('a');
+                downloadLink.setAttribute('href', dataUrl);
+                downloadLink.setAttribute('download', exportFilename);
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                
+                // Clean up
+                setTimeout(() => {
+                    URL.revokeObjectURL(dataUrl);
+                }, 100);
+                
+                console.log(`Data exported as ${exportFilename}`);
+            })
+            .catch(error => {
+                console.error("Error exporting data:", error);
+                alert(`Error exporting data: ${error.message}`);
+            })
+            .finally(() => {
+                hideLoadingIndicator();
+            });
+    });
+    
+    console.log("Export button handler initialized");
+}
 
 document.getElementById('import-button')?.addEventListener('click', () => {
     document.getElementById('import-file').click();
