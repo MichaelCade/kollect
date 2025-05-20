@@ -305,13 +305,25 @@ function processPlatformCosts(platform, costData) {
     }
     
     if (costData.Summary) {
-        costData.Summary.SnapshotCost = snapshotCost;
-        costData.Summary.StorageCost = storageCost;
-        costData.Summary.DataServicesCost = dataServicesCost;
-        
-        if (!costData.Summary.TotalComputeCost && computeCost > 0) {
-            costData.Summary.TotalComputeCost = computeCost;
-        }
+    costData.Summary.SnapshotCost = snapshotCost;
+    costData.Summary.StorageCost = storageCost;
+    costData.Summary.DataServicesCost = dataServicesCost;
+    
+    // If TotalComputeCost isn't set from backend, use our calculated value
+    if (!costData.Summary.TotalComputeCost && computeCost > 0) {
+        costData.Summary.TotalComputeCost = computeCost;
+    }
+    
+    // Make sure the TotalMonthlyCost includes ALL cost categories
+    let correctedTotal = snapshotCost + 
+                        (costData.Summary.TotalComputeCost || computeCost) + 
+                        storageCost + 
+                        dataServicesCost;
+    
+    // Only update if our calculation is greater (in case there are other costs we're not tracking)
+    if (correctedTotal > costData.Summary.TotalMonthlyCost) {
+        costData.Summary.TotalMonthlyCost = correctedTotal;
+    }
         
         const summaryDiv = document.createElement('div');
         summaryDiv.className = 'cost-summary';
@@ -364,6 +376,7 @@ function processPlatformCosts(platform, costData) {
 }
 
 function createGlobalSummary(summary) {
+    // Calculate global totals for the new categories
     let totalSnapshotCost = 0;
     let totalStorageCost = 0;
     let totalComputeCost = 0;
@@ -419,6 +432,13 @@ function createGlobalSummary(summary) {
         totalComputeCost,
         totalDataServicesCost
     });
+    
+    // Calculate the correct total including all cost categories
+    let correctedGlobalTotal = totalSnapshotCost + totalComputeCost + totalStorageCost + totalDataServicesCost;
+    console.log("Original total monthly cost:", summary.TotalMonthlyCost, "Corrected total:", correctedGlobalTotal);
+    
+    // Update the summary's total monthly cost with our calculated value
+    summary.TotalMonthlyCost = correctedGlobalTotal;
     
     if (totalComputeCost > 0) hasComputeCost = true;
     if (totalStorageCost > 0) hasStorageCost = true;
