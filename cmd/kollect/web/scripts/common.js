@@ -311,7 +311,7 @@ function checkVaultCliStatus() {
                     badge.className = 'connection-badge connected';
                     vaultButton.appendChild(badge);
                     
-                    vaultButton.title = `HashiCorp Vault (CLI detected v${data.version || 'unknown'})`;
+                    vaultButton.title = `HashiCorp Vault (CLI detected ${data.version || 'unknown'})`;
                 } else {
                     vaultButton.classList.add('not-connected');
                     vaultButton.classList.remove('connected');
