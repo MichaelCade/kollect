@@ -25,6 +25,7 @@ import (
 	"github.com/michaelcade/kollect/pkg/cost"
 	"github.com/michaelcade/kollect/pkg/gcp"
 	"github.com/michaelcade/kollect/pkg/kollect"
+	"github.com/michaelcade/kollect/pkg/mcp"
 	"github.com/michaelcade/kollect/pkg/snapshots"
 	"github.com/michaelcade/kollect/pkg/terraform"
 	"github.com/michaelcade/kollect/pkg/vault"
@@ -60,6 +61,7 @@ func main() {
 	snapshotFlag := flag.Bool("snapshots", false, "Collect snapshots from all available platforms")
 	vaultAddr := flag.String("vault-addr", "", "Vault server address")
 	vaultToken := flag.String("vault-token", "", "Vault token")
+	enableMCP := flag.Bool("mcp", false, "Enable Model Context Protocol (MCP) support")
 	help := flag.Bool("help", false, "Show help message")
 
 	flag.Parse()
@@ -70,6 +72,16 @@ func main() {
 		fmt.Println("\nTo pretty-print JSON output, you can use `jq`:")
 		fmt.Println("  ./kollect | jq")
 		return
+	}
+
+	if *enableMCP && data != nil {
+		log.Println("Processing data with MCP...")
+		dataType := identifyDataType(data)
+		if dataType != "unknown" {
+			mcp.ProcessData(data, dataType)
+		} else {
+			log.Println("Could not identify data type for MCP processing")
+		}
 	}
 
 	if *snapshotFlag {
@@ -111,7 +123,7 @@ func main() {
 
 	if *browser && *inventoryType == "" && *output == "" {
 		fmt.Println("Starting browser interface. Use the import function to load data.")
-		startWebServer(map[string]interface{}{}, true, "", "", "")
+		startWebServer(map[string]interface{}{}, true, "", "", "", *enableMCP)
 		return
 	}
 
@@ -224,6 +236,14 @@ func main() {
 		log.Fatalf("Error collecting data: %v", err)
 	}
 
+	// Process data with MCP if enabled
+	if *enableMCP && data != nil {
+		dataType := identifyDataType(data)
+		if dataType != "unknown" {
+			mcp.ProcessData(data, dataType)
+		}
+	}
+
 	if *output != "" {
 		err = saveToFile(data, *output)
 		if err != nil {
@@ -236,9 +256,8 @@ func main() {
 	printData(data)
 
 	if *browser {
-		startWebServer(data, true, *baseURL, *username, *password)
+		startWebServer(data, true, *baseURL, *username, *password, *enableMCP)
 	}
-
 }
 
 func collectAllSnapshots(ctx context.Context) (map[string]interface{}, error) {
@@ -390,7 +409,34 @@ func checkCredentials(ctx context.Context) map[string]bool {
 	return results
 }
 
-func startWebServer(initialData interface{}, openBrowser bool, baseURL, username, password string) {
+// Helper to identify data type for MCP
+func identifyDataType(data interface{}) string {
+	switch data.(type) {
+	case aws.AWSData:
+		return "aws"
+	case map[string]interface{}:
+		mapData := data.(map[string]interface{})
+		// Try to determine from map keys
+		if _, hasAWS := mapData["aws"]; hasAWS {
+			if _, hasAzure := mapData["azure"]; hasAzure {
+				return "snapshots"
+			}
+		}
+		if _, hasAzureVMs := mapData["AzureVMs"]; hasAzureVMs {
+			return "azure"
+		}
+		if _, hasGCP := mapData["ComputeInstances"]; hasGCP {
+			return "gcp"
+		}
+		return "unknown"
+	default:
+		// Handle other types by checking properties
+		return "unknown"
+	}
+}
+
+func startWebServer(initialData interface{}, openBrowser bool, baseURL, username, password string, mcpEnabled bool) {
+
 	fsys, err := fs.Sub(staticFiles, "web")
 	if err != nil {
 		panic(err)
@@ -398,6 +444,12 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 	fileServer := http.FileServer(http.FS(fsys))
 	cost.InitPricing()
 	http.Handle("/", fileServer)
+
+	if mcpEnabled {
+		// Initialize MCP before using it
+		mcp.InitMCP()
+		log.Println("MCP initialized successfully")
+	}
 
 	http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
 		dataMutex.Lock()
@@ -412,6 +464,27 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 	http.HandleFunc("/api/costs", cost.HandleCostRequest)
 	http.HandleFunc("/api/refresh-pricing", cost.HandleRefreshPricing)
 	http.HandleFunc("/api/pricing-info", cost.HandlePricingInfo)
+
+	// Add MCP endpoints if MCP is enabled
+	http.HandleFunc("/api/mcp/retrieve", mcp.HandleMCPRetrieve)
+	http.HandleFunc("/api/mcp/update", func(w http.ResponseWriter, r *http.Request) {
+		// Process current data for MCP
+		dataMutex.Lock()
+		dataType := identifyDataType(data)
+		if dataType != "unknown" {
+			mcp.ProcessData(data, dataType)
+		}
+		dataMutex.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "MCP index updated with current data",
+		})
+	})
+
+	http.HandleFunc("/.well-known/ai-plugin.json", mcp.HandleAIPluginManifest)
+	http.HandleFunc("/openapi.yaml", mcp.HandleOpenAPISpec)
 
 	http.HandleFunc("/api/check-credentials", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -435,7 +508,15 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		}
 		dataMutex.Lock()
 		data = importedData
+
+		dataType := identifyDataType(data)
+		if dataType != "unknown" && mcpEnabled {
+			log.Printf("Processing data of type '%s' with MCP...", dataType)
+			docs := mcp.ProcessData(data, dataType)
+			log.Printf("Processed %d documents with MCP", len(docs))
+		}
 		dataMutex.Unlock()
+
 		w.WriteHeader(http.StatusOK)
 		err = json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 		if err != nil {
@@ -479,7 +560,14 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		}
 		dataMutex.Lock()
 		data = data
+
+		// Process new data with MCP
+		dataType := identifyDataType(data)
+		if dataType != "unknown" {
+			mcp.ProcessData(data, dataType)
+		}
 		dataMutex.Unlock()
+
 		w.WriteHeader(http.StatusOK)
 		err = json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 		if err != nil {
@@ -623,6 +711,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 
 		dataMutex.Lock()
 		data = veeamData
+
+		// Process Veeam data with MCP
+		mcp.ProcessData(veeamData, "veeam")
 		dataMutex.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
@@ -736,6 +827,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 
 		dataMutex.Lock()
 		data = vaultData
+
+		// Process Vault data with MCP
+		mcp.ProcessData(vaultData, "vault")
 		dataMutex.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
@@ -863,6 +957,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 
 		dataMutex.Lock()
 		data = kubeData
+
+		// Process Kubernetes data with MCP
+		mcp.ProcessData(kubeData, "kubernetes")
 		dataMutex.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
@@ -962,6 +1059,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 
 		dataMutex.Lock()
 		data = awsData
+
+		// Process AWS data with MCP
+		mcp.ProcessData(awsData, "aws")
 		dataMutex.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
@@ -1077,6 +1177,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 
 		dataMutex.Lock()
 		data = azureData
+
+		// Process Azure data with MCP
+		mcp.ProcessData(azureData, "azure")
 		dataMutex.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
@@ -1130,13 +1233,13 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		ctx := r.Context()
 		kubeconfigPath := filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
-		var data map[string]interface{}
+		var snapData map[string]interface{}
 		var err error
 
 		if platform == "all" {
-			data, err = snapshots.CollectAllSnapshots(ctx, kubeconfigPath)
+			snapData, err = snapshots.CollectAllSnapshots(ctx, kubeconfigPath)
 		} else {
-			data, err = snapshots.CollectPlatformSnapshots(ctx, platform, kubeconfigPath)
+			snapData, err = snapshots.CollectPlatformSnapshots(ctx, platform, kubeconfigPath)
 		}
 
 		if err != nil {
@@ -1145,8 +1248,43 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			return
 		}
 
+		// Process snapshot data with MCP
+		mcp.ProcessData(snapData, "snapshots")
+
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(data)
+		json.NewEncoder(w).Encode(snapData)
+	})
+
+	http.HandleFunc("/api/mcp/status", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]bool{
+			"enabled": mcpEnabled,
+		})
+	})
+
+	http.HandleFunc("/api/mcp/status-info", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		// Get document count and types from MCP
+		docCount := 0
+		docTypes := []string{}
+
+		// Use mcpEnabled that's passed as a parameter
+		if mcpEnabled {
+			docCount = mcp.GetDocumentCount()
+			docTypes = mcp.GetDocumentTypes()
+		}
+
+		info := map[string]interface{}{
+			"enabled":    mcpEnabled,
+			"docCount":   docCount,
+			"docTypes":   docTypes,
+			"engineType": "InMemory Vector Search",
+		}
+
+		if err := json.NewEncoder(w).Encode(info); err != nil {
+			http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		}
 	})
 
 	http.HandleFunc("/api/gcp/connect", func(w http.ResponseWriter, r *http.Request) {
@@ -1220,6 +1358,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 
 		dataMutex.Lock()
 		data = gcpData
+
+		// Process GCP data with MCP
+		mcp.ProcessData(gcpData, "gcp")
 		dataMutex.Unlock()
 
 		if tempKeyFile != "" {
