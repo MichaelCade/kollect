@@ -236,8 +236,13 @@ func main() {
 		log.Fatalf("Error collecting data: %v", err)
 	}
 
-	// Process data with MCP if enabled
 	if *enableMCP && data != nil {
+		// Set MCP enabled at the package level first
+		mcp.SetMCPEnabled(true)
+
+		// Initialize MCP if it's not already initialized
+		mcp.InitMCP()
+
 		dataType := identifyDataType(data)
 		if dataType != "unknown" {
 			mcp.ProcessData(data, dataType)
@@ -436,7 +441,7 @@ func identifyDataType(data interface{}) string {
 }
 
 func startWebServer(initialData interface{}, openBrowser bool, baseURL, username, password string, mcpEnabled bool) {
-
+	mcp.SetMCPEnabled(mcpEnabled)
 	fsys, err := fs.Sub(staticFiles, "web")
 	if err != nil {
 		panic(err)
@@ -445,12 +450,45 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 	cost.InitPricing()
 	http.Handle("/", fileServer)
 
+	// Replace lines ~435-480 with this updated section:
 	if mcpEnabled {
 		// Initialize MCP before using it
 		mcp.InitMCP()
 		log.Println("MCP initialized successfully")
-	}
 
+		// Only register MCP handlers when MCP is enabled
+		http.HandleFunc("/api/mcp/retrieve", mcp.HandleMCPRetrieve)
+		http.HandleFunc("/api/mcp/update", func(w http.ResponseWriter, r *http.Request) {
+			// Process current data for MCP
+			dataMutex.Lock()
+			dataType := identifyDataType(data)
+			if mcpEnabled {
+				mcp.ProcessData(data, dataType)
+			}
+			dataMutex.Unlock()
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"status":  "success",
+				"message": "MCP index updated with current data",
+			})
+		})
+
+		http.HandleFunc("/.well-known/ai-plugin.json", mcp.HandleAIPluginManifest)
+		http.HandleFunc("/openapi.yaml", mcp.HandleOpenAPISpec)
+
+		// MCP info endpoint with full details (only when MCP is enabled)
+		http.HandleFunc("/api/mcp/status-info", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			info := map[string]interface{}{
+				"enabled":    true,
+				"docCount":   mcp.GetDocumentCount(),
+				"docTypes":   mcp.GetDocumentTypes(),
+				"engineType": "InMemory Vector Search",
+			}
+			json.NewEncoder(w).Encode(info)
+		})
+	}
 	http.HandleFunc("/api/data", func(w http.ResponseWriter, r *http.Request) {
 		dataMutex.Lock()
 		defer dataMutex.Unlock()
@@ -460,31 +498,12 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
-
-	http.HandleFunc("/api/costs", cost.HandleCostRequest)
-	http.HandleFunc("/api/refresh-pricing", cost.HandleRefreshPricing)
-	http.HandleFunc("/api/pricing-info", cost.HandlePricingInfo)
-
-	// Add MCP endpoints if MCP is enabled
-	http.HandleFunc("/api/mcp/retrieve", mcp.HandleMCPRetrieve)
-	http.HandleFunc("/api/mcp/update", func(w http.ResponseWriter, r *http.Request) {
-		// Process current data for MCP
-		dataMutex.Lock()
-		dataType := identifyDataType(data)
-		if dataType != "unknown" {
-			mcp.ProcessData(data, dataType)
-		}
-		dataMutex.Unlock()
-
+	http.HandleFunc("/api/mcp/status", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "success",
-			"message": "MCP index updated with current data",
+		json.NewEncoder(w).Encode(map[string]bool{
+			"enabled": mcpEnabled,
 		})
 	})
-
-	http.HandleFunc("/.well-known/ai-plugin.json", mcp.HandleAIPluginManifest)
-	http.HandleFunc("/openapi.yaml", mcp.HandleOpenAPISpec)
 
 	http.HandleFunc("/api/check-credentials", func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
@@ -561,9 +580,8 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		dataMutex.Lock()
 		data = data
 
-		// Process new data with MCP
 		dataType := identifyDataType(data)
-		if dataType != "unknown" {
+		if dataType != "unknown" && mcpEnabled {
 			mcp.ProcessData(data, dataType)
 		}
 		dataMutex.Unlock()
@@ -712,8 +730,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		dataMutex.Lock()
 		data = veeamData
 
-		// Process Veeam data with MCP
-		mcp.ProcessData(veeamData, "veeam")
+		if mcpEnabled {
+			mcp.ProcessData(veeamData, "veeam")
+		}
 		dataMutex.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
@@ -828,8 +847,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		dataMutex.Lock()
 		data = vaultData
 
-		// Process Vault data with MCP
-		mcp.ProcessData(vaultData, "vault")
+		if mcpEnabled {
+			mcp.ProcessData(vaultData, "vault")
+		}
 		dataMutex.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
@@ -958,8 +978,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		dataMutex.Lock()
 		data = kubeData
 
-		// Process Kubernetes data with MCP
-		mcp.ProcessData(kubeData, "kubernetes")
+		if mcpEnabled {
+			mcp.ProcessData(kubeData, "kubernetes")
+		}
 		dataMutex.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
@@ -1060,8 +1081,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		dataMutex.Lock()
 		data = awsData
 
-		// Process AWS data with MCP
-		mcp.ProcessData(awsData, "aws")
+		if mcpEnabled {
+			mcp.ProcessData(awsData, "aws")
+		}
 		dataMutex.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
@@ -1178,8 +1200,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		dataMutex.Lock()
 		data = azureData
 
-		// Process Azure data with MCP
-		mcp.ProcessData(azureData, "azure")
+		if mcpEnabled {
+			mcp.ProcessData(azureData, "azure")
+		}
 		dataMutex.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
@@ -1248,43 +1271,12 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 			return
 		}
 
-		// Process snapshot data with MCP
-		mcp.ProcessData(snapData, "snapshots")
+		if mcpEnabled {
+			mcp.ProcessData(snapData, "snapshots")
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(snapData)
-	})
-
-	http.HandleFunc("/api/mcp/status", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]bool{
-			"enabled": mcpEnabled,
-		})
-	})
-
-	http.HandleFunc("/api/mcp/status-info", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		// Get document count and types from MCP
-		docCount := 0
-		docTypes := []string{}
-
-		// Use mcpEnabled that's passed as a parameter
-		if mcpEnabled {
-			docCount = mcp.GetDocumentCount()
-			docTypes = mcp.GetDocumentTypes()
-		}
-
-		info := map[string]interface{}{
-			"enabled":    mcpEnabled,
-			"docCount":   docCount,
-			"docTypes":   docTypes,
-			"engineType": "InMemory Vector Search",
-		}
-
-		if err := json.NewEncoder(w).Encode(info); err != nil {
-			http.Error(w, "Error encoding response", http.StatusInternalServerError)
-		}
 	})
 
 	http.HandleFunc("/api/gcp/connect", func(w http.ResponseWriter, r *http.Request) {
@@ -1359,8 +1351,9 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		dataMutex.Lock()
 		data = gcpData
 
-		// Process GCP data with MCP
-		mcp.ProcessData(gcpData, "gcp")
+		if mcpEnabled {
+			mcp.ProcessData(gcpData, "gcp")
+		}
 		dataMutex.Unlock()
 
 		if tempKeyFile != "" {

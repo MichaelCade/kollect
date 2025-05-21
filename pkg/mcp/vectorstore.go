@@ -2,100 +2,97 @@ package mcp
 
 import (
 	"log"
+	"strings"
 )
 
-// Embedder interface for text embedding
-type Embedder interface {
-	Embed(text string) ([]float32, error)
-}
+var (
+	vectorStore *VectorStore
+)
 
-// SimpleEmbedder is a placeholder implementation
-type SimpleEmbedder struct{}
-
-func (e *SimpleEmbedder) Embed(text string) ([]float32, error) {
-	// This is a placeholder - just returns a simple vector based on text length
-	return []float32{float32(len(text))}, nil
-}
-
-// NewEmbedder creates a new embedder
-func NewEmbedder() Embedder {
-	return &SimpleEmbedder{}
-}
-
-// VectorStore manages vector embeddings of documents
+// VectorStore provides vector-based search capabilities
 type VectorStore struct {
-	embedder Embedder
-	vectors  map[string][]float32 // Document ID -> vector
+	// This is a simple in-memory implementation
+	// In a real application, you might use a dedicated vector database
+	documents []MCPDocument
 }
-
-// Global instance
-var vectorStore *VectorStore
 
 // InitVectorStore initializes the vector store
 func InitVectorStore() {
-	vectorStore = &VectorStore{
-		embedder: NewEmbedder(),
-		vectors:  make(map[string][]float32),
+	if vectorStore == nil {
+		log.Println("Initializing MCP vector store")
+		vectorStore = &VectorStore{
+			documents: make([]MCPDocument, 0),
+		}
 	}
-	log.Println("Vector store initialized")
+}
+
+// AddDocumentToVectorStore adds a document to the vector store
+func AddDocumentToVectorStore(doc MCPDocument) {
+	if vectorStore == nil {
+		log.Println("Warning: Vector store not initialized, initializing now")
+		InitVectorStore()
+	}
+
+	// Add the document to the vector store
+	vectorStore.IndexDocument(doc)
 }
 
 // IndexDocument adds a document to the vector store
 func (vs *VectorStore) IndexDocument(doc MCPDocument) error {
-	vector, err := vs.embedder.Embed(doc.Content)
-	if err != nil {
-		return err
-	}
-
-	// Store the vector
-	vs.storeVector(doc.ID, vector)
+	// In a real vector store, you would compute embeddings here
+	// For this simple implementation, we just store the document
+	vs.documents = append(vs.documents, doc)
 	return nil
 }
 
-// storeVector saves a vector to the store
-func (vs *VectorStore) storeVector(id string, vector []float32) {
-	vs.vectors[id] = vector
-}
-
-// SearchVectors finds similar vectors
-func (vs *VectorStore) SearchVectors(query string, limit int) ([]string, error) {
-	// Get the query vector
-	queryVector, err := vs.embedder.Embed(query)
-	if err != nil {
-		return nil, err
+// Search performs a vector search
+func (vs *VectorStore) Search(query string, limit int) ([]MCPDocument, error) {
+	if len(vs.documents) == 0 {
+		return []MCPDocument{}, nil
 	}
 
-	// Find similar documents
-	return vs.searchVectors(queryVector, limit), nil
-}
+	// This is a very basic search implementation
+	// In a real vector store, you would:
+	// 1. Convert the query to an embedding
+	// 2. Find the nearest neighbors in the embedding space
 
-// searchVectors finds similar vectors using cosine similarity
-func (vs *VectorStore) searchVectors(queryVector []float32, limit int) []string {
-	// In a real implementation, this would do similarity search
-	// For now, just return the first 'limit' document IDs
-	var ids []string
-	for id := range vs.vectors {
-		ids = append(ids, id)
-		if len(ids) >= limit {
-			break
-		}
-	}
-	return ids
-}
+	var results []MCPDocument
+	queryLower := strings.ToLower(query)
 
-// GetDocumentByID retrieves a document by ID
-func getDocumentByID(id string) (MCPDocument, bool) {
-	docStoreLock.RLock()
-	defer docStoreLock.RUnlock()
+	for _, doc := range vs.documents {
+		contentLower := strings.ToLower(doc.Content)
+		if strings.Contains(contentLower, queryLower) {
+			// Set a simple relevance score based on number of occurrences
+			occurrences := strings.Count(contentLower, queryLower)
+			doc.Score = float64(occurrences) / float64(len(doc.Content))
 
-	// Search through all document collections
-	for _, docList := range docStore {
-		for _, doc := range docList {
-			if doc.ID == id {
-				return doc, true
+			results = append(results, doc)
+
+			if len(results) >= limit {
+				break
 			}
 		}
 	}
 
+	return results, nil
+}
+
+// Clear removes all documents from the vector store
+func (vs *VectorStore) Clear() {
+	vs.documents = make([]MCPDocument, 0)
+}
+
+// GetDocumentCount returns the number of documents in the vector store
+func (vs *VectorStore) GetDocumentCount() int {
+	return len(vs.documents)
+}
+
+// GetDocument retrieves a document by ID
+func (vs *VectorStore) GetDocument(id string) (MCPDocument, bool) {
+	for _, doc := range vs.documents {
+		if doc.ID == id {
+			return doc, true
+		}
+	}
 	return MCPDocument{}, false
 }

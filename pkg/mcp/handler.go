@@ -5,45 +5,35 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 )
 
 var (
-	// Shared data store for MCP documents
 	docStore     map[string][]MCPDocument
 	docStoreLock sync.RWMutex
+	mcpEnabled   bool
 )
 
+func SetMCPEnabled(enabled bool) {
+	mcpEnabled = enabled
+}
+
+// InitMCP initializes the MCP subsystem
 func InitMCP() {
 	log.Println("Initializing Model Context Protocol (MCP) support")
-	docStore = make(map[string][]MCPDocument)
+
+	// Initialize the document store if it doesn't exist
+	if docStore == nil {
+		docStore = make(map[string][]MCPDocument)
+	}
 
 	// Initialize the vector store for semantic search
 	InitVectorStore()
-}
 
-func GetDocumentCount() int {
-	docStoreLock.RLock()
-	defer docStoreLock.RUnlock()
-
-	count := 0
-	for _, docs := range docStore {
-		count += len(docs)
-	}
-	return count
-}
-
-// GetDocumentTypes returns the document types in the store
-func GetDocumentTypes() []string {
-	docStoreLock.RLock()
-	defer docStoreLock.RUnlock()
-
-	types := make([]string, 0, len(docStore))
-	for key := range docStore {
-		types = append(types, key)
-	}
-	return types
+	// Register all resource handlers
+	RegisterHandlers()
 }
 
 // IndexDocuments adds documents to the search index
@@ -59,6 +49,9 @@ func IndexDocuments(documents []MCPDocument) {
 
 	// Group documents by source
 	for _, doc := range documents {
+		// Transform the document before indexing
+		doc = TransformDocument(doc)
+
 		sourceKey := fmt.Sprintf("%s:%s", doc.Source, doc.SourceType)
 		docStore[sourceKey] = append(docStore[sourceKey], doc)
 
@@ -67,19 +60,41 @@ func IndexDocuments(documents []MCPDocument) {
 	}
 }
 
-func AddDocumentToVectorStore(doc MCPDocument) {
-	if vectorStore == nil {
-		log.Println("Warning: Vector store not initialized, initializing now")
-		InitVectorStore()
+// GetDocumentCount returns the total number of documents in the MCP index
+func GetDocumentCount() int {
+	if docStore == nil {
+		return 0
 	}
 
-	err := vectorStore.IndexDocument(doc)
-	if err != nil {
-		log.Printf("Error adding document to vector store: %v", err)
+	docStoreLock.RLock()
+	defer docStoreLock.RUnlock()
+
+	count := 0
+	for _, docs := range docStore {
+		count += len(docs)
 	}
+	return count
 }
 
-// HandleMCPRetrieve handles MCP retrieval requests
+// GetDocumentTypes returns a list of all document types in the index
+func GetDocumentTypes() []string {
+	if docStore == nil {
+		return []string{}
+	}
+
+	docStoreLock.RLock()
+	defer docStoreLock.RUnlock()
+
+	types := make([]string, 0, len(docStore))
+	for sourceType := range docStore {
+		types = append(types, sourceType)
+	}
+
+	sort.Strings(types)
+	return types
+}
+
+// HandleMCPRetrieve handles API requests to retrieve documents from MCP
 func HandleMCPRetrieve(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -92,111 +107,42 @@ func HandleMCPRetrieve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("MCP query received: %s (limit: %d)", query.Query, query.Limit)
-
-	limit := 5
-	if query.Limit > 0 {
-		limit = query.Limit
-	}
-
-	// Retrieve relevant documents
-	documents, err := retrieveDocuments(query, limit)
-	if err != nil {
-		http.Error(w, "Error retrieving documents", http.StatusInternalServerError)
+	if query.Query == "" {
+		http.Error(w, "Query cannot be empty", http.StatusBadRequest)
 		return
 	}
 
-	response := MCPResponse{
-		Documents: documents,
-		Metadata: map[string]interface{}{
-			"total_docs": len(documents),
-			"query":      query.Query,
-		},
+	limit := 10
+	if limitParam := r.URL.Query().Get("limit"); limitParam != "" {
+		if _, err := fmt.Sscanf(limitParam, "%d", &limit); err != nil {
+			limit = 10
+		}
+	}
+
+	// Use vector search if available, otherwise fall back to document retrieval
+	var docs []MCPDocument
+	var err error
+
+	if vectorStore != nil {
+		docs, err = vectorStore.Search(query.Query, limit)
+		if err != nil {
+			log.Printf("Vector search error: %v, falling back to regular retrieval", err)
+			docs, err = retrieveDocuments(query, limit)
+		}
+	} else {
+		docs, err = retrieveDocuments(query, limit)
+	}
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error retrieving documents: %v", err), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(docs)
 }
 
-// HandleAIPluginManifest handles the AI plugin manifest endpoint
-func HandleAIPluginManifest(w http.ResponseWriter, r *http.Request) {
-	manifest := map[string]interface{}{
-		"schema_version":        "v1",
-		"name_for_human":        "Kollect Infrastructure Explorer",
-		"name_for_model":        "kollect",
-		"description_for_human": "Plugin for exploring cloud infrastructure and resources across AWS, Azure, GCP, Kubernetes, Terraform, Vault, and Veeam.",
-		"description_for_model": "Plugin for accessing information about cloud infrastructure and resources with Kollect. Use this plugin when the user asks about their AWS, Azure, GCP, Kubernetes, Terraform, Vault, or Veeam resources.",
-		"auth": map[string]interface{}{
-			"type": "none",
-		},
-		"api": map[string]interface{}{
-			"type": "openapi",
-			"url":  "/openapi.yaml",
-		},
-		"logo_url":       "/logo.png",
-		"contact_email":  "contact@example.com",
-		"legal_info_url": "https://example.com/legal",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(manifest)
-}
-
-// HandleOpenAPISpec handles the OpenAPI spec endpoint
-func HandleOpenAPISpec(w http.ResponseWriter, r *http.Request) {
-	// OpenAPI spec for your MCP endpoint
-	w.Header().Set("Content-Type", "application/yaml")
-	w.Write([]byte(`
-openapi: 3.0.1
-info:
-  title: Kollect Infrastructure Explorer
-  description: Plugin for exploring cloud infrastructure and resources
-  version: 'v1'
-servers:
-  - url: http://localhost:8080
-paths:
-  /api/mcp/retrieve:
-    post:
-      operationId: retrieveDocuments
-      summary: Retrieve infrastructure data based on query
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                query:
-                  type: string
-                  description: The search query
-                limit:
-                  type: integer
-                  description: Maximum number of results to return
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  documents:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        content:
-                          type: string
-                        metadata:
-                          type: object
-                        score:
-                          type: number
-`))
-}
-
-// Update the retrieveDocuments function to make it more useful:
+// retrieveDocuments performs a simple keyword-based search in the document store
 func retrieveDocuments(query MCPQuery, limit int) ([]MCPDocument, error) {
 	docStoreLock.RLock()
 	defer docStoreLock.RUnlock()
@@ -284,20 +230,19 @@ func retrieveDocuments(query MCPQuery, limit int) ([]MCPDocument, error) {
 		}
 
 		// Add bonus for matches near the beginning of content
-		firstIndex := strings.Index(contentLower, queryTerms[0])
+		firstIndex := -1
+		if len(queryTerms) > 0 {
+			firstIndex = strings.Index(contentLower, queryTerms[0])
+		}
 		if firstIndex >= 0 && firstIndex < 50 {
 			results[i].Score += 0.1
 		}
 	}
 
 	// Sort by score (highest first)
-	for i := 0; i < len(results)-1; i++ {
-		for j := 0; j < len(results)-i-1; j++ {
-			if results[j].Score < results[j+1].Score {
-				results[j], results[j+1] = results[j+1], results[j]
-			}
-		}
-	}
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Score > results[j].Score
+	})
 
 	// Truncate to limit
 	if len(results) > limit {
@@ -308,15 +253,24 @@ func retrieveDocuments(query MCPQuery, limit int) ([]MCPDocument, error) {
 	return results, nil
 }
 
-// Helper function to check if document matches metadata filters
-func matchesMetadata(doc MCPDocument, filters map[string]interface{}) bool {
-	if filters == nil || len(filters) == 0 {
+// matchesMetadata checks if a document's metadata matches the query criteria
+func matchesMetadata(doc MCPDocument, metadataQuery map[string]interface{}) bool {
+	if metadataQuery == nil || len(metadataQuery) == 0 {
 		return true
 	}
 
-	for key, value := range filters {
+	for key, queryValue := range metadataQuery {
 		docValue, exists := doc.Metadata[key]
-		if !exists || docValue != value {
+		if !exists {
+			return false
+		}
+
+		// Convert values to strings for comparison
+		queryStr := fmt.Sprintf("%v", queryValue)
+		docStr := fmt.Sprintf("%v", docValue)
+
+		// Check if values match (case insensitive)
+		if !strings.EqualFold(queryStr, docStr) {
 			return false
 		}
 	}
@@ -324,22 +278,100 @@ func matchesMetadata(doc MCPDocument, filters map[string]interface{}) bool {
 	return true
 }
 
-// Very basic relevance sorting - can be improved
-func sortByRelevance(docs []MCPDocument, query string) {
-	queryLower := strings.ToLower(query)
-
-	// Count occurrences of the query in each document
-	for i := range docs {
-		count := strings.Count(strings.ToLower(docs[i].Content), queryLower)
-		docs[i].Score = float64(count) / float64(len(docs[i].Content)) * 100
+// HandleAIPluginManifest provides the AI Plugin manifest
+func HandleAIPluginManifest(w http.ResponseWriter, r *http.Request) {
+	baseURL := getBaseURL(r)
+	manifest := map[string]interface{}{
+		"schema_version":        "v1",
+		"name_for_human":        "Kollect Data Explorer",
+		"name_for_model":        "KollectDataExplorer",
+		"description_for_human": "Access and search data collected by Kollect from various platforms.",
+		"description_for_model": "This plugin provides access to data collected from various cloud platforms and services. You can search resources from Kubernetes, AWS, Azure, GCP, Terraform, Vault, and other sources.",
+		"auth": map[string]string{
+			"type": "none",
+		},
+		"api": map[string]string{
+			"type": "openapi",
+			"url":  baseURL + "/openapi.yaml",
+		},
+		"logo_url":       baseURL + "/logo.png",
+		"contact_email":  "support@example.com",
+		"legal_info_url": baseURL + "/legal",
 	}
 
-	// Simple bubble sort by score
-	for i := 0; i < len(docs)-1; i++ {
-		for j := 0; j < len(docs)-i-1; j++ {
-			if docs[j].Score < docs[j+1].Score {
-				docs[j], docs[j+1] = docs[j+1], docs[j]
-			}
-		}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(manifest)
+}
+
+// HandleOpenAPISpec provides the OpenAPI specification
+func HandleOpenAPISpec(w http.ResponseWriter, r *http.Request) {
+	baseURL := getBaseURL(r)
+
+	spec := fmt.Sprintf(`openapi: 3.0.1
+info:
+  title: Kollect Data Explorer API
+  description: Search and explore data collected from various platforms.
+  version: "v1"
+servers:
+  - url: %s
+paths:
+  /api/mcp/retrieve:
+    post:
+      operationId: searchResources
+      summary: Search collected resources
+      description: Search for resources across all collected data.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: Search query
+                metadata:
+                  type: object
+                  description: Additional metadata filters
+      responses:
+        "200":
+          description: Matching resources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Resource'
+components:
+  schemas:
+    Resource:
+      type: object
+      properties:
+        id:
+          type: string
+        content:
+          type: string
+        metadata:
+          type: object
+        source:
+          type: string
+        sourceType:
+          type: string
+        score:
+          type: number
+`, baseURL)
+
+	w.Header().Set("Content-Type", "text/yaml")
+	w.Write([]byte(spec))
+}
+
+// Helper function to get the base URL
+func getBaseURL(r *http.Request) string {
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
 	}
+	return fmt.Sprintf("%s://%s", scheme, r.Host)
 }

@@ -1,6 +1,5 @@
 // MCP (Model Context Protocol) script for AI Assistant features
 
-// Check if MCP is active/enabled
 function checkMCPStatus() {
     fetch('/api/mcp/status')
         .then(response => response.json())
@@ -10,6 +9,11 @@ function checkMCPStatus() {
                 showMCPCard();
             } else {
                 console.log('MCP is not active');
+                // Make sure to hide the card if it exists and MCP is disabled
+                const existingCard = document.getElementById('mcp-card');
+                if (existingCard) {
+                    existingCard.remove();
+                }
             }
         })
         .catch(error => {
@@ -19,64 +23,77 @@ function checkMCPStatus() {
 
 // Create the MCP UI card
 function showMCPCard() {
-    const content = document.getElementById('content');
-    
-    // Check if the card already exists
-    if (document.getElementById('mcp-card')) {
-        return;
-    }
-    
-    // Create the AI Assistant card
-    const mcpCard = document.createElement('div');
-    mcpCard.id = 'mcp-card';
-    mcpCard.className = 'mcp-card';
-    mcpCard.innerHTML = `
-        <div class="card" style="margin: 20px 0; padding: 20px; border-radius: 8px; background-color: var(--card-bg); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <h3><i class="fas fa-robot"></i> AI Assistant Access</h3>
-            <p>Your infrastructure data is available to AI assistants via the Model Context Protocol.</p>
+    // Check MCP status first before showing the card
+    fetch('/api/mcp/status')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.enabled) {
+                console.log('MCP is disabled, not showing card');
+                return;
+            }
             
-            <div style="margin-top: 15px;">
-                <div class="form-group">
-                    <label for="mcp-endpoint" style="font-weight: bold;">MCP Endpoint:</label>
-                    <input type="text" id="mcp-endpoint" value="http://${window.location.host}/api/mcp/retrieve" readonly 
-                           style="width: 100%; padding: 8px; margin-top: 5px; background: var(--secondary-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
-                </div>
-                
-                <div style="margin-top: 15px;">
-                    <button id="copy-mcp-endpoint" class="btn btn-primary">
-                        <i class="fas fa-copy"></i> Copy Endpoint
-                    </button>
-                    <button id="test-mcp-query" class="btn">
-                        <i class="fas fa-search"></i> Test Query
-                    </button>
-                </div>
-            </div>
+            const content = document.getElementById('content');
             
-            <div id="mcp-test-container" style="display: none; margin-top: 15px;">
-                <div class="form-group">
-                    <label for="mcp-test-query" style="font-weight: bold;">Test Query:</label>
-                    <input type="text" id="mcp-test-query" placeholder="Enter a query about your infrastructure..." 
-                           style="width: 100%; padding: 8px; margin-top: 5px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+            // Check if the card already exists
+            if (document.getElementById('mcp-card')) {
+                return;
+            }
+            
+            // Create the AI Assistant card
+            const mcpCard = document.createElement('div');
+            mcpCard.id = 'mcp-card';
+            mcpCard.className = 'mcp-card';
+            mcpCard.innerHTML = `
+                <div class="card" style="margin: 20px 0; padding: 20px; border-radius: 8px; background-color: var(--card-bg); box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h3><i class="fas fa-robot"></i> AI Assistant Access</h3>
+                    <p>Your infrastructure data is available to AI assistants via the Model Context Protocol.</p>
+                    
+                    <div style="margin-top: 15px;">
+                        <div class="form-group">
+                            <label for="mcp-endpoint" style="font-weight: bold;">MCP Endpoint:</label>
+                            <input type="text" id="mcp-endpoint" value="http://${window.location.host}/api/mcp/retrieve" readonly 
+                                style="width: 100%; padding: 8px; margin-top: 5px; background: var(--secondary-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <button id="copy-mcp-endpoint" class="btn btn-primary">
+                                <i class="fas fa-copy"></i> Copy Endpoint
+                            </button>
+                            <button id="test-mcp-query" class="btn">
+                                <i class="fas fa-search"></i> Test Query
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="mcp-test-container" style="display: none; margin-top: 15px;">
+                        <div class="form-group">
+                            <label for="mcp-test-query" style="font-weight: bold;">Test Query:</label>
+                            <input type="text" id="mcp-test-query" placeholder="Enter a query about your infrastructure..." 
+                                style="width: 100%; padding: 8px; margin-top: 5px; background: var(--input-bg-color); color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px;">
+                        </div>
+                        <button id="run-mcp-test" class="btn btn-primary" style="margin-top: 10px;">
+                            <i class="fas fa-play"></i> Run Query
+                        </button>
+                        
+                        <div id="mcp-results" style="margin-top: 15px; max-height: 300px; overflow-y: auto; display: none;">
+                        </div>
+                    </div>
                 </div>
-                <button id="run-mcp-test" class="btn btn-primary" style="margin-top: 10px;">
-                    <i class="fas fa-play"></i> Run Query
-                </button>
-                
-                <div id="mcp-results" style="margin-top: 15px; max-height: 300px; overflow-y: auto; display: none;">
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Insert at the top of the content
-    if (content.firstChild) {
-        content.insertBefore(mcpCard, content.firstChild);
-    } else {
-        content.appendChild(mcpCard);
-        checkMCPIndexStatus();
-    }
-    
-    setupMCPEventHandlers();
+            `;
+            
+            // Insert at the top of the content
+            if (content.firstChild) {
+                content.insertBefore(mcpCard, content.firstChild);
+            } else {
+                content.appendChild(mcpCard);
+                checkMCPIndexStatus();
+            }
+            
+            setupMCPEventHandlers();
+        })
+        .catch(error => {
+            console.error('Error checking MCP status before showing card:', error);
+        });
 }
 
 function setupMCPEventHandlers() {
@@ -95,76 +112,130 @@ function setupMCPEventHandlers() {
         container.style.display = container.style.display === 'none' ? 'block' : 'none';
     });
     
-    document.getElementById('run-mcp-test')?.addEventListener('click', () => {
-        const query = document.getElementById('mcp-test-query').value;
-        if (!query) {
-            showToast('Please enter a query', 'warning');
-            return;
+    // Update this part in the run-mcp-test event listener:
+document.getElementById('run-mcp-test')?.addEventListener('click', () => {
+    const query = document.getElementById('mcp-test-query').value;
+    if (!query) {
+        showToast('Please enter a query', 'warning');
+        return;
+    }
+    
+    document.getElementById('mcp-results').style.display = 'none';
+    showMCPLoadingIndicator();
+    checkMCPIndexStatus();
+    
+    // Log the query for debugging
+    console.log("Sending MCP query:", query);
+    
+    fetch('/api/mcp/retrieve', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            query: query,
+            limit: 10  // Increased from 5 to get more results
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("MCP query response:", data); // Log the full response
+        
+        const resultsContainer = document.getElementById('mcp-results');
+        resultsContainer.innerHTML = '';
+        
+        if (data && data.documents && data.documents.length > 0) {
+            const resultList = document.createElement('div');
+            resultList.className = 'mcp-results-list';
+            resultList.style.display = 'flex';
+            resultList.style.flexDirection = 'column';
+            resultList.style.gap = '10px';
+            
+            data.documents.forEach(doc => {
+                const docElement = document.createElement('div');
+                docElement.className = 'mcp-result-item';
+                docElement.style.padding = '10px';
+                docElement.style.margin = '5px 0';
+                docElement.style.borderLeft = '3px solid var(--accent-color)';
+                docElement.style.backgroundColor = 'var(--secondary-bg-color)';
+                
+                docElement.innerHTML = `
+                    <div><strong>Source:</strong> ${doc.source} (${doc.source_type})</div>
+                    <div style="margin-top: 5px; white-space: pre-wrap;">${doc.content}</div>
+                    ${doc.score ? `<div style="margin-top: 5px; font-size: 0.9em; color: var(--secondary-text-color);">Relevance: ${(doc.score * 100).toFixed(1)}%</div>` : ''}
+                `;
+                
+                resultList.appendChild(docElement);
+            });
+            
+            resultsContainer.appendChild(resultList);
+        } else if (Array.isArray(data) && data.length > 0) {
+            // Handle alternative response format where data is an array
+            const resultList = document.createElement('div');
+            resultList.className = 'mcp-results-list';
+            resultList.style.display = 'flex';
+            resultList.style.flexDirection = 'column';
+            resultList.style.gap = '10px';
+            
+            data.forEach(doc => {
+                const docElement = document.createElement('div');
+                docElement.className = 'mcp-result-item';
+                docElement.style.padding = '10px';
+                docElement.style.margin = '5px 0';
+                docElement.style.borderLeft = '3px solid var(--accent-color)';
+                docElement.style.backgroundColor = 'var(--secondary-bg-color)';
+                
+                docElement.innerHTML = `
+                    <div><strong>Source:</strong> ${doc.source || 'Unknown'} (${doc.source_type || 'Unknown'})</div>
+                    <div style="margin-top: 5px; white-space: pre-wrap;">${doc.content || 'No content'}</div>
+                    ${doc.score ? `<div style="margin-top: 5px; font-size: 0.9em; color: var(--secondary-text-color);">Relevance: ${(doc.score * 100).toFixed(1)}%</div>` : ''}
+                `;
+                
+                resultList.appendChild(docElement);
+            });
+            
+            resultsContainer.appendChild(resultList);
+        } else {
+            resultsContainer.innerHTML = `
+                <div style="padding: 10px; color: var(--secondary-text-color);">
+                    <p>No results found for your query: "${query}"</p>
+                    <p>Try using one of these terms instead:</p>
+                    <ul style="margin-top: 5px; margin-left: 20px;">
+                        <li>kubernetes</li>
+                        <li>pod</li>
+                        <li>nodes</li>
+                        <li>storage</li>
+                        <li>aws</li>
+                        <li>azure</li>
+                        <li>gcp</li>
+                    </ul>
+                </div>`;
         }
         
-        document.getElementById('mcp-results').style.display = 'none';
-        showLoadingIndicator();
-        checkMCPIndexStatus();
-        
-        fetch('/api/mcp/retrieve', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                query: query,
-                limit: 5
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            const resultsContainer = document.getElementById('mcp-results');
-            resultsContainer.innerHTML = '';
-            
-            if (data.documents && data.documents.length > 0) {
-                const resultList = document.createElement('div');
-                resultList.className = 'mcp-results-list';
-                resultList.style.display = 'flex';
-                resultList.style.flexDirection = 'column';
-                resultList.style.gap = '10px';
-                
-                data.documents.forEach(doc => {
-                    const docElement = document.createElement('div');
-                    docElement.className = 'mcp-result-item';
-                    docElement.style.padding = '10px';
-                    docElement.style.margin = '5px 0';
-                    docElement.style.borderLeft = '3px solid var(--accent-color)';
-                    docElement.style.backgroundColor = 'var(--secondary-bg-color)';
-                    
-                    docElement.innerHTML = `
-                        <div><strong>Source:</strong> ${doc.source} (${doc.source_type})</div>
-                        <div style="margin-top: 5px; white-space: pre-wrap;">${doc.content}</div>
-                        ${doc.score ? `<div style="margin-top: 5px; font-size: 0.9em; color: var(--secondary-text-color);">Relevance: ${(doc.score * 100).toFixed(1)}%</div>` : ''}
-                    `;
-                    
-                    resultList.appendChild(docElement);
-                });
-                
-                resultsContainer.appendChild(resultList);
-            } else {
-                resultsContainer.innerHTML = '<div style="padding: 10px; color: var(--secondary-text-color);">No results found for your query.</div>';
-            }
-            
-            resultsContainer.style.display = 'block';
-            hideLoadingIndicator();
-        })
-        .catch(error => {
-            console.error('Error testing MCP query:', error);
-            hideLoadingIndicator();
-            document.getElementById('mcp-results').innerHTML = `<div style="padding: 10px; color: #FF5252;">Error: ${error.message}</div>`;
-            document.getElementById('mcp-results').style.display = 'block';
-        });
+        resultsContainer.style.display = 'block';
+        hideMCPLoadingIndicator();
+    })
+    .catch(error => {
+        console.error('Error testing MCP query:', error);
+        hideMCPLoadingIndicator();
+        document.getElementById('mcp-results').innerHTML = `
+            <div style="padding: 10px; color: #FF5252;">
+                <p>Error: ${error.message}</p>
+                <p style="margin-top: 10px;">This may happen if:</p>
+                <ul style="margin-top: 5px; margin-left: 20px;">
+                    <li>The MCP service is not initialized correctly</li>
+                    <li>There are no documents indexed yet</li>
+                    <li>The query format is incorrect</li>
+                </ul>
+            </div>`;
+        document.getElementById('mcp-results').style.display = 'block';
     });
+});
 }
 
 // Helper functions
@@ -214,7 +285,8 @@ function setupMCPObserver() {
     const observer = new MutationObserver((mutations) => {
         for (const mutation of mutations) {
             if (mutation.type === 'childList' && !document.getElementById('mcp-card')) {
-                showMCPCard();
+                // Check MCP status before adding card
+                checkMCPStatus();
             }
         }
     });
@@ -274,27 +346,110 @@ function checkMCPIndexStatus() {
         });
 }
 
+// Change this function name
+function showMCPLoadingIndicator() {
+    // For MCP UI
+    const resultsContainer = document.getElementById('mcp-results');
+    if (resultsContainer) {
+        // We're in the MCP UI
+        let loader = document.getElementById('mcp-loader');
+        if (!loader) {
+            loader = document.createElement('div');
+            loader.id = 'mcp-loader';
+            loader.style.position = 'relative';
+            loader.style.padding = '20px';
+            loader.style.textAlign = 'center';
+            loader.innerHTML = '<div class="spinner" style="display: inline-block; width: 30px; height: 30px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: var(--accent-color); animation: spin 1s ease-in-out infinite;"></div>';
+            loader.innerHTML += '<style>@keyframes spin { to { transform: rotate(360deg); } }</style>';
+            
+            resultsContainer.innerHTML = '';
+            resultsContainer.appendChild(loader);
+            resultsContainer.style.display = 'block';
+        }
+    } else {
+        // Use the common loading indicator
+        if (typeof window.commonShowLoadingIndicator === 'function') {
+            window.commonShowLoadingIndicator();
+        } else {
+            // Fallback
+            let globalLoader = document.getElementById('loading-indicator');
+            if (globalLoader) {
+                globalLoader.style.display = 'flex';
+            } else {
+                // Create one if needed
+                globalLoader = document.createElement('div');
+                globalLoader.id = 'loading-indicator';
+                globalLoader.style.position = 'fixed';
+                globalLoader.style.top = '0';
+                globalLoader.style.left = '0';
+                globalLoader.style.width = '100%';
+                globalLoader.style.height = '100%';
+                globalLoader.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                globalLoader.style.display = 'flex';
+                globalLoader.style.justifyContent = 'center';
+                globalLoader.style.alignItems = 'center';
+                globalLoader.style.zIndex = '9999';
+                
+                const spinner = document.createElement('div');
+                spinner.style.width = '50px';
+                spinner.style.height = '50px';
+                spinner.style.border = '5px solid rgba(255,255,255,0.3)';
+                spinner.style.borderRadius = '50%';
+                spinner.style.borderTop = '5px solid var(--accent-color, #4CAF50)';
+                spinner.style.animation = 'spin 1s linear infinite';
+                
+                globalLoader.appendChild(spinner);
+                globalLoader.innerHTML += '<style>@keyframes spin { to { transform: rotate(360deg); } }</style>';
+                
+                document.body.appendChild(globalLoader);
+            }
+            
+            globalLoader.style.display = 'flex';
+        }
+    }
+}
+
+// Also rename this function
+function hideMCPLoadingIndicator() {
+    // Hide MCP-specific loader
+    const loader = document.getElementById('mcp-loader');
+    if (loader) {
+        loader.remove();
+    }
+    
+    // Use the common hide function
+    if (typeof window.commonHideLoadingIndicator === 'function') {
+        window.commonHideLoadingIndicator();
+    } else {
+        // Fallback
+        const globalLoader = document.getElementById('loading-indicator');
+        if (globalLoader) {
+            globalLoader.style.display = 'none';
+        }
+    }
+}
+
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
     console.log('MCP script loaded');
-    checkMCPStatus();
+    checkMCPStatus(); // This will show card only if MCP is enabled
     setupMCPObserver();
     
-    // Also listen for data load events
+    // Also listen for data load events - check MCP status before showing
     window.addEventListener('dataLoaded', function() {
         console.log('Data loaded event received by MCP');
-        showMCPCard();
+        checkMCPStatus(); // Check status before showing
     });
     
-    // Re-add the card when someone imports data
+    // Re-add the card when someone imports data - check MCP status before showing
     window.addEventListener('dataImported', function() {
         console.log('Data imported event received by MCP');
-        showMCPCard();
+        checkMCPStatus(); // Check status before showing
     });
 });
 
 // Add a dedicated method for showing the card programmatically 
 // (to be called from other scripts)
 window.showMCPInterface = function() {
-    showMCPCard();
+    checkMCPStatus(); // Check status before showing
 };
