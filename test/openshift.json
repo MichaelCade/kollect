@@ -1,0 +1,1156 @@
+{
+  "clusterInfo": {
+    "version": "4.12.8",
+    "clusterId": "c76e9282-c78b-4f88-a8e5-da248c075e7b",
+    "apiServerURL": "https://api.cluster-example.openshift-domain.com:6443",
+    "platform": "AWS",
+    "projectCount": 16,
+    "nodeCount": 6,
+    "podCount": 124,
+    "storageClassCount": 3,
+    "status": "Available",
+    "availableOperators": 18,
+    "degradedOperators": 0,
+    "progressingOperators": 1
+  },
+  "projects": [
+    {
+      "kind": "Project",
+      "apiVersion": "project.openshift.io/v1",
+      "metadata": {
+        "name": "default",
+        "uid": "1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p",
+        "creationTimestamp": "2023-05-10T15:21:32Z",
+        "annotations": {
+          "openshift.io/display-name": "Default Project",
+          "openshift.io/description": "This is the default project",
+          "openshift.io/sa.scc.mcs": "s0:c1,c2",
+          "openshift.io/sa.scc.supplemental-groups": "1000/10000",
+          "openshift.io/sa.scc.uid-range": "1000/10000"
+        },
+        "labels": {
+          "environment": "production",
+          "tier": "frontend"
+        }
+      },
+      "status": {
+        "phase": "Active"
+      }
+    },
+    {
+      "kind": "Project",
+      "apiVersion": "project.openshift.io/v1",
+      "metadata": {
+        "name": "kube-system",
+        "uid": "2b3c4d5e-6f7g-8h9i-0j1k-2l3m4n5o6p7q",
+        "creationTimestamp": "2023-05-10T15:21:32Z",
+        "annotations": {
+          "openshift.io/display-name": "Kube System",
+          "openshift.io/description": "The Kubernetes system project",
+          "openshift.io/sa.scc.mcs": "s0:c10,c14",
+          "openshift.io/sa.scc.supplemental-groups": "1000/10000",
+          "openshift.io/sa.scc.uid-range": "1000/10000"
+        },
+        "labels": {
+          "environment": "system",
+          "tier": "backend"
+        }
+      },
+      "status": {
+        "phase": "Active"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "kind": "Route",
+      "apiVersion": "route.openshift.io/v1",
+      "metadata": {
+        "name": "frontend",
+        "namespace": "default",
+        "uid": "3c4d5e6f-7g8h-9i0j-1k2l-3m4n5o6p7q8r",
+        "creationTimestamp": "2023-05-10T15:25:32Z",
+        "labels": {
+          "app": "frontend",
+          "component": "web"
+        }
+      },
+      "spec": {
+        "host": "frontend.apps.cluster-example.openshift-domain.com",
+        "path": "/",
+        "to": {
+          "kind": "Service",
+          "name": "frontend-service"
+        },
+        "tls": {
+          "termination": "edge",
+          "certificate": "-----BEGIN CERTIFICATE-----\nMIIFEDCCAvigAwIBAgIJAL...\n-----END CERTIFICATE-----",
+          "key": "-----BEGIN PRIVATE KEY-----\nMIIJQwIBADANBgkqhkiG...\n-----END PRIVATE KEY-----",
+          "insecureEdgeTerminationPolicy": "Redirect"
+        }
+      },
+      "status": {
+        "ingress": [
+          {
+            "host": "frontend.apps.cluster-example.openshift-domain.com",
+            "routerName": "router",
+            "conditions": [
+              {
+                "type": "Admitted",
+                "status": "True",
+                "lastTransitionTime": "2023-05-10T15:25:45Z"
+              }
+            ],
+            "wildcardPolicy": "None"
+          }
+        ]
+      }
+    }
+  ],
+  "buildConfigs": [
+    {
+      "kind": "BuildConfig",
+      "apiVersion": "build.openshift.io/v1",
+      "metadata": {
+        "name": "frontend-build",
+        "namespace": "default",
+        "uid": "4d5e6f7g-8h9i-0j1k-2l3m-4n5o6p7q8r9s",
+        "creationTimestamp": "2023-05-10T15:28:32Z",
+        "labels": {
+          "app": "frontend",
+          "component": "build"
+        }
+      },
+      "spec": {
+        "triggers": [
+          {
+            "type": "GitHub",
+            "github": {
+              "secret": "secret101"
+            }
+          },
+          {
+            "type": "ImageChange",
+            "imageChange": {}
+          },
+          {
+            "type": "ConfigChange"
+          }
+        ],
+        "source": {
+          "git": {
+            "uri": "https://github.com/example/frontend-app.git",
+            "ref": "main"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "namespace": "openshift",
+              "name": "nodejs:16-ubi8"
+            }
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "frontend:latest"
+          }
+        }
+      },
+      "status": {
+        "lastVersion": 3
+      }
+    }
+  ],
+  "builds": [
+    {
+      "kind": "Build",
+      "apiVersion": "build.openshift.io/v1",
+      "metadata": {
+        "name": "frontend-build-3",
+        "namespace": "default",
+        "uid": "5e6f7g8h-9i0j-1k2l-3m4n-5o6p7q8r9s0t",
+        "creationTimestamp": "2023-05-10T16:02:32Z",
+        "labels": {
+          "app": "frontend",
+          "buildconfig": "frontend-build",
+          "component": "build"
+        }
+      },
+      "spec": {
+        "source": {
+          "git": {
+            "uri": "https://github.com/example/frontend-app.git",
+            "ref": "main"
+          }
+        },
+        "strategy": {
+          "type": "Source",
+          "sourceStrategy": {
+            "from": {
+              "kind": "ImageStreamTag",
+              "namespace": "openshift",
+              "name": "nodejs:16-ubi8"
+            }
+          }
+        },
+        "output": {
+          "to": {
+            "kind": "ImageStreamTag",
+            "name": "frontend:latest"
+          }
+        }
+      },
+      "status": {
+        "phase": "Complete",
+        "startTimestamp": "2023-05-10T16:02:35Z",
+        "completionTimestamp": "2023-05-10T16:07:22Z",
+        "logSnippet": "Step 1/12 : FROM registry.access.redhat.com/ubi8/nodejs-16:latest\n --> Using cache\n --> 7c5abcdef123\nStep 2/12 : WORKDIR /opt/app-root/src\n --> Using cache\n --> 8d6bcdef1234\n..."
+      }
+    }
+  ],
+  "imageStreams": [
+    {
+      "kind": "ImageStream",
+      "apiVersion": "image.openshift.io/v1",
+      "metadata": {
+        "name": "frontend",
+        "namespace": "default",
+        "uid": "6f7g8h9i-0j1k-2l3m-4n5o-6p7q8r9s0t1u",
+        "creationTimestamp": "2023-05-10T15:29:32Z",
+        "labels": {
+          "app": "frontend"
+        }
+      },
+      "spec": {},
+      "status": {
+        "dockerImageRepository": "image-registry.openshift-image-registry.svc:5000/default/frontend",
+        "tags": [
+          {
+            "tag": "latest",
+            "items": [
+              {
+                "created": "2023-05-10T16:08:12Z",
+                "dockerImageReference": "image-registry.openshift-image-registry.svc:5000/default/frontend@sha256:9a8b7c6d5e4f3g2h1i0j9k8l7m6n5o4p3q2r1s0t9u8v7w6x5y4z3",
+                "image": "sha256:9a8b7c6d5e4f3g2h1i0j9k8l7m6n5o4p3q2r1s0t9u8v7w6x5y4z3",
+                "generation": 3
+              },
+              {
+                "created": "2023-05-10T15:45:22Z",
+                "dockerImageReference": "image-registry.openshift-image-registry.svc:5000/default/frontend@sha256:8b7c6d5e4f3g2h1i0j9k8l7m6n5o4p3q2r1s0t9u8v7w6x5y4z3a9",
+                "image": "sha256:8b7c6d5e4f3g2h1i0j9k8l7m6n5o4p3q2r1s0t9u8v7w6x5y4z3a9",
+                "generation": 2
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "imageStreamTags": [
+    {
+      "kind": "ImageStreamTag",
+      "apiVersion": "image.openshift.io/v1",
+      "metadata": {
+        "name": "frontend:latest",
+        "namespace": "default",
+        "uid": "7g8h9i0j-1k2l-3m4n-5o6p-7q8r9s0t1u2v",
+        "creationTimestamp": "2023-05-10T16:08:12Z"
+      },
+      "tag": {
+        "name": "latest",
+        "from": {
+          "kind": "DockerImage",
+          "name": "image-registry.openshift-image-registry.svc:5000/default/frontend@sha256:9a8b7c6d5e4f3g2h1i0j9k8l7m6n5o4p3q2r1s0t9u8v7w6x5y4z3"
+        }
+      },
+      "image": {
+        "name": "sha256:9a8b7c6d5e4f3g2h1i0j9k8l7m6n5o4p3q2r1s0t9u8v7w6x5y4z3",
+        "dockerImageReference": "image-registry.openshift-image-registry.svc:5000/default/frontend@sha256:9a8b7c6d5e4f3g2h1i0j9k8l7m6n5o4p3q2r1s0t9u8v7w6x5y4z3",
+        "dockerImageMetadata": {
+          "Created": "2023-05-10T16:07:22Z",
+          "Architecture": "amd64",
+          "Size": 265387904,
+          "Config": {
+            "User": "1001",
+            "ExposedPorts": {
+              "8080/tcp": {}
+            },
+            "Env": [
+              "PATH=/opt/app-root/src/node_modules/.bin:/opt/app-root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+              "NODE_VERSION=16.20.0"
+            ],
+            "WorkingDir": "/opt/app-root/src",
+            "Labels": {
+              "io.k8s.description": "Frontend application",
+              "io.openshift.build.commit.id": "a1b2c3d4e5f6",
+              "io.openshift.build.source-location": "https://github.com/example/frontend-app.git"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "imageStreamImports": [
+    {
+      "kind": "ImageStreamImport",
+      "apiVersion": "image.openshift.io/v1",
+      "metadata": {
+        "name": "nodejs-import",
+        "namespace": "default",
+        "uid": "8h9i0j1k-2l3m-4n5o-6p7q-8r9s0t1u2v3w",
+        "creationTimestamp": "2023-05-10T15:22:32Z",
+        "labels": {
+          "app": "nodejs"
+        }
+      },
+      "spec": {
+        "import": true,
+        "images": [
+          {
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/ubi8/nodejs-16:latest"
+            },
+            "to": {
+              "name": "16"
+            },
+            "importPolicy": {
+              "insecure": false
+            }
+          }
+        ]
+      },
+      "status": {
+        "import": {
+          "metadata": {
+            "name": "nodejs",
+            "creationTimestamp": "2023-05-10T15:22:32Z"
+          }
+        },
+        "images": [
+          {
+            "status": {
+              "status": "Success"
+            },
+            "image": {
+              "metadata": {
+                "name": "sha256:7c5abcdef123456789abcdef123456789abcdef123456789abcdef123456789ab"
+              },
+              "dockerImageReference": "registry.access.redhat.com/ubi8/nodejs-16@sha256:7c5abcdef123456789abcdef123456789abcdef123456789abcdef123456789ab"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "templates": [
+    {
+      "kind": "Template",
+      "apiVersion": "template.openshift.io/v1",
+      "metadata": {
+        "name": "nodejs-example",
+        "namespace": "openshift",
+        "uid": "9i0j1k2l-3m4n-5o6p-7q8r-9s0t1u2v3w4x",
+        "creationTimestamp": "2023-05-10T15:20:32Z",
+        "annotations": {
+          "description": "An example Node.js application",
+          "openshift.io/display-name": "Node.js Example",
+          "tags": "nodejs,web"
+        },
+        "labels": {
+          "template": "nodejs-example"
+        }
+      },
+      "objects": [
+        {
+          "kind": "Service",
+          "apiVersion": "v1",
+          "metadata": {
+            "name": "${NAME}",
+            "annotations": {
+              "description": "Exposes and load balances the application pods"
+            }
+          },
+          "spec": {
+            "ports": [
+              {
+                "name": "web",
+                "port": 8080,
+                "targetPort": 8080
+              }
+            ],
+            "selector": {
+              "name": "${NAME}"
+            }
+          }
+        },
+        {
+          "kind": "Route",
+          "apiVersion": "route.openshift.io/v1",
+          "metadata": {
+            "name": "${NAME}"
+          },
+          "spec": {
+            "host": "${APPLICATION_DOMAIN}",
+            "to": {
+              "kind": "Service",
+              "name": "${NAME}"
+            },
+            "tls": {
+              "termination": "edge",
+              "insecureEdgeTerminationPolicy": "Redirect"
+            }
+          }
+        }
+      ],
+      "parameters": [
+        {
+          "name": "NAME",
+          "displayName": "Name",
+          "description": "The name assigned to all of the frontend objects defined in this template.",
+          "required": true,
+          "value": "nodejs-example"
+        },
+        {
+          "name": "APPLICATION_DOMAIN",
+          "displayName": "Application Hostname",
+          "description": "The exposed hostname that will route to the Node.js service.",
+          "value": ""
+        },
+        {
+          "name": "GITHUB_WEBHOOK_SECRET",
+          "displayName": "GitHub Webhook Secret",
+          "description": "A secret string used to configure the GitHub webhook.",
+          "generate": "expression",
+          "from": "[a-zA-Z0-9]{40}"
+        }
+      ]
+    }
+  ],
+  "securityContextConstraints": [
+    {
+      "kind": "SecurityContextConstraints",
+      "apiVersion": "security.openshift.io/v1",
+      "metadata": {
+        "name": "restricted",
+        "uid": "0j1k2l3m-4n5o-6p7q-8r9s-0t1u2v3w4x5y",
+        "creationTimestamp": "2023-05-10T15:19:32Z"
+      },
+      "priority": 10,
+      "allowPrivilegedContainer": false,
+      "defaultAddCapabilities": null,
+      "requiredDropCapabilities": [
+        "ALL"
+      ],
+      "allowedCapabilities": null,
+      "allowHostNetwork": false,
+      "allowHostPorts": false,
+      "allowHostPID": false,
+      "allowHostIPC": false,
+      "seLinuxContext": {
+        "type": "MustRunAs"
+      },
+      "runAsUser": {
+        "type": "MustRunAsRange"
+      },
+      "fsGroup": {
+        "type": "MustRunAs"
+      },
+      "supplementalGroups": {
+        "type": "RunAsAny"
+      },
+      "readOnlyRootFilesystem": false,
+      "users": [],
+      "groups": [
+        "system:authenticated"
+      ],
+      "volumes": [
+        "configMap",
+        "downwardAPI",
+        "emptyDir",
+        "persistentVolumeClaim",
+        "projected",
+        "secret"
+      ]
+    }
+  ],
+  "clusterOperators": [
+    {
+      "kind": "ClusterOperator",
+      "apiVersion": "config.openshift.io/v1",
+      "metadata": {
+        "name": "console",
+        "uid": "1k2l3m4n-5o6p-7q8r-9s0t-1u2v3w4x5y6z",
+        "creationTimestamp": "2023-05-10T15:18:32Z"
+      },
+      "spec": {},
+      "status": {
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastTransitionTime": "2023-05-10T15:20:45Z",
+            "message": "Console is available at https://console-openshift-console.apps.cluster-example.openshift-domain.com"
+          },
+          {
+            "type": "Degraded",
+            "status": "False",
+            "lastTransitionTime": "2023-05-10T15:20:45Z",
+            "message": ""
+          },
+          {
+            "type": "Progressing",
+            "status": "False",
+            "lastTransitionTime": "2023-05-10T15:20:45Z",
+            "message": ""
+          }
+        ],
+        "versions": [
+          {
+            "name": "operator",
+            "version": "4.12.8"
+          },
+          {
+            "name": "console",
+            "version": "4.12.8"
+          },
+          {
+            "name": "console-authentication",
+            "version": "4.12.8"
+          }
+        ],
+        "relatedObjects": [
+          {
+            "group": "operator.openshift.io",
+            "resource": "consoles",
+            "name": "cluster",
+            "namespace": ""
+          },
+          {
+            "group": "",
+            "resource": "namespaces",
+            "name": "openshift-console",
+            "namespace": ""
+          },
+          {
+            "group": "",
+            "resource": "namespaces",
+            "name": "openshift-console-operator",
+            "namespace": ""
+          }
+        ]
+      }
+    },
+    {
+      "kind": "ClusterOperator",
+      "apiVersion": "config.openshift.io/v1",
+      "metadata": {
+        "name": "network",
+        "uid": "2l3m4n5o-6p7q-8r9s-0t1u-2v3w4x5y6z7a",
+        "creationTimestamp": "2023-05-10T15:18:32Z"
+      },
+      "spec": {},
+      "status": {
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastTransitionTime": "2023-05-10T15:21:15Z",
+            "message": "All network components are available"
+          },
+          {
+            "type": "Degraded",
+            "status": "False",
+            "lastTransitionTime": "2023-05-10T15:21:15Z",
+            "message": ""
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastTransitionTime": "2023-05-10T15:21:15Z",
+            "message": "Rolling out OpenShift SDN update"
+          }
+        ],
+        "versions": [
+          {
+            "name": "operator",
+            "version": "4.12.8"
+          },
+          {
+            "name": "openshift-sdn",
+            "version": "4.12.8"
+          }
+        ],
+        "relatedObjects": [
+          {
+            "group": "operator.openshift.io",
+            "resource": "networks",
+            "name": "cluster",
+            "namespace": ""
+          },
+          {
+            "group": "",
+            "resource": "namespaces",
+            "name": "openshift-network-operator",
+            "namespace": ""
+          }
+        ]
+      }
+    }
+  ],
+  "clusterVersions": [
+    {
+      "kind": "ClusterVersion",
+      "apiVersion": "config.openshift.io/v1",
+      "metadata": {
+        "name": "version",
+        "uid": "3m4n5o6p-7q8r-9s0t-1u2v-3w4x5y6z7a8b",
+        "creationTimestamp": "2023-05-10T15:15:32Z"
+      },
+      "spec": {
+        "channel": "stable-4.12",
+        "clusterID": "c76e9282-c78b-4f88-a8e5-da248c075e7b"
+      },
+      "status": {
+        "desired": {
+          "version": "4.12.8",
+          "image": "quay.io/openshift-release-dev/ocp-release@sha256:3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q",
+          "channels": [
+            "stable-4.12",
+            "fast-4.12",
+            "candidate-4.12"
+          ]
+        },
+        "history": [
+          {
+            "state": "Completed",
+            "startedTime": "2023-05-10T15:15:32Z",
+            "completionTime": "2023-05-10T15:45:32Z",
+            "version": "4.12.8",
+            "image": "quay.io/openshift-release-dev/ocp-release@sha256:3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q",
+            "verified": true
+          },
+          {
+            "state": "Completed",
+            "startedTime": "2023-04-15T10:20:32Z",
+            "completionTime": "2023-04-15T11:05:32Z",
+            "version": "4.12.7",
+            "image": "quay.io/openshift-release-dev/ocp-release@sha256:4m5n6o7p8q9r0s1t2u3v4w5x6y7z8a9b0c1d2e3f4g5h6i7j8k9l0m1n2o3p4q5r",
+            "verified": true
+          }
+        ],
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastTransitionTime": "2023-05-10T15:45:32Z",
+            "message": "Done applying 4.12.8"
+          },
+          {
+            "type": "Progressing",
+            "status": "False",
+            "lastTransitionTime": "2023-05-10T15:45:32Z",
+            "message": "Cluster version is 4.12.8"
+          },
+          {
+            "type": "Failing",
+            "status": "False",
+            "lastTransitionTime": "2023-05-10T15:15:32Z",
+            "message": ""
+          },
+          {
+            "type": "RetrievedUpdates",
+            "status": "True",
+            "lastTransitionTime": "2023-05-10T16:15:32Z",
+            "message": "Successfully retrieved updates"
+          }
+        ],
+        "availableUpdates": [
+          {
+            "version": "4.12.9",
+            "force": false,
+            "channels": [
+              "stable-4.12",
+              "fast-4.12",
+              "candidate-4.12"
+            ]
+          },
+          {
+            "version": "4.12.10",
+            "force": false,
+            "channels": [
+              "fast-4.12",
+              "candidate-4.12"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "machineConfigs": [
+    {
+      "kind": "MachineConfig",
+      "apiVersion": "machineconfiguration.openshift.io/v1",
+      "metadata": {
+        "name": "worker-chrony-configuration",
+        "uid": "4n5o6p7q-8r9s-0t1u-2v3w-4x5y6z7a8b9c",
+        "creationTimestamp": "2023-05-10T15:17:32Z",
+        "labels": {
+          "machineconfiguration.openshift.io/role": "worker"
+        },
+        "generation": 1
+      },
+      "spec": {
+        "osImageURL": "registry.access.redhat.com/ubi8/ubi:8.6",
+        "config": {
+          "ignition": {
+            "version": "3.2.0"
+          },
+          "storage": {
+            "files": [
+              {
+                "path": "/etc/chrony.conf",
+                "mode": 420,
+                "contents": {
+                  "source": "data:,server%20ntp.example.com%20iburst%0Adriftfile%20%2Fvar%2Flib%2Fchrony%2Fdrift%0Amakestep%201.0%203%0Artcsync"
+                }
+              }
+            ]
+          },
+          "systemd": {
+            "units": [
+              {
+                "name": "chronyd.service",
+                "enabled": true
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "machineConfigPools": [
+    {
+      "kind": "MachineConfigPool",
+      "apiVersion": "machineconfiguration.openshift.io/v1",
+      "metadata": {
+        "name": "worker",
+        "uid": "5o6p7q8r-9s0t-1u2v-3w4x-5y6z7a8b9c0d",
+        "creationTimestamp": "2023-05-10T15:16:32Z",
+        "labels": {
+          "machineconfiguration.openshift.io/mco-built-in": ""
+        }
+      },
+      "spec": {
+        "machineConfigSelector": {
+          "matchLabels": {
+            "machineconfiguration.openshift.io/role": "worker"
+          }
+        },
+        "nodeSelector": {
+          "matchLabels": {
+            "node-role.kubernetes.io/worker": ""
+          }
+        },
+        "configuration": {
+          "name": "rendered-worker-xyz123",
+          "source": [
+            {
+              "name": "worker-chrony-configuration"
+            }
+          ]
+        }
+      },
+      "status": {
+        "configuration": {
+          "name": "rendered-worker-xyz123",
+          "source": [
+            {
+              "name": "worker-chrony-configuration"
+            }
+          ]
+        },
+        "machineCount": 3,
+        "updatedMachineCount": 3,
+        "readyMachineCount": 3,
+        "unavailableMachineCount": 0,
+        "degradedMachineCount": 0,
+        "conditions": [
+          {
+            "type": "Updated",
+            "status": "True",
+            "lastTransitionTime": "2023-05-10T15:30:32Z",
+            "message": "All nodes are updated with rendered-worker-xyz123"
+          },
+          {
+            "type": "Updating",
+            "status": "False",
+            "lastTransitionTime": "2023-05-10T15:30:32Z",
+            "message": ""
+          },
+          {
+            "type": "Degraded",
+            "status": "False",
+            "lastTransitionTime": "2023-05-10T15:16:32Z",
+            "message": ""
+          }
+        ]
+      }
+    }
+  ],
+  "operatorGroups": [
+    {
+      "kind": "OperatorGroup",
+      "apiVersion": "operators.coreos.com/v1",
+      "metadata": {
+        "name": "monitoring-operatorgroup",
+        "namespace": "monitoring",
+        "uid": "6p7q8r9s-0t1u-2v3w-4x5y-6z7a8b9c0d1e",
+        "creationTimestamp": "2023-05-10T15:35:32Z",
+        "labels": {
+          "app": "monitoring"
+        },
+        "annotations": {
+          "olm.providedAPIs": "Alertmanager.v1.monitoring.coreos.com,Prometheus.v1.monitoring.coreos.com"
+        }
+      },
+      "spec": {
+        "targetNamespaces": [
+          "monitoring"
+        ]
+      },
+      "status": {
+        "namespaces": [
+          "monitoring"
+        ],
+        "lastUpdated": "2023-05-10T15:35:42Z"
+      }
+    }
+  ],
+  "subscriptions": [
+    {
+      "kind": "Subscription",
+      "apiVersion": "operators.coreos.com/v1alpha1",
+      "metadata": {
+        "name": "prometheus-operator",
+        "namespace": "monitoring",
+        "uid": "7q8r9s0t-1u2v-3w4x-5y6z-7a8b9c0d1e2f",
+        "creationTimestamp": "2023-05-10T15:36:32Z",
+        "labels": {
+          "app": "monitoring"
+        }
+      },
+      "spec": {
+        "channel": "beta",
+        "name": "prometheus",
+        "source": "redhat-operators",
+        "sourceNamespace": "openshift-marketplace",
+        "installPlanApproval": "Automatic",
+        "startingCSV": "prometheusoperator.0.47.0"
+      },
+      "status": {
+        "installedCSV": "prometheusoperator.0.47.0",
+        "installPlanRef": {
+          "name": "install-xyz123",
+          "namespace": "monitoring",
+          "kind": "InstallPlan"
+        },
+        "state": "AtLatestKnown",
+        "conditions": [
+          {
+            "type": "InstallPlanPending",
+            "status": "False",
+            "lastTransitionTime": "2023-05-10T15:38:32Z"
+          },
+          {
+            "type": "CatalogSourcesUnhealthy",
+            "status": "False",
+            "lastTransitionTime": "2023-05-10T15:37:32Z",
+            "reason": "AllCatalogSourcesHealthy"
+          }
+        ]
+      }
+    }
+  ],
+  "installPlans": [
+    {
+      "kind": "InstallPlan",
+      "apiVersion": "operators.coreos.com/v1alpha1",
+      "metadata": {
+        "name": "install-xyz123",
+        "namespace": "monitoring",
+        "uid": "8r9s0t1u-2v3w-4x5y-6z7a-8b9c0d1e2f3g",
+        "creationTimestamp": "2023-05-10T15:37:32Z",
+        "labels": {
+          "app": "monitoring"
+        }
+      },
+      "spec": {
+        "clusterServiceVersionNames": [
+          "prometheusoperator.0.47.0"
+        ],
+        "approval": "Automatic",
+        "approved": true
+      },
+      "status": {
+        "phase": "Complete",
+        "conditions": [
+          {
+            "type": "Installed",
+            "status": "True",
+            "lastTransitionTime": "2023-05-10T15:40:32Z",
+            "message": "InstallPlan completed successfully"
+          }
+        ],
+        "plan": [
+          {
+            "resource": {
+              "name": "prometheusoperator.0.47.0",
+              "kind": "ClusterServiceVersion"
+            },
+            "status": "Created"
+          },
+          {
+            "resource": {
+              "name": "prometheuses.monitoring.coreos.com",
+              "kind": "CustomResourceDefinition"
+            },
+            "status": "Created"
+          },
+          {
+            "resource": {
+              "name": "alertmanagers.monitoring.coreos.com",
+              "kind": "CustomResourceDefinition"
+            },
+            "status": "Created"
+          }
+        ]
+      }
+    }
+  ],
+  "consoleLinks": [
+    {
+      "kind": "ConsoleLink",
+      "apiVersion": "console.openshift.io/v1",
+      "metadata": {
+        "name": "docs-link",
+        "uid": "9s0t1u2v-3w4x-5y6z-7a8b-9c0d1e2f3g4h",
+        "creationTimestamp": "2023-05-10T15:42:32Z",
+        "labels": {
+          "app": "console"
+        }
+      },
+      "spec": {
+        "text": "Documentation",
+        "href": "https://docs.example.com",
+        "location": "HelpMenu"
+      }
+    }
+  ],
+  "consoleNotifications": [
+    {
+      "kind": "ConsoleNotification",
+      "apiVersion": "console.openshift.io/v1",
+      "metadata": {
+        "name": "maintenance-notification",
+        "uid": "0t1u2v3w-4x5y-6z7a-8b9c-0d1e2f3g4h5i",
+        "creationTimestamp": "2023-05-10T15:43:32Z",
+        "labels": {
+          "app": "console"
+        }
+      },
+      "spec": {
+        "text": "Scheduled maintenance will occur on June 10 from 2:00 AM to 4:00 AM UTC",
+        "location": "BannerTop",
+        "color": "#E8A004"
+      }
+    }
+  ],
+  "consoleCLIDownloads": [
+    {
+      "kind": "ConsoleCLIDownload",
+      "apiVersion": "console.openshift.io/v1",
+      "metadata": {
+        "name": "custom-cli",
+        "uid": "1u2v3w4x-5y6z-7a8b-9c0d-1e2f3g4h5i6j",
+        "creationTimestamp": "2023-05-10T15:44:32Z",
+        "labels": {
+          "app": "console"
+        }
+      },
+      "spec": {
+        "displayName": "Custom CLI Tool",
+        "description": "Command line tool for interacting with the custom service",
+        "links": [
+          {
+            "text": "Download for Linux",
+            "href": "https://example.com/download/linux"
+          },
+          {
+            "text": "Download for Windows",
+            "href": "https://example.com/download/windows"
+          },
+          {
+            "text": "Download for macOS",
+            "href": "https://example.com/download/macos"
+          }
+        ]
+      }
+    }
+  ],
+  "oAuthClients": [
+    {
+      "kind": "OAuthClient",
+      "apiVersion": "oauth.openshift.io/v1",
+      "metadata": {
+        "name": "example-oauth-client",
+        "uid": "2v3w4x5y-6z7a-8b9c-0d1e-2f3g4h5i6j7k",
+        "creationTimestamp": "2023-05-10T15:45:32Z",
+        "labels": {
+          "app": "auth"
+        }
+      },
+      "secret": "a1b2c3d4e5f6g7h8i9j0",
+      "redirectURIs": [
+        "https://app.example.com/oauth/callback",
+        "https://app.example.org/oauth/callback"
+      ],
+      "grantMethod": "auto",
+      "scopeRestrictions": [
+        {
+          "literals": [
+            "user:info",
+            "user:check-access"
+          ]
+        }
+      ]
+    }
+  ],
+  "oAuthAccessTokens": [
+    {
+      "kind": "OAuthAccessToken",
+      "apiVersion": "oauth.openshift.io/v1",
+      "metadata": {
+        "name": "sha256~ABC123def456ghi789jkl012mno345pqr678stu901",
+        "uid": "3w4x5y6z-7a8b-9c0d-1e2f-3g4h5i6j7k8l",
+        "creationTimestamp": "2023-05-10T15:46:32Z",
+        "labels": {
+          "app": "auth"
+        }
+      },
+      "clientName": "example-oauth-client",
+      "userName": "johndoe",
+      "userUID": "4x5y6z7a-8b9c-0d1e-2f3g-4h5i6j7k8l9m",
+      "scopes": [
+        "user:info",
+        "user:check-access"
+      ],
+      "redirectURI": "https://app.example.com/oauth/callback",
+      "expiresIn": 86400
+    }
+  ],
+  "oAuthAuthorizeTokens": [
+    {
+      "kind": "OAuthAuthorizeToken",
+      "apiVersion": "oauth.openshift.io/v1",
+      "metadata": {
+        "name": "auth-xyz12345",
+        "uid": "5y6z7a8b-9c0d-1e2f-3g4h-5i6j7k8l9m0n",
+        "creationTimestamp": "2023-05-10T15:47:32Z",
+        "labels": {
+          "app": "auth"
+        }
+      },
+      "clientName": "example-oauth-client",
+      "userName": "janedoe",
+      "userUID": "6z7a8b9c-0d1e-2f3g-4h5i-6j7k8l9m0n1o",
+      "scopes": [
+        "user:info"
+      ],
+      "redirectURI": "https://app.example.org/oauth/callback",
+      "expiresIn": 300
+    }
+  ],
+  "ingressControllers": [
+    {
+      "kind": "IngressController",
+      "apiVersion": "operator.openshift.io/v1",
+      "metadata": {
+        "name": "default",
+        "namespace": "openshift-ingress-operator",
+        "uid": "7a8b9c0d-1e2f-3g4h-5i6j-7k8l9m0n1o2p",
+        "creationTimestamp": "2023-05-10T15:18:32Z",
+        "labels": {
+          "app": "ingress-controller"
+        }
+      },
+      "spec": {
+        "domain": "apps.cluster-example.openshift-domain.com",
+        "endpointPublishingStrategy": {
+          "type": "LoadBalancerService",
+          "loadBalancer": {
+            "scope": "External"
+          }
+        },
+        "replicas": 2
+      },
+      "status": {
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastTransitionTime": "2023-05-10T15:22:32Z",
+            "message": "The ingress controller deployment is available."
+          },
+          {
+            "type": "Progressing",
+            "status": "False",
+            "lastTransitionTime": "2023-05-10T15:22:32Z",
+            "message": ""
+          },
+          {
+            "type": "Degraded",
+            "status": "False",
+            "lastTransitionTime": "2023-05-10T15:22:32Z",
+            "message": ""
+          }
+        ],
+        "availableReplicas": 2,
+        "selector": "ingresscontroller.operator.openshift.io/deployment-ingresscontroller=default"
+      }
+    }
+  ],
+  "dnses": [
+    {
+      "kind": "DNS",
+      "apiVersion": "config.openshift.io/v1",
+      "metadata": {
+        "name": "cluster",
+        "uid": "8b9c0d1e-2f3g-4h5i-6j7k-8l9m0n1o2p3q",
+        "creationTimestamp": "2023-05-10T15:17:32Z",
+        "labels": {
+          "app": "dns-operator"
+        }
+      },
+      "spec": {
+        "baseDomain": "openshift-domain.com",
+        "privateZone": {
+          "id": "Z2ABCDEFGHIJKL"
+        },
+        "publicZones": [
+          {
+            "id": "Z3ABCDEFGHIJKM",
+            "region": "us-east-1"
+          }
+        ]
+      },
+      "status": {
+        "clusterDomain": "cluster-example.openshift-domain.com"
+      }
+    }
+  ]
+}

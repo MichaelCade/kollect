@@ -26,6 +26,7 @@ import (
 	"github.com/michaelcade/kollect/pkg/docker"
 	"github.com/michaelcade/kollect/pkg/gcp"
 	"github.com/michaelcade/kollect/pkg/kollect"
+	"github.com/michaelcade/kollect/pkg/openshift"
 	"github.com/michaelcade/kollect/pkg/snapshots"
 	"github.com/michaelcade/kollect/pkg/terraform"
 	"github.com/michaelcade/kollect/pkg/vault"
@@ -49,7 +50,7 @@ func main() {
 	browser := flag.Bool("browser", false, "Open the web interface in a browser (can be used alone to import data)")
 	dockerHost := flag.String("docker-host", "", "Docker host (e.g. unix:///var/run/docker.sock or tcp://host:2375)")
 	output := flag.String("output", "", "Output file to save the collected data")
-	inventoryType := flag.String("inventory", "", "Type of inventory to collect (kubernetes/aws/azure/gcp/terraform/vault/docker/veeam)")
+	inventoryType := flag.String("inventory", "", "Type of inventory to collect (kubernetes/red hat openshift/aws/azure/gcp/terraform/vault/docker/veeam)")
 	baseURL := flag.String("veeam-url", "", "Veeam server URL")
 	username := flag.String("veeam-username", "", "Veeam username")
 	password := flag.String("veeam-password", "", "Veeam password")
@@ -119,7 +120,7 @@ func main() {
 
 	if *inventoryType == "" && !*snapshotFlag && !(*browser && *output == "") {
 		fmt.Println("Error: You must specify an inventory type with --inventory")
-		fmt.Println("Available inventory types: kubernetes, aws, azure, gcp, veeam, terraform, vault, docker")
+		fmt.Println("Available inventory types: kubernetes, openshift, aws, azure, gcp, veeam, terraform, vault, docker")
 		fmt.Println("Or use --browser alone to start web interface for importing data")
 		fmt.Println("Or use --snapshots to collect snapshot data from all available platforms")
 		os.Exit(1)
@@ -140,6 +141,12 @@ func main() {
 			data, err = collectData(ctx, *storageOnly, *kubeconfig, *kubeContext)
 		} else {
 			data, err = collectData(ctx, *storageOnly, *kubeconfig)
+		}
+	case "openshift":
+		if *kubeContext != "" {
+			data, err = openshift.CollectOpenShiftData(ctx, *kubeconfig, *kubeContext)
+		} else {
+			data, err = openshift.CollectOpenShiftData(ctx, *kubeconfig)
 		}
 	case "terraform":
 		if *terraformStateFile != "" {
