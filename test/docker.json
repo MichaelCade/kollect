@@ -1,0 +1,527 @@
+{
+  "info": {
+    "ID": "9284da6a-c718-407d-aa02-e2bdcc445be6",
+    "Name": "docker-desktop",
+    "DockerVersion": "24.0.6",
+    "OS": "Docker Desktop",
+    "OSType": "linux",
+    "Architecture": "aarch64",
+    "KernelVersion": "6.4.16-linuxkit",
+    "Containers": "12",
+    "ContainersRunning": "5",
+    "ContainersPaused": "0",
+    "ContainersStopped": "7",
+    "Images": "32"
+  },
+  "containers": [
+    {
+      "id": "abc123def456gh789ijklmnop",
+      "name": "web-server",
+      "image": "nginx:latest",
+      "imageId": "sha256:61395b4c586da2b9b3b7ca903ea6a448e6783dfdd7f768ff2c1a0f3360aaba99",
+      "command": "/docker-entrypoint.sh nginx -g 'daemon off;'",
+      "created": "2023-10-15T14:32:00Z",
+      "state": "running",
+      "status": "Up 2 days",
+      "ports": [
+        {
+          "IP": "0.0.0.0",
+          "PrivatePort": 80,
+          "PublicPort": 8080,
+          "Type": "tcp"
+        },
+        {
+          "IP": "0.0.0.0",
+          "PrivatePort": 443,
+          "PublicPort": 8443,
+          "Type": "tcp"
+        }
+      ],
+      "labels": {
+        "maintainer": "NGINX Docker Maintainers",
+        "app": "web",
+        "environment": "development"
+      },
+      "hostConfig": {
+        "networkMode": "bridge",
+        "privileged": false,
+        "restartPolicy": "always"
+      },
+      "mounts": [
+        {
+          "type": "volume",
+          "source": "nginx-data",
+          "destination": "/usr/share/nginx/html",
+          "mode": "rw",
+          "rw": true
+        },
+        {
+          "type": "bind",
+          "source": "/var/log/nginx",
+          "destination": "/var/log/nginx",
+          "mode": "rw",
+          "rw": true
+        }
+      ],
+      "networks": ["bridge", "frontend"]
+    },
+    {
+      "id": "def456ghi789jklmnopqrstuv",
+      "name": "api-server",
+      "image": "node:18-alpine",
+      "imageId": "sha256:3845c710e604525c15e22e10cc7a8104541cf26d669ddb9e368845470195cf7c",
+      "command": "node server.js",
+      "created": "2023-10-14T09:12:00Z",
+      "state": "running",
+      "status": "Up 3 days",
+      "ports": [
+        {
+          "IP": "0.0.0.0",
+          "PrivatePort": 3000,
+          "PublicPort": 3000,
+          "Type": "tcp"
+        }
+      ],
+      "labels": {
+        "app": "api",
+        "environment": "development"
+      },
+      "hostConfig": {
+        "networkMode": "bridge",
+        "privileged": false,
+        "restartPolicy": "always"
+      },
+      "mounts": [
+        {
+          "type": "bind",
+          "source": "/app/code",
+          "destination": "/app",
+          "mode": "rw",
+          "rw": true
+        }
+      ],
+      "networks": ["bridge", "backend"]
+    },
+    {
+      "id": "ghi789jklmnopqrstuvwxyzab",
+      "name": "database",
+      "image": "postgres:14",
+      "imageId": "sha256:5a411d6f9a81305b605da036b8c0c0a82af68ce23de5322e7c245d8f3a720e43",
+      "command": "postgres",
+      "created": "2023-10-13T11:20:00Z",
+      "state": "running",
+      "status": "Up 4 days",
+      "ports": [
+        {
+          "IP": "0.0.0.0",
+          "PrivatePort": 5432,
+          "PublicPort": 5432,
+          "Type": "tcp"
+        }
+      ],
+      "labels": {
+        "app": "database",
+        "environment": "development"
+      },
+      "hostConfig": {
+        "networkMode": "bridge",
+        "privileged": false,
+        "restartPolicy": "always"
+      },
+      "mounts": [
+        {
+          "type": "volume",
+          "source": "pgdata",
+          "destination": "/var/lib/postgresql/data",
+          "mode": "rw",
+          "rw": true
+        }
+      ],
+      "networks": ["bridge", "backend"]
+    },
+    {
+      "id": "jkl012mnopqrstuvwxyzabcde",
+      "name": "redis-cache",
+      "image": "redis:alpine",
+      "imageId": "sha256:98c34db913e5599b2a4c33b5a43901ea39bcd94a7717822ea93dd9b2592932b8",
+      "command": "redis-server",
+      "created": "2023-10-14T14:45:00Z",
+      "state": "running",
+      "status": "Up 3 days",
+      "ports": [
+        {
+          "IP": "0.0.0.0",
+          "PrivatePort": 6379,
+          "PublicPort": 6379,
+          "Type": "tcp"
+        }
+      ],
+      "labels": {
+        "app": "cache",
+        "environment": "development"
+      },
+      "hostConfig": {
+        "networkMode": "bridge",
+        "privileged": false,
+        "restartPolicy": "always"
+      },
+      "mounts": [
+        {
+          "type": "volume",
+          "source": "redis-data",
+          "destination": "/data",
+          "mode": "rw",
+          "rw": true
+        }
+      ],
+      "networks": ["bridge", "backend"]
+    },
+    {
+      "id": "mnopqrstuvwxyz123456789ab",
+      "name": "monitoring",
+      "image": "prom/prometheus:latest",
+      "imageId": "sha256:d482edc35b06c96bca441afd5854aa4c91778d6a104d355e368f03bf73d1fe2d",
+      "command": "/bin/prometheus --config.file=/etc/prometheus/prometheus.yml",
+      "created": "2023-10-15T08:30:00Z",
+      "state": "running",
+      "status": "Up 2 days",
+      "ports": [
+        {
+          "IP": "0.0.0.0",
+          "PrivatePort": 9090,
+          "PublicPort": 9090,
+          "Type": "tcp"
+        }
+      ],
+      "labels": {
+        "app": "monitoring",
+        "environment": "development"
+      },
+      "hostConfig": {
+        "networkMode": "bridge",
+        "privileged": false,
+        "restartPolicy": "always"
+      },
+      "mounts": [
+        {
+          "type": "bind",
+          "source": "/etc/prometheus/prometheus.yml",
+          "destination": "/etc/prometheus/prometheus.yml",
+          "mode": "ro",
+          "rw": false
+        }
+      ],
+      "networks": ["bridge"]
+    },
+    {
+      "id": "pqrstuvwxyz123456789abcde",
+      "name": "backup-service",
+      "image": "alpine:latest",
+      "imageId": "sha256:8ca4688f4f356596b5cbb9519e403c3b2a40a0b98367215925272e969c5c5c58",
+      "command": "/bin/sh -c 'echo \"Backup service stopped\"'",
+      "created": "2023-10-16T02:15:00Z",
+      "state": "exited",
+      "status": "Exited (0) 1 day ago",
+      "ports": [],
+      "labels": {
+        "app": "backup",
+        "environment": "development"
+      },
+      "hostConfig": {
+        "networkMode": "bridge",
+        "privileged": false,
+        "restartPolicy": "no"
+      },
+      "mounts": [
+        {
+          "type": "bind",
+          "source": "/backup",
+          "destination": "/backup",
+          "mode": "rw",
+          "rw": true
+        }
+      ],
+      "networks": ["bridge"]
+    },
+    {
+      "id": "stuvwxyz123456789abcdefgh",
+      "name": "maintenance",
+      "image": "ubuntu:latest",
+      "imageId": "sha256:dca176c9663a7ba4c1f0e710986f5a25e672842963d95b960191e2d9f7185ebe",
+      "command": "/bin/bash -c 'echo \"Maintenance container stopped\"'",
+      "created": "2023-10-16T06:20:00Z",
+      "state": "exited",
+      "status": "Exited (0) 12 hours ago",
+      "ports": [],
+      "labels": {
+        "app": "maintenance",
+        "environment": "development"
+      },
+      "hostConfig": {
+        "networkMode": "bridge",
+        "privileged": true,
+        "restartPolicy": "no"
+      },
+      "mounts": [],
+      "networks": ["bridge"]
+    }
+  ],
+  "images": [
+    {
+      "id": "sha256:61395b4c586da2b9b3b7ca903ea6a448e6783dfdd7f768ff2c1a0f3360aaba99",
+      "repoTags": ["nginx:latest", "nginx:1.25"],
+      "repoDigests": ["nginx@sha256:4c0fdaa8b6341bfdeca5f18f7837462c80cff90527ee35ef185571e1c327beac"],
+      "created": "2023-09-25T14:10:00Z",
+      "size": 142015547,
+      "labels": {
+        "maintainer": "NGINX Docker Maintainers"
+      }
+    },
+    {
+      "id": "sha256:3845c710e604525c15e22e10cc7a8104541cf26d669ddb9e368845470195cf7c",
+      "repoTags": ["node:18-alpine", "node:18.18-alpine"],
+      "repoDigests": ["node@sha256:a1f9d027912b58a7c75be7716c97cfbc6d3099f3a97ed84aa490be1d7aeb8df0"],
+      "created": "2023-09-20T10:20:00Z",
+      "size": 179702753,
+      "labels": {}
+    },
+    {
+      "id": "sha256:5a411d6f9a81305b605da036b8c0c0a82af68ce23de5322e7c245d8f3a720e43",
+      "repoTags": ["postgres:14", "postgres:14.9"],
+      "repoDigests": ["postgres@sha256:5d26f152eaf3c88c5732006a12373a4d099aa6aaaf83e2d6a2dfcd8d56c91dd7"],
+      "created": "2023-09-18T08:30:00Z",
+      "size": 428751623,
+      "labels": {}
+    },
+    {
+      "id": "sha256:98c34db913e5599b2a4c33b5a43901ea39bcd94a7717822ea93dd9b2592932b8",
+      "repoTags": ["redis:alpine", "redis:7-alpine"],
+      "repoDigests": ["redis@sha256:0d3545b7e01be4b8ee9bfff8e0b442e7bac129526a8e21c103f21075f5a4536e"],
+      "created": "2023-09-22T12:15:00Z",
+      "size": 37748724,
+      "labels": {}
+    },
+    {
+      "id": "sha256:d482edc35b06c96bca441afd5854aa4c91778d6a104d355e368f03bf73d1fe2d",
+      "repoTags": ["prom/prometheus:latest", "prom/prometheus:v2.45.0"],
+      "repoDigests": ["prom/prometheus@sha256:731b8c4c924667ab95ec0c6568349a28bac2eafc4878daf42808d5df6fd0245a"],
+      "created": "2023-09-15T16:40:00Z",
+      "size": 242158743,
+      "labels": {}
+    },
+    {
+      "id": "sha256:8ca4688f4f356596b5cbb9519e403c3b2a40a0b98367215925272e969c5c5c58",
+      "repoTags": ["alpine:latest", "alpine:3.18"],
+      "repoDigests": ["alpine@sha256:eece025e432126ce23f223450a0326fbebde39cdf496a85d8c016293fc851978"],
+      "created": "2023-09-10T11:25:00Z",
+      "size": 7733036,
+      "labels": {}
+    },
+    {
+      "id": "sha256:dca176c9663a7ba4c1f0e710986f5a25e672842963d95b960191e2d9f7185ebe",
+      "repoTags": ["ubuntu:latest", "ubuntu:22.04"],
+      "repoDigests": ["ubuntu@sha256:2695e096adb0ee5a778fdbf2a238db914f7b430249068c6788df00584da84f1a"],
+      "created": "2023-09-08T09:50:00Z",
+      "size": 77841731,
+      "labels": {}
+    }
+  ],
+  "volumes": [
+    {
+      "name": "nginx-data",
+      "driver": "local",
+      "mountpoint": "/var/lib/docker/volumes/nginx-data/_data",
+      "labels": {
+        "app": "web",
+        "environment": "development"
+      },
+      "scope": "local",
+      "createdAt": "2023-10-15T14:30:00Z",
+      "status": {}
+    },
+    {
+      "name": "pgdata",
+      "driver": "local",
+      "mountpoint": "/var/lib/docker/volumes/pgdata/_data",
+      "labels": {
+        "app": "database",
+        "environment": "development"
+      },
+      "scope": "local",
+      "createdAt": "2023-10-13T11:15:00Z",
+      "status": {}
+    },
+    {
+      "name": "redis-data",
+      "driver": "local",
+      "mountpoint": "/var/lib/docker/volumes/redis-data/_data",
+      "labels": {
+        "app": "cache",
+        "environment": "development"
+      },
+      "scope": "local",
+      "createdAt": "2023-10-14T14:40:00Z",
+      "status": {}
+    }
+  ],
+  "networks": [
+    {
+      "id": "123456789abcdefghijklmnopqrstuvwxyz",
+      "name": "bridge",
+      "driver": "bridge",
+      "scope": "local",
+      "ipam": {
+        "driver": "default",
+        "options": {},
+        "config": [
+          {
+            "subnet": "172.17.0.0/16",
+            "gateway": "172.17.0.1"
+          }
+        ]
+      },
+      "internal": false,
+      "attachable": false,
+      "labels": {},
+      "containers": {
+        "abc123def456gh789ijklmnop": {
+          "name": "web-server",
+          "endpointId": "abc123def456gh789ijklmnop1234567890",
+          "macAddress": "02:42:ac:11:00:02",
+          "ipv4Address": "172.17.0.2/16",
+          "ipv6Address": ""
+        },
+        "def456ghi789jklmnopqrstuv": {
+          "name": "api-server",
+          "endpointId": "def456ghi789jklmnopqrstuv1234567890",
+          "macAddress": "02:42:ac:11:00:03",
+          "ipv4Address": "172.17.0.3/16",
+          "ipv6Address": ""
+        },
+        "ghi789jklmnopqrstuvwxyzab": {
+          "name": "database",
+          "endpointId": "ghi789jklmnopqrstuvwxyzab1234567890",
+          "macAddress": "02:42:ac:11:00:04",
+          "ipv4Address": "172.17.0.4/16",
+          "ipv6Address": ""
+        }
+      }
+    },
+    {
+      "id": "abcdefghijklmnopqrstuvwxyz123456789",
+      "name": "frontend",
+      "driver": "bridge",
+      "scope": "local",
+      "ipam": {
+        "driver": "default",
+        "options": {},
+        "config": [
+          {
+            "subnet": "172.18.0.0/16",
+            "gateway": "172.18.0.1"
+          }
+        ]
+      },
+      "internal": false,
+      "attachable": true,
+      "labels": {
+        "network-type": "frontend"
+      },
+      "containers": {
+        "abc123def456gh789ijklmnop": {
+          "name": "web-server",
+          "endpointId": "abc123def456gh789ijklmnop0987654321",
+          "macAddress": "02:42:ac:12:00:02",
+          "ipv4Address": "172.18.0.2/16",
+          "ipv6Address": ""
+        }
+      }
+    },
+    {
+      "id": "ghijklmnopqrstuvwxyz123456789abcdef",
+      "name": "backend",
+      "driver": "bridge",
+      "scope": "local",
+      "ipam": {
+        "driver": "default",
+        "options": {},
+        "config": [
+          {
+            "subnet": "172.19.0.0/16",
+            "gateway": "172.19.0.1"
+          }
+        ]
+      },
+      "internal": true,
+      "attachable": true,
+      "labels": {
+        "network-type": "backend"
+      },
+      "containers": {
+        "def456ghi789jklmnopqrstuv": {
+          "name": "api-server",
+          "endpointId": "def456ghi789jklmnopqrstuv0987654321",
+          "macAddress": "02:42:ac:13:00:02",
+          "ipv4Address": "172.19.0.2/16",
+          "ipv6Address": ""
+        },
+        "ghi789jklmnopqrstuvwxyzab": {
+          "name": "database",
+          "endpointId": "ghi789jklmnopqrstuvwxyzab0987654321",
+          "macAddress": "02:42:ac:13:00:03",
+          "ipv4Address": "172.19.0.3/16",
+          "ipv6Address": ""
+        },
+        "jkl012mnopqrstuvwxyzabcde": {
+          "name": "redis-cache",
+          "endpointId": "jkl012mnopqrstuvwxyzabcde0987654321",
+          "macAddress": "02:42:ac:13:00:04",
+          "ipv4Address": "172.19.0.4/16",
+          "ipv6Address": ""
+        }
+      }
+    }
+  ],
+  "stats": {
+    "abc123def456gh789ijklmnop": {
+      "cpuPercentage": 1.25,
+      "memoryPercentage": 3.42,
+      "memoryUsage": 68432000,
+      "memoryLimit": 2000000000,
+      "networkRx": 15483902,
+      "networkTx": 7245365
+    },
+    "def456ghi789jklmnopqrstuv": {
+      "cpuPercentage": 15.73,
+      "memoryPercentage": 8.84,
+      "memoryUsage": 176800000,
+      "memoryLimit": 2000000000,
+      "networkRx": 28736451,
+      "networkTx": 15324897
+    },
+    "ghi789jklmnopqrstuvwxyzab": {
+      "cpuPercentage": 8.32,
+      "memoryPercentage": 25.63,
+      "memoryUsage": 512600000,
+      "memoryLimit": 2000000000,
+      "networkRx": 9854321,
+      "networkTx": 32145687
+    },
+    "jkl012mnopqrstuvwxyzabcde": {
+      "cpuPercentage": 2.45,
+      "memoryPercentage": 4.18,
+      "memoryUsage": 83600000,
+      "memoryLimit": 2000000000,
+      "networkRx": 5421369,
+      "networkTx": 2165478
+    },
+    "mnopqrstuvwxyz123456789ab": {
+      "cpuPercentage": 5.78,
+      "memoryPercentage": 12.35,
+      "memoryUsage": 247000000,
+      "memoryLimit": 2000000000,
+      "networkRx": 18563214,
+      "networkTx": 8521463
+    }
+  }
+}

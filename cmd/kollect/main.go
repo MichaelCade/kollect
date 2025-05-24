@@ -23,6 +23,7 @@ import (
 	"github.com/michaelcade/kollect/pkg/aws"
 	"github.com/michaelcade/kollect/pkg/azure"
 	"github.com/michaelcade/kollect/pkg/cost"
+	"github.com/michaelcade/kollect/pkg/docker"
 	"github.com/michaelcade/kollect/pkg/gcp"
 	"github.com/michaelcade/kollect/pkg/kollect"
 	"github.com/michaelcade/kollect/pkg/snapshots"
@@ -46,8 +47,9 @@ func main() {
 	storageOnly := flag.Bool("storage", false, "Collect only storage-related objects (Kubernetes Only)")
 	kubeconfig := flag.String("kubeconfig", filepath.Join(os.Getenv("HOME"), ".kube", "config"), "Path to the kubeconfig file")
 	browser := flag.Bool("browser", false, "Open the web interface in a browser (can be used alone to import data)")
+	dockerHost := flag.String("docker-host", "", "Docker host (e.g. unix:///var/run/docker.sock or tcp://host:2375)")
 	output := flag.String("output", "", "Output file to save the collected data")
-	inventoryType := flag.String("inventory", "", "Type of inventory to collect (kubernetes/aws/azure/gcp/veeam/terraform)")
+	inventoryType := flag.String("inventory", "", "Type of inventory to collect (kubernetes/aws/azure/gcp/terraform/vault/docker/veeam)")
 	baseURL := flag.String("veeam-url", "", "Veeam server URL")
 	username := flag.String("veeam-username", "", "Veeam username")
 	password := flag.String("veeam-password", "", "Veeam password")
@@ -117,7 +119,7 @@ func main() {
 
 	if *inventoryType == "" && !*snapshotFlag && !(*browser && *output == "") {
 		fmt.Println("Error: You must specify an inventory type with --inventory")
-		fmt.Println("Available inventory types: kubernetes, aws, azure, gcp, veeam, terraform")
+		fmt.Println("Available inventory types: kubernetes, aws, azure, gcp, veeam, terraform, vault, docker")
 		fmt.Println("Or use --browser alone to start web interface for importing data")
 		fmt.Println("Or use --snapshots to collect snapshot data from all available platforms")
 		os.Exit(1)
@@ -197,6 +199,9 @@ func main() {
 		}
 
 		data, err = veeam.CollectVeeamData(ctx, *baseURL, *username, *password, true)
+	case "docker":
+		data, err = docker.CollectDockerData(ctx, *dockerHost)
+
 	default:
 		log.Fatalf("Invalid inventory type: %s", *inventoryType)
 	case "vault":
@@ -375,6 +380,9 @@ func checkCredentials(ctx context.Context) map[string]bool {
 
 	gcpHasCredentials, _ := gcp.CheckCredentials(ctx)
 	results["gcp"] = gcpHasCredentials
+
+	dockerHasCredentials, _ := docker.CheckCredentials(ctx, "")
+	results["docker"] = dockerHasCredentials
 
 	dataMutex.Lock()
 	veeamConnected := false
@@ -1231,6 +1239,75 @@ func startWebServer(initialData interface{}, openBrowser bool, baseURL, username
 		json.NewEncoder(w).Encode(map[string]string{
 			"status":  "success",
 			"message": "Successfully connected to GCP",
+		})
+	})
+	http.HandleFunc("/api/docker/test-connection", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var params struct {
+			Host string `json:"host"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		ctx := r.Context()
+
+		version, err := docker.TestConnection(ctx, params.Host)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Cannot connect to the Docker daemon at %s. Is the docker daemon running?", params.Host), http.StatusBadRequest)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"version": version,
+			"message": "Successfully connected to Docker",
+		})
+	})
+
+	http.HandleFunc("/api/docker/connect", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var params struct {
+			Host string `json:"host"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		ctx := r.Context()
+		hasCredentials, err := docker.CheckCredentials(ctx, params.Host)
+		if err != nil || !hasCredentials {
+			http.Error(w, fmt.Sprintf("Error connecting to Docker: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		dockerData, err := docker.CollectDockerData(ctx, params.Host)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Error collecting Docker data: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		dataMutex.Lock()
+		data = dockerData
+		dataMutex.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"status":  "success",
+			"message": "Successfully connected to Docker",
 		})
 	})
 
